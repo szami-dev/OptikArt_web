@@ -9,9 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@heroui/navbar": "^2.2.29",
+    "@heroui/system": "^2.4.27",
+    "@heroui/theme": "^2.4.26",
     "@prisma/client": "^7.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.35.0",
     "lucide-react": "^0.577.0",
     "mongoose": "^9.2.4",
     "next": "16.1.6",

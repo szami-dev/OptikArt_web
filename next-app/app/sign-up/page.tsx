@@ -9,11 +9,14 @@ import {FaGithub} from "react-icons/fa"
 import {FcGoogle} from "react-icons/fc"
 import { use, useState } from "react";
 import Link from "next/link";
+import { MainNav } from "../components/mainNav";
 
 
 export default function SignUp() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#1b0918] rounded-none">
+    <>
+      <MainNav />
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#1b0918] rounded-none">
         <Card className="md:h-auto w-full md:w-[400px] p-4 sm:p-8">
             <CardHeader>
                 <CardTitle className="text-center">Create an account</CardTitle>
@@ -72,5 +75,7 @@ export default function SignUp() {
             </CardContent>
         </Card>
     </div>
+    </>
+    
   );
 }
