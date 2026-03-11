@@ -2,11 +2,13 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY app/package*.json ./
+# Most már nem az "app/" mappából, hanem a gyökérből másolunk!
+COPY package*.json ./
 
 RUN npm install
 
-COPY app .
+# Itt is: a teljes jelenlegi mappát (gyökér) másoljuk a konténerbe
+COPY . .
 
 EXPOSE 3000
 

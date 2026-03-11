@@ -1,20 +1,21 @@
-version: "3.9"
-
 services:
   nextjs:
     build: .
+    container_name: nextjs-1
     ports:
       - "3000:3000"
     volumes:
-      - ./app:/app
+      - .:/app
       - /app/node_modules
+      - /app/.next
+    environment:
+      - DATABASE_URL=mysql://root:mysql@mysql:3306/optikart
     depends_on:
       - mysql
-    environment:
-      DATABASE_URL: "mysql://root:password@mysql:3306/optikart"
 
   mysql:
     image: mysql:8
+    container_name: mysql-1
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: mysql
@@ -23,6 +24,15 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+
+  adminer:
+    image: adminer
+    container_name: adminer-1
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
 
 volumes:
   mysql_data:
