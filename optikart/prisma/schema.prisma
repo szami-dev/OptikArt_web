@@ -9,12 +9,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
+
 enum role {
   USER
   ADMIN
 }
+
 model User {
   id               Int       @id @default(autoincrement())
   name             String?
@@ -33,10 +35,102 @@ model User {
 }
 
 model Project {
-  id          Int       @id @default(autoincrement())
-  name        String?
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime? @updatedAt
-  users       User[]
+  id             Int             @id @default(autoincrement())
+  name           String?
+  description    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime?       @updatedAt
+  users          User[]
+  category       Package?        @relation(fields: [packageId], references: [id])
+  packageId      Int?
+  type           ProjectType?    @relation(fields: [typeId], references: [id])
+  typeId         Int?
+  calendarEvents CalendarEvent[]
+  galleries      Gallery[]
+  messages       Message[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String?
+  packages Package[]
+}
+
+model Package {
+  id           Int           @id @default(autoincrement())
+  name         String?
+  description  String?
+  price        Float?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  categoryId   Int?
+  projects     Project[]
+  bulletPoints BulletPoint[]
+}
+
+model BulletPoint {
+  id        Int      @id @default(autoincrement())
+  packageId Int?
+  title     String?
+  package   Package? @relation(fields: [packageId], references: [id])
+}
+
+model ProjectType {
+  id       Int       @id @default(autoincrement())
+  name     String?
+  projects Project[]
+}
+
+model CalendarEvent {
+  id        Int       @id @default(autoincrement())
+  title     String?
+  wholeDay  Boolean   @default(false)
+  startTime DateTime?
+  endTime   DateTime?
+  project   Project?  @relation(fields: [projectId], references: [id])
+  projectId Int?
+}
+
+model Gallery {
+  id            Int                @id @default(autoincrement())
+  title         String?
+  date          DateTime?
+  password      String?
+  shareableLink String?
+  expiresAt     DateTime?
+  project       Project?           @relation(fields: [projectId], references: [id])
+  projectId     Int?
+  images        imagesGalleryWbp[]
+  imagesFull    imagesFull[]
+}
+
+model imagesGalleryWbp {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+  gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
+
+model imagesFull {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+  gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
+
+model Image {
+  id       Int     @id @default(autoincrement())
+  fileName String?
+  filePath String?
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  project   Project? @relation(fields: [projectId], references: [id])
+  projectId Int?
+
+  createdAt DateTime @default(now())
 }
