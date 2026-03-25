@@ -1,12 +1,14 @@
 import prisma from "../lib/db";
+import bcrypt from "bcryptjs";
 
 async function main() {
+    await prisma.user.deleteMany();
   await prisma.user.createMany({
     data: [
       {
         email: "szabomate403@gmail.com",
         name: "Szabó Máté",
-        password: "Gum55NDx",
+        password: await bcrypt.hash("Gum55NDx", 10),
         phone: "+36309221702",
         emailVerifiedAt: new Date(),
         isVerified: true,
