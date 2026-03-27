@@ -1,3 +1,5 @@
+import Button from "@/app/components/Button";
+import ButtonShowcase from "@/app/components/Button"
 export default function GalleryPage() {
   return (
     <div className="p-4">
@@ -5,6 +7,10 @@ export default function GalleryPage() {
       <p className="text-lg mb-6">
         Explore your collection of photos and manage your gallery settings.
       </p>
-    </div>
+      <Button variant="outline">
+      Küldés
+    </Button>
+  
+      </div>
   );
 }
