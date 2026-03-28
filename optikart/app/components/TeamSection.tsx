@@ -9,7 +9,7 @@ const team = [
     focus: "Portré & Esemény",
     bio: "10 éve dolgozik a szakmában. Szenvedélye a természetes fény és az emberi pillanatok megörökítése. Több mint 200 esküvőn és vállalati eseményen volt jelen kamerával a kezében.",
     skills: ["Portréfotózás", "Esküvők", "Termékfotó", "Lightroom"],
-    image: null, // ide jön: "/team/mate.jpg"
+    image: null,
     index: "01",
     accent: "#C8A882",
   },
@@ -19,7 +19,7 @@ const team = [
     focus: "Film & Motion",
     bio: "Filmrendezői diplomával a zsebében érkezett a stúdióba. Reklámfilmektől dokumentumfilmekig mindent vállal — a történet az, ami hajtja. Color grading specialista.",
     skills: ["Premiere Pro", "DaVinci Resolve", "After Effects", "Drone"],
-    image: null, // ide jön: "/team/anna.jpg"
+    image: null,
     index: "02",
     accent: "#A08060",
   },
@@ -29,7 +29,7 @@ const team = [
     focus: "Koncepció & Brand",
     bio: "A vizuális stratégia és a márkaidentitás szakértője. Ő az, aki a projekt elején meghatározza az irányt, és gondoskodik arról, hogy minden kép és videó egységes történetet meséljen.",
     skills: ["Brand strategy", "Art direction", "Photoshop", "Figma"],
-    image: null, // ide jön: "/team/peter.jpg"
+    image: null,
     index: "03",
     accent: "#B89870",
   },
@@ -40,6 +40,7 @@ export default function TeamSection() {
 
   useEffect(() => {
     let ctx: any;
+    let mounted = true;
 
     async function init() {
       const { gsap } = await import("gsap");
@@ -47,18 +48,25 @@ export default function TeamSection() {
       const { SplitText } = await import("gsap/SplitText");
       gsap.registerPlugin(ScrollTrigger, SplitText);
 
+      // ── Fontok megvárása – SplitText csak ezután fut ──────────
+      await document.fonts.ready;
+
+      if (!mounted) return;
+
       ctx = gsap.context(() => {
 
-        // ── Section header animáció ──────────────────────────
-        const titleEl = document.querySelector(".team-main-title");
+        // ── Section header animáció ──────────────────────────────
+        // SplitText: DOM elem referenciával, nem string selectorral
+        const titleEl = sectionRef.current?.querySelector(".team-main-title");
         if (titleEl) {
-          const split = new SplitText(".team-main-title", { type: "lines" });
+          const split = new SplitText(titleEl, { type: "lines" });
           gsap.from(split.lines, {
             opacity: 0,
             y: 50,
             stagger: 0.1,
             duration: 0.9,
             ease: "power3.out",
+            immediateRender: false,
             scrollTrigger: {
               trigger: ".team-header",
               start: "top 75%",
@@ -73,103 +81,122 @@ export default function TeamSection() {
           duration: 0.7,
           delay: 0.3,
           ease: "power2.out",
-          scrollTrigger: {
+          immediateRender: false,
+            scrollTrigger: {
             trigger: ".team-header",
             start: "top 75%",
             toggleActions: "play none none reverse",
           },
         });
 
-        // ── Vonal animáció ───────────────────────────────────
         gsap.from(".team-divider-line", {
           scaleX: 0,
           duration: 1.4,
           ease: "power3.inOut",
           transformOrigin: "left center",
-          scrollTrigger: {
+          immediateRender: false,
+            scrollTrigger: {
             trigger: ".team-header",
             start: "top 70%",
           },
         });
 
-        // ── Kártyák animáció ─────────────────────────────────
-        // Minden kártya külön ScrollTrigger-rel, lefelé egymás után
+        // ── Kártyák animáció ─────────────────────────────────────
         team.forEach((_, i) => {
-          const card = document.querySelector(`.team-card-${i}`);
+          // querySelector a sectionRef-en belül, nem globálisan
+          const card = sectionRef.current?.querySelector(`.team-card-${i}`);
           if (!card) return;
 
-          // Kép
-          gsap.from(card.querySelector(".team-img-wrap"), {
-            opacity: 0,
-            scale: 0.92,
-            duration: 1,
-            ease: "power3.out",
+          const imgWrap = card.querySelector(".team-img-wrap");
+          if (imgWrap) {
+            gsap.from(imgWrap, {
+              opacity: 0,
+              scale: 0.92,
+              duration: 1,
+              ease: "power3.out",
+              immediateRender: false,
             scrollTrigger: {
-              trigger: card,
-              start: "top 75%",
-              toggleActions: "play none none reverse",
-            },
-          });
+                trigger: card,
+                start: "top 75%",
+                toggleActions: "play none none reverse",
+              },
+            });
+          }
 
-          // Index szám
-          gsap.from(card.querySelector(".team-index"), {
-            opacity: 0,
-            x: -20,
-            duration: 0.6,
-            ease: "power2.out",
+          const indexEl = card.querySelector(".team-index");
+          if (indexEl) {
+            gsap.from(indexEl, {
+              opacity: 0,
+              x: -20,
+              duration: 0.6,
+              ease: "power2.out",
+              immediateRender: false,
             scrollTrigger: {
-              trigger: card,
-              start: "top 72%",
-              toggleActions: "play none none reverse",
-            },
-          });
+                trigger: card,
+                start: "top 72%",
+                toggleActions: "play none none reverse",
+              },
+            });
+          }
 
-          // Név
-          gsap.from(card.querySelector(".team-name"), {
-            opacity: 0,
-            y: 30,
-            duration: 0.8,
-            ease: "power3.out",
+          const nameEl = card.querySelector(".team-name");
+          if (nameEl) {
+            gsap.from(nameEl, {
+              opacity: 0,
+              y: 30,
+              duration: 0.8,
+              ease: "power3.out",
+              immediateRender: false,
             scrollTrigger: {
-              trigger: card,
-              start: "top 70%",
-              toggleActions: "play none none reverse",
-            },
-          });
+                trigger: card,
+                start: "top 70%",
+                toggleActions: "play none none reverse",
+              },
+            });
+          }
 
-          // Bio + skill tagek
-          gsap.from(card.querySelectorAll(".team-bio, .team-skill-tag"), {
-            opacity: 0,
-            y: 20,
-            stagger: 0.06,
-            duration: 0.7,
-            ease: "power2.out",
+          const bioAndSkills = card.querySelectorAll(".team-bio, .team-skill-tag");
+          if (bioAndSkills.length > 0) {
+            gsap.from(bioAndSkills, {
+              opacity: 0,
+              y: 20,
+              stagger: 0.06,
+              duration: 0.7,
+              ease: "power2.out",
+              immediateRender: false,
             scrollTrigger: {
-              trigger: card,
-              start: "top 65%",
-              toggleActions: "play none none reverse",
-            },
-          });
+                trigger: card,
+                start: "top 65%",
+                toggleActions: "play none none reverse",
+              },
+            });
+          }
 
-          // Elválasztó vonal
-          gsap.from(card.querySelector(".team-card-line"), {
-            scaleX: 0,
-            duration: 1,
-            ease: "power2.inOut",
-            transformOrigin: "left center",
+          const lineEl = card.querySelector(".team-card-line");
+          if (lineEl) {
+            gsap.from(lineEl, {
+              scaleX: 0,
+              duration: 1,
+              ease: "power2.inOut",
+              transformOrigin: "left center",
+              immediateRender: false,
             scrollTrigger: {
-              trigger: card,
-              start: "top 68%",
-              toggleActions: "play none none reverse",
-            },
-          });
+                trigger: card,
+                start: "top 68%",
+                toggleActions: "play none none reverse",
+              },
+            });
+          }
         });
 
       }, sectionRef);
     }
 
     init();
-    return () => ctx?.revert();
+    return () => {
+      mounted = false;
+      ctx?.revert();
+    };
   }, []);
 
   return (
@@ -201,65 +228,35 @@ export default function TeamSection() {
         {/* ── Csapattagok ── */}
         <div className="flex flex-col gap-0">
           {team.map((member, i) => (
-            <div
-              key={i}
-              className={`team-card-${i} group relative`}
-            >
-              {/* Kártya belső */}
-              <div className={`
-                grid grid-cols-1 lg:grid-cols-12 gap-0
-                py-16 lg:py-20
-                ${i % 2 === 0 ? "" : ""}
-              `}>
+            <div key={i} className={`team-card-${i} group relative`}>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 py-16 lg:py-20">
 
-                {/* ── Bal: index + kép ── */}
-                <div className={`
-                  lg:col-span-5 relative flex items-start gap-6
-                  ${i % 2 !== 0 ? "lg:order-2" : ""}
-                `}>
-
-                  {/* Index szám – nagy, háttérben */}
+                {/* Bal: index + kép */}
+                <div className={`lg:col-span-5 relative flex items-start gap-6 ${i % 2 !== 0 ? "lg:order-2" : ""}`}>
                   <div className="team-index relative shrink-0 w-16">
                     <span
                       className="font-['Cormorant_Garamond'] font-light leading-none select-none"
-                      style={{
-                        fontSize: "clamp(4rem, 8vw, 7rem)",
-                        color: "rgba(200,168,130,0.12)",
-                        lineHeight: 1,
-                      }}
+                      style={{ fontSize: "clamp(4rem, 8vw, 7rem)", color: "rgba(200,168,130,0.12)", lineHeight: 1 }}
                     >
                       {member.index}
                     </span>
-                    <div
-                      className="absolute top-3 left-0 w-5 h-px"
-                      style={{ background: member.accent }}
-                    />
+                    <div className="absolute top-3 left-0 w-5 h-px" style={{ background: member.accent }} />
                   </div>
 
-                  {/* Képkeret */}
                   <div className="team-img-wrap flex-1 relative">
-                    <div
-                      className="relative overflow-hidden"
-                      style={{ aspectRatio: "3/4" }}
-                    >
-                      {/* Kép placeholder – cseréld ki Image komponensre */}
+                    <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
                       <div
                         className="w-full h-full flex items-center justify-center"
                         style={{ background: `linear-gradient(135deg, rgba(200,168,130,0.12), rgba(200,168,130,0.06))` }}
                       >
-                        {/* Monogram */}
                         <span
                           className="font-['Cormorant_Garamond'] font-light"
-                          style={{
-                            fontSize: "5rem",
-                            color: `${member.accent}40`,
-                          }}
+                          style={{ fontSize: "5rem", color: `${member.accent}40` }}
                         >
                           {member.name.charAt(0)}
                         </span>
                       </div>
 
-                      {/* Sarokdíszek */}
                       {[
                         "top-2 left-2 border-t border-l",
                         "top-2 right-2 border-t border-r",
@@ -273,65 +270,45 @@ export default function TeamSection() {
                         />
                       ))}
 
-                      {/* Hover overlay */}
                       <div
                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                        style={{
-                          background: `linear-gradient(to top, ${member.accent}15, transparent)`,
-                        }}
+                        style={{ background: `linear-gradient(to top, ${member.accent}15, transparent)` }}
                       />
                     </div>
 
-                    {/* Focus felirat a képen */}
                     <div className="mt-4 flex items-center gap-2">
                       <div className="w-4 h-px" style={{ background: member.accent }} />
-                      <span
-                        className="text-[9px] tracking-[0.2em] uppercase font-light"
-                        style={{ color: member.accent }}
-                      >
+                      <span className="text-[9px] tracking-[0.2em] uppercase font-light" style={{ color: member.accent }}>
                         {member.focus}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* ── Jobb: tartalom ── */}
-                <div className={`
-                  lg:col-span-6 lg:col-start-7 flex flex-col justify-center
-                  pt-8 lg:pt-0
-                  ${i % 2 !== 0 ? "lg:order-1 lg:col-start-1" : ""}
-                `}>
-
-                  {/* Név + szerep */}
+                {/* Jobb: tartalom */}
+                <div className={`lg:col-span-6 lg:col-start-7 flex flex-col justify-center pt-8 lg:pt-0 ${i % 2 !== 0 ? "lg:order-1 lg:col-start-1" : ""}`}>
                   <div className="mb-6">
-                    <h3 className="team-name font-['Cormorant_Garamond'] font-light text-[#1A1510] leading-none mb-2"
+                    <h3
+                      className="team-name font-['Cormorant_Garamond'] font-light text-[#1A1510] leading-none mb-2"
                       style={{ fontSize: "clamp(2rem, 4vw, 3.2rem)" }}
                     >
                       {member.name}
                     </h3>
-                    <span
-                      className="text-[11px] tracking-[0.18em] uppercase font-light"
-                      style={{ color: member.accent }}
-                    >
+                    <span className="text-[11px] tracking-[0.18em] uppercase font-light" style={{ color: member.accent }}>
                       {member.role}
                     </span>
                   </div>
 
-                  {/* Bio */}
                   <p className="team-bio text-[14px] font-light text-[#7A6A58] leading-[1.9] mb-8 max-w-md">
                     {member.bio}
                   </p>
 
-                  {/* Skill tagek */}
                   <div className="flex flex-wrap gap-2">
                     {member.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="team-skill-tag text-[9px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-all duration-300 group-hover:border-opacity-60"
-                        style={{
-                          color: member.accent,
-                          borderColor: `${member.accent}30`,
-                        }}
+                        className="team-skill-tag text-[9px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-all duration-300"
+                        style={{ color: member.accent, borderColor: `${member.accent}30` }}
                       >
                         {skill}
                       </span>
@@ -340,20 +317,17 @@ export default function TeamSection() {
                 </div>
               </div>
 
-              {/* Elválasztó vonal (az utolsó után nem) */}
               {i < team.length - 1 && (
                 <div
                   className="team-card-line h-px origin-left"
-                  style={{
-                    background: `linear-gradient(to right, rgba(200,168,130,0.2), rgba(200,168,130,0.05), transparent)`,
-                  }}
+                  style={{ background: `linear-gradient(to right, rgba(200,168,130,0.2), rgba(200,168,130,0.05), transparent)` }}
                 />
               )}
             </div>
           ))}
         </div>
 
-        {/* ── Lábléc sor ── */}
+        {/* ── Lábléc ── */}
         <div className="mt-20 pt-10 border-t border-[#EDE8E0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <p className="text-[12px] font-light text-[#9A8878] tracking-[0.04em]">
             Szeretnél velünk dolgozni?

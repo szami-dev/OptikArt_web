@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
+import { sendWelcomeEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   const { name, email, phone, password } = await req.json();
@@ -15,8 +16,9 @@ export async function POST(req: Request) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
+  const result = await sendWelcomeEmail(email, name);
+  if(result){
+    const user = await prisma.user.create({
     data: {
       name,
       email,
@@ -24,6 +26,13 @@ export async function POST(req: Request) {
       password: hashedPassword,
     },
   });
+  
+ 
 
   return NextResponse.json({ message: "Sikeres regisztráció", userId: user.id });
+  }
+  else{
+    return NextResponse.json({ message: "Hiba történt"}, { status: 500 });
+  }
+  
 }

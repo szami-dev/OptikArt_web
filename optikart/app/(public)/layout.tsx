@@ -1,4 +1,5 @@
 import Navbar from "../components/Nav";
+import GSAPNavigationGuard from "@/app/components/GSAPNavigationGuard";
 
 export default function PublicLayout({
   children,
@@ -7,6 +8,7 @@ export default function PublicLayout({
 }) {
   return (
     <>
+     <GSAPNavigationGuard />
       <Navbar />
       <main style={{ paddingTop: "68px" }}>{children}</main>
     </>

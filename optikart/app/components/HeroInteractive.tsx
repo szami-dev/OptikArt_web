@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Button from "@/app/components/Button";
+import GSAPNavigationGuard from "./GSAPNavigationGuard";
 
 
 // ── Canvas particle mesh – egérre reagál ──────────────────────
@@ -259,6 +260,7 @@ export default function HeroInteractive() {
 
   return (
     <section className="relative h-screen min-h-[680px] flex items-center overflow-hidden bg-[#F5EFE6]">
+      <GSAPNavigationGuard />
 
       {/* Canvas háttér – particle mesh */}
       <canvas

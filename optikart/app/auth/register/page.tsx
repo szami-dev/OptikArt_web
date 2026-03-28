@@ -1,18 +1,46 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const leftRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    let ctx: any;
+    let mounted = true;
+
+    async function animate() {
+      const { gsap } = await import("gsap");
+      if (!mounted) return;
+
+      ctx = gsap.context(() => {
+        const tl = gsap.timeline({ 
+          defaults: { ease: "power3.out", duration: 0.8 } 
+        });
+
+        tl.fromTo(leftRef.current, { x: -60, opacity: 0 }, { x: 0, opacity: 1, duration: 1.1 })
+          .fromTo(".anim-item", { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.06 }, "-=0.7")
+          .fromTo(formRef.current, { x: 60, opacity: 0 }, { x: 0, opacity: 1, duration: 1.1 }, 0.2)
+          .fromTo(".form-anim", { y: 15, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05 }, "-=0.6");
+      }, rootRef);
+    }
+
+    animate();
+    return () => {
+      mounted = false;
+      ctx?.revert();
+    };
   }, []);
 
   function checkPasswordStrength(pw: string) {
@@ -27,8 +55,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
+    
     const form = e.currentTarget;
     const name = (form.elements.namedItem("name") as HTMLInputElement).value;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
@@ -38,575 +65,155 @@ export default function RegisterPage() {
 
     if (password !== passwordConfirm) {
       setError("A két jelszó nem egyezik meg!");
-      setLoading(false);
       return;
     }
 
-    if (password.length < 8) {
-      setError("A jelszónak legalább 8 karakter hosszúnak kell lennie!");
-      setLoading(false);
+    if (passwordStrength < 3) {
+      setError("A jelszó túl gyenge! Használj legalább 8 karaktert, nagybetűt és számot.");
       return;
     }
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, phone, password }),
-    });
+    setLoading(true);
 
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone, password }),
+      });
 
-    if (!res.ok) {
-      setError(data.error);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Hiba történt a regisztráció során");
+        setLoading(false);
+        return;
+      }
+
+      setShowSuccessModal(true);
+    } catch (err) {
+      setError("Hálózati hiba történt. Kérjük, próbáld újra később.");
       setLoading(false);
-      return;
     }
-
-    router.push("/auth/login?registered=true");
   }
 
-  const strengthColors = ["bg-red-500", "bg-orange-500", "bg-yellow-400", "bg-emerald-400"];
-  const strengthLabels = ["Gyenge", "Közepes", "Erős", "Nagyon erős"];
+  const strengthLabels = ["Gyenge", "Közepes", "Erős", "Kiváló"];
+  const strengthColors = ["bg-red-400", "bg-orange-300", "bg-yellow-600", "bg-[#C8A882]"];
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
-
-        * { box-sizing: border-box; }
-
-        .register-root {
-          font-family: 'DM Mono', monospace;
-          min-height: 100vh;
-          background: #020408;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .grid-bg {
-          position: fixed;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(0,255,180,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,180,0.03) 1px, transparent 1px);
-          background-size: 40px 40px;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .glow-orb {
-          position: fixed;
-          border-radius: 50%;
-          filter: blur(120px);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .orb-1 {
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(0,255,180,0.12) 0%, transparent 70%);
-          top: -100px;
-          right: -100px;
-          animation: orbFloat1 8s ease-in-out infinite;
-        }
-
-        .orb-2 {
-          width: 400px;
-          height: 400px;
-          background: radial-gradient(circle, rgba(0,100,255,0.1) 0%, transparent 70%);
-          bottom: -80px;
-          left: -80px;
-          animation: orbFloat2 10s ease-in-out infinite;
-        }
-
-        @keyframes orbFloat1 {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(-30px, 30px); }
-        }
-
-        @keyframes orbFloat2 {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(20px, -20px); }
-        }
-
-        .card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 480px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(0,255,180,0.15);
-          border-radius: 2px;
-          padding: 2.5rem;
-          backdrop-filter: blur(20px);
-          opacity: ${mounted ? 1 : 0};
-          transform: ${mounted ? 'translateY(0)' : 'translateY(20px)'};
-          transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(0,255,180,0.6), transparent);
-        }
-
-        .corner {
-          position: absolute;
-          width: 12px;
-          height: 12px;
-          border-color: rgba(0,255,180,0.6);
-          border-style: solid;
-        }
-        .corner-tl { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
-        .corner-tr { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
-        .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
-        .corner-br { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
-
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 10px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: rgba(0,255,180,0.7);
-          margin-bottom: 1.5rem;
-        }
-
-        .badge-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #00ffb4;
-          box-shadow: 0 0 8px #00ffb4;
-          animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-
-        .title {
-          font-family: 'Syne', sans-serif;
-          font-size: 2rem;
-          font-weight: 800;
-          color: #ffffff;
-          letter-spacing: -0.02em;
-          line-height: 1;
-          margin-bottom: 0.4rem;
-        }
-
-        .title span {
-          color: #00ffb4;
-        }
-
-        .subtitle {
-          font-size: 11px;
-          color: rgba(255,255,255,0.3);
-          letter-spacing: 0.05em;
-          margin-bottom: 2rem;
-        }
-
-        .divider {
-          height: 1px;
-          background: linear-gradient(90deg, rgba(0,255,180,0.2), transparent);
-          margin-bottom: 2rem;
-        }
-
-        .field-group {
-          margin-bottom: 1.25rem;
-          position: relative;
-        }
-
-        .field-label {
-          display: block;
-          font-size: 10px;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.4);
-          margin-bottom: 0.5rem;
-          transition: color 0.2s;
-        }
-
-        .field-label.active {
-          color: #00ffb4;
-        }
-
-        .field-label .required {
-          color: #ff4d6d;
-          margin-left: 2px;
-        }
-
-        .field-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .field-icon {
-          position: absolute;
-          left: 12px;
-          color: rgba(255,255,255,0.2);
-          font-size: 14px;
-          transition: color 0.2s;
-          pointer-events: none;
-        }
-
-        .field-wrapper.active .field-icon {
-          color: #00ffb4;
-        }
-
-        .field-input {
-          width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 2px;
-          padding: 10px 12px 10px 36px;
-          color: #ffffff;
-          font-family: 'DM Mono', monospace;
-          font-size: 13px;
-          outline: none;
-          transition: all 0.2s;
-          caret-color: #00ffb4;
-        }
-
-        .field-input::placeholder {
-          color: rgba(255,255,255,0.15);
-        }
-
-        .field-input:focus {
-          border-color: rgba(0,255,180,0.4);
-          background: rgba(0,255,180,0.04);
-          box-shadow: 0 0 0 1px rgba(0,255,180,0.1), inset 0 0 20px rgba(0,255,180,0.02);
-        }
-
-        .field-line {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          height: 1px;
-          width: 0;
-          background: #00ffb4;
-          transition: width 0.3s ease;
-        }
-
-        .field-wrapper.active .field-line {
-          width: 100%;
-        }
-
-        .row-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-        }
-
-        .strength-bar {
-          margin-top: 8px;
-          display: flex;
-          gap: 4px;
-          align-items: center;
-        }
-
-        .strength-segment {
-          height: 2px;
-          flex: 1;
-          border-radius: 1px;
-          background: rgba(255,255,255,0.08);
-          transition: background 0.3s;
-        }
-
-        .strength-label {
-          font-size: 9px;
-          letter-spacing: 0.1em;
-          color: rgba(255,255,255,0.3);
-          margin-left: 6px;
-          min-width: 60px;
-        }
-
-        .error-box {
-          background: rgba(255,77,109,0.08);
-          border: 1px solid rgba(255,77,109,0.25);
-          border-radius: 2px;
-          padding: 10px 14px;
-          font-size: 11px;
-          color: #ff4d6d;
-          letter-spacing: 0.05em;
-          margin-bottom: 1.25rem;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .submit-btn {
-          width: 100%;
-          background: linear-gradient(135deg, rgba(0,255,180,0.15), rgba(0,255,180,0.05));
-          border: 1px solid rgba(0,255,180,0.4);
-          border-radius: 2px;
-          padding: 12px;
-          color: #00ffb4;
-          font-family: 'DM Mono', monospace;
-          font-size: 12px;
-          font-weight: 500;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          cursor: pointer;
-          transition: all 0.2s;
-          position: relative;
-          overflow: hidden;
-          margin-top: 0.5rem;
-        }
-
-        .submit-btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(0,255,180,0.1), transparent);
-          transition: left 0.4s ease;
-        }
-
-        .submit-btn:hover::before {
-          left: 100%;
-        }
-
-        .submit-btn:hover {
-          background: rgba(0,255,180,0.12);
-          box-shadow: 0 0 20px rgba(0,255,180,0.15);
-          border-color: rgba(0,255,180,0.7);
-        }
-
-        .submit-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .submit-btn:disabled::before {
-          display: none;
-        }
-
-        .loading-dots {
-          display: inline-flex;
-          gap: 4px;
-          align-items: center;
-        }
-
-        .loading-dots span {
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: #00ffb4;
-          animation: dotBounce 1.2s ease-in-out infinite;
-        }
-
-        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes dotBounce {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-
-        .footer-text {
-          text-align: center;
-          font-size: 11px;
-          color: rgba(255,255,255,0.25);
-          margin-top: 1.5rem;
-          letter-spacing: 0.05em;
-        }
-
-        .footer-text a {
-          color: rgba(0,255,180,0.7);
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-
-        .footer-text a:hover {
-          color: #00ffb4;
-        }
-
-        .sys-info {
-          position: absolute;
-          bottom: 1rem;
-          right: 1.5rem;
-          font-size: 9px;
-          letter-spacing: 0.1em;
-          color: rgba(255,255,255,0.1);
-          text-transform: uppercase;
-        }
-      `}</style>
-
-      <div className="register-root">
-        <div className="grid-bg" />
-        <div className="glow-orb orb-1" />
-        <div className="glow-orb orb-2" />
-
-        <div className="card">
-          <div className="corner corner-tl" />
-          <div className="corner corner-tr" />
-          <div className="corner corner-bl" />
-          <div className="corner corner-br" />
-
-          <div className="badge">
-            <span className="badge-dot" />
-            Secure Registration
+    <div ref={rootRef} className="flex h-screen bg-[#FAF8F4] overflow-hidden relative">
+      
+      {/* ── SIKER MODAL ── */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1A1510]/60 backdrop-blur-sm">
+          <div className="bg-white max-w-sm w-full p-8 shadow-2xl border border-[#EDE8E0] text-center animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-[#FDFBF7] border border-[#C8A882] rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-[#C8A882]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="font-['Cormorant_Garamond'] text-2xl text-[#1A1510] mb-3">Már majdnem kész!</h3>
+            <p className="text-[13px] text-[#7A6A58] leading-relaxed mb-8">
+              Küldtünk egy megerősítő e-mailt a címedre. Kérjük, aktiváld a fiókodat a benne lévő linkkel.
+            </p>
+            <button 
+              onClick={() => router.push("/auth/login")}
+              className="w-full bg-[#1A1510] text-white text-[10px] tracking-widest uppercase py-4 hover:bg-[#C8A882] transition-colors"
+            >
+              Értem, a bejelentkezéshez
+            </button>
           </div>
+        </div>
+      )}
 
-          <h1 className="title">Hozz létre<br /><span>fiókot</span></h1>
-          <p className="subtitle">// SYSTEM ACCESS INITIALIZATION</p>
+      {/* ── BAL OLDAL ── */}
+      <div ref={leftRef} className="hidden md:flex flex-col justify-between w-1/3 bg-[#1A1510] px-10 py-12 relative overflow-hidden opacity-0">
+        <div className="absolute inset-0 opacity-[0.04]">
+          <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: `repeating-linear-gradient(0deg,transparent,transparent 60px,#C8A882 60px,#C8A882 61px),repeating-linear-gradient(90deg,transparent,transparent 60px,#C8A882 60px,#C8A882 61px)` }} />
+        </div>
+        <div className="anim-item relative z-10 opacity-0">
+          <Link href="/"><Image src="/assets/10optik2 (1).png" alt="OptikArt" width={110} height={110} className="object-contain" /></Link>
+        </div>
+        <div className="relative z-10 flex-1 flex flex-col justify-center py-16">
+          <div className="anim-item flex items-center gap-3 mb-8 opacity-0">
+            <div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Új fiók</span>
+          </div>
+          <h2 className="anim-item font-['Cormorant_Garamond'] text-[clamp(2rem,3vw,2.8rem)] font-light leading-[1.12] text-white mb-6 opacity-0">
+            Csatlakozz az<br />OptikArt<br /><em className="not-italic text-[#C8A882]">közösséghez</em>
+          </h2>
+          <p className="anim-item text-[13px] font-light text-[#7A6A58] leading-[1.9] mb-12 opacity-0">Hozd létre saját portfóliódat és<br />kezeld ügyfeleidet egy helyen.</p>
+        </div>
+        <div className="anim-item relative z-10 opacity-0">
+          <span className="text-[10px] tracking-[0.1em] text-[#3A3020]">© {new Date().getFullYear()} OptikArt</span>
+        </div>
+      </div>
 
-          <div className="divider" />
+      {/* ── JOBB OLDAL ── */}
+      <div ref={formRef} className="flex flex-col justify-center w-full md:w-2/3 px-8 sm:px-16 lg:px-28 xl:px-40 py-12 relative opacity-0 overflow-y-auto">
+        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: `radial-gradient(circle, #C8A882 1px, transparent 1px)`, backgroundSize: "32px 32px" }} />
+        <div className="relative z-10 max-w-md w-full mx-auto">
+          <div className="form-anim flex items-center gap-3 mb-6 opacity-0">
+            <div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Regisztráció</span>
+          </div>
+          <h1 className="form-anim font-['Cormorant_Garamond'] text-[clamp(2rem,3.5vw,2.8rem)] font-light leading-[1.1] text-[#1A1510] mb-8 opacity-0">Kezdjük el a közös munkát</h1>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="form-anim opacity-0">
+              <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-1.5">Teljes név</label>
+              <input name="name" type="text" placeholder="Példa János" required className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2 text-[14px] font-light text-[#1A1510] focus:outline-none focus:border-[#C8A882] transition-colors" />
+            </div>
 
-            {/* Név */}
-            <div className="field-group">
-              <label className={`field-label ${focusedField === "name" ? "active" : ""}`}>
-                Teljes név <span className="required">*</span>
-              </label>
-              <div className={`field-wrapper ${focusedField === "name" ? "active" : ""}`}>
-                <span className="field-icon">◈</span>
-                <input
-                  name="name"
-                  type="text"
-                  placeholder="Szabó Máté"
-                  required
-                  className="field-input"
-                  onFocus={() => setFocusedField("name")}
-                  onBlur={() => setFocusedField(null)}
-                />
-                <div className="field-line" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="form-anim opacity-0">
+                <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-1.5">Email cím</label>
+                <input name="email" type="email" placeholder="pelda@email.com" required className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2 text-[14px] font-light text-[#1A1510] focus:outline-none focus:border-[#C8A882] transition-colors" />
+              </div>
+              <div className="form-anim opacity-0">
+                <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-1.5">Telefonszám</label>
+                <input name="phone" type="tel" placeholder="+36 30 123 4567" className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2 text-[14px] font-light text-[#1A1510] focus:outline-none focus:border-[#C8A882] transition-colors" />
               </div>
             </div>
 
-            {/* Email */}
-            <div className="field-group">
-              <label className={`field-label ${focusedField === "email" ? "active" : ""}`}>
-                Email cím <span className="required">*</span>
-              </label>
-              <div className={`field-wrapper ${focusedField === "email" ? "active" : ""}`}>
-                <span className="field-icon">◎</span>
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="pelda@email.com"
-                  required
-                  className="field-input"
-                  onFocus={() => setFocusedField("email")}
-                  onBlur={() => setFocusedField(null)}
-                />
-                <div className="field-line" />
-              </div>
-            </div>
-
-            {/* Telefon */}
-            <div className="field-group">
-              <label className={`field-label ${focusedField === "phone" ? "active" : ""}`}>
-                Telefonszám
-              </label>
-              <div className={`field-wrapper ${focusedField === "phone" ? "active" : ""}`}>
-                <span className="field-icon">◷</span>
-                <input
-                  name="phone"
-                  type="tel"
-                  placeholder="+36301234567"
-                  className="field-input"
-                  onFocus={() => setFocusedField("phone")}
-                  onBlur={() => setFocusedField(null)}
-                />
-                <div className="field-line" />
-              </div>
-            </div>
-
-            {/* Jelszavak */}
-            <div className="row-2">
-              <div className="field-group">
-                <label className={`field-label ${focusedField === "password" ? "active" : ""}`}>
-                  Jelszó <span className="required">*</span>
-                </label>
-                <div className={`field-wrapper ${focusedField === "password" ? "active" : ""}`}>
-                  <span className="field-icon">◉</span>
-                  <input
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    className="field-input"
-                    onFocus={() => setFocusedField("password")}
-                    onBlur={() => setFocusedField(null)}
-                    onChange={(e) => checkPasswordStrength(e.target.value)}
-                  />
-                  <div className="field-line" />
-                </div>
-                {passwordStrength > 0 && (
-                  <div className="strength-bar">
-                    {[0,1,2,3].map((i) => (
-                      <div
-                        key={i}
-                        className={`strength-segment ${i < passwordStrength ? strengthColors[passwordStrength - 1] : ""}`}
-                      />
+            <div className="form-anim opacity-0">
+              <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-1.5">Jelszó</label>
+              <input name="password" type="password" placeholder="••••••••" required onChange={(e) => checkPasswordStrength(e.target.value)} className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2 text-[14px] font-light text-[#1A1510] focus:outline-none focus:border-[#C8A882] transition-colors" />
+              {passwordStrength > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex gap-1 flex-1">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className={`h-[2px] flex-1 transition-all duration-500 ${i < passwordStrength ? strengthColors[passwordStrength - 1] : "bg-[#EDE8E0]"}`} />
                     ))}
-                    <span className="strength-label">{strengthLabels[passwordStrength - 1]}</span>
                   </div>
-                )}
-              </div>
-
-              <div className="field-group">
-                <label className={`field-label ${focusedField === "passwordConfirm" ? "active" : ""}`}>
-                  Megerősítés <span className="required">*</span>
-                </label>
-                <div className={`field-wrapper ${focusedField === "passwordConfirm" ? "active" : ""}`}>
-                  <span className="field-icon">◉</span>
-                  <input
-                    name="passwordConfirm"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    className="field-input"
-                    onFocus={() => setFocusedField("passwordConfirm")}
-                    onBlur={() => setFocusedField(null)}
-                  />
-                  <div className="field-line" />
+                  <span className="text-[9px] uppercase tracking-wider text-[#A08060] min-w-[50px]">{strengthLabels[passwordStrength - 1]}</span>
                 </div>
-              </div>
+              )}
             </div>
 
+            <div className="form-anim opacity-0">
+              <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-1.5">Jelszó megerősítése</label>
+              <input name="passwordConfirm" type="password" placeholder="••••••••" required className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2 text-[14px] font-light text-[#1A1510] focus:outline-none focus:border-[#C8A882] transition-colors" />
+            </div>
+
+            {/* HIBAÜZENET - NINCS RAJTA form-anim ÉS opacity-0 */}
             {error && (
-              <div className="error-box">
-                <span>⚠</span> {error}
+              <div className="flex items-start gap-2 text-[11px] text-red-600 bg-red-50 p-4 border-l-2 border-red-500 transition-all duration-300">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>{error}</span>
               </div>
             )}
 
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? (
-                <span className="loading-dots">
-                  <span /><span /><span />
-                </span>
-              ) : (
-                "Regisztráció indítása →"
-              )}
-            </button>
+            <div className="form-anim pt-4 opacity-0">
+              <button type="submit" disabled={loading} className="w-full bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase py-4 hover:bg-[#C8A882] transition-colors duration-300 disabled:opacity-50">
+                {loading ? "Folyamatban..." : "Regisztráció véglegesítése"}
+              </button>
+            </div>
           </form>
 
-          <p className="footer-text">
-            Már van fiókod?{" "}
-            <Link href="/auth/login">Bejelentkezés</Link>
-          </p>
-
-          <div className="sys-info">v1.0.0 · enc:aes-256</div>
+          <div className="form-anim mt-8 pt-6 border-t border-[#EDE8E0] flex items-center gap-2 text-[12px] font-light text-[#7A6A58] opacity-0">
+            Van már fiókod? <Link href="/auth/login" className="text-[#C8A882] hover:text-[#1A1510] transition-colors tracking-[0.04em]">Lépj be itt</Link>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

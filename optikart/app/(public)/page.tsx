@@ -7,11 +7,6 @@ import HorizontalScrollSection from "../components/HorizontalScrollSection";
 import TeamSection from "../components/TeamSection";
 import HeroInteractive from "../components/HeroInteractive";
 
-// GSAP dynamic import – csak kliensen fut
-let gsapLoaded = false;
-
-
-
 const stats = [
   { number: "320+", label: "Lezárt projekt" },
   { number: "8 év", label: "Szakmai tapasztalat" },
@@ -24,6 +19,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     let ctx: any;
+    let mounted = true;
 
     async function initGSAP() {
       const { gsap } = await import("gsap");
@@ -32,17 +28,21 @@ export default function LandingPage() {
 
       gsap.registerPlugin(ScrollTrigger, SplitText);
 
+      // ── Fontok betöltésének megvárása ──────────────────────────
+      await document.fonts.ready;
+
+      if (!mounted) return;
+
       ctx = gsap.context(() => {
 
-        // ── HERO animációk ──────────────────────────────────────
-
-        // ── STATS szekció ───────────────────────────────────────
+        // ── STATS szekció ────────────────────────────────────────
         gsap.from(".stat-item", {
           opacity: 0,
           y: 40,
           stagger: 0.1,
           duration: 0.7,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".stats-section",
             start: "top 80%",
@@ -65,7 +65,8 @@ export default function LandingPage() {
             onUpdate: () => {
               el.textContent = Math.round(obj.val) + suffix;
             },
-            scrollTrigger: {
+            immediateRender: false,
+          scrollTrigger: {
               trigger: ".stats-section",
               start: "top 75%",
               once: true,
@@ -73,14 +74,13 @@ export default function LandingPage() {
           });
         });
 
-        // ── ABOUT szekció ───────────────────────────────────────
-
-        // Kép frame beúszik balról
+        // ── ABOUT szekció ────────────────────────────────────────
         gsap.from(".about-visual", {
           opacity: 0,
           x: -60,
           duration: 1.1,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".about-section",
             start: "top 70%",
@@ -88,12 +88,12 @@ export default function LandingPage() {
           },
         });
 
-        // Szöveg jobbról
         gsap.from(".about-text-col", {
           opacity: 0,
           x: 60,
           duration: 1.1,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".about-section",
             start: "top 70%",
@@ -101,17 +101,18 @@ export default function LandingPage() {
           },
         });
 
-        // About cím – soronként görgetésre olvad be
-        const aboutTitleEl = document.querySelector(".about-title");
+        // About cím – SplitText csak ha létezik az elem
+        const aboutTitleEl = rootRef.current?.querySelector(".about-title");
         if (aboutTitleEl) {
-          const splitAbout = new SplitText(".about-title", { type: "lines" });
+          const splitAbout = new SplitText(aboutTitleEl, { type: "lines" });
           gsap.from(splitAbout.lines, {
             opacity: 0,
             y: 30,
             stagger: 0.1,
             duration: 0.8,
             ease: "power3.out",
-            scrollTrigger: {
+            immediateRender: false,
+          scrollTrigger: {
               trigger: ".about-section",
               start: "top 65%",
               toggleActions: "play none none reverse",
@@ -119,12 +120,13 @@ export default function LandingPage() {
           });
         }
 
-        // ── CONTACT szekció ─────────────────────────────────────
+        // ── CONTACT szekció ──────────────────────────────────────
         gsap.from(".contact-info-col", {
           opacity: 0,
           y: 50,
           duration: 0.9,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".contact-section",
             start: "top 75%",
@@ -138,6 +140,7 @@ export default function LandingPage() {
           duration: 0.9,
           delay: 0.15,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".contact-section",
             start: "top 75%",
@@ -145,13 +148,13 @@ export default function LandingPage() {
           },
         });
 
-        // Form mezők egyenként
         gsap.from(".cf-field-anim", {
           opacity: 0,
           y: 20,
           stagger: 0.08,
           duration: 0.6,
           ease: "power2.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".contact-form-col",
             start: "top 80%",
@@ -159,36 +162,19 @@ export default function LandingPage() {
           },
         });
 
-        // ── HORIZONTAL SCROLL a services szekcióban (opcionális) ─
-        // Vízszintes vonalak parallax a háttérben
-        gsap.to(".bg-line-1", {
-          xPercent: -15,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ".services-section",
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1,
-          },
-        });
+        // ── SERVICES parallax – csak ha léteznek az elemek ───────
+        // Ezeket a HorizontalScrollSection-re bízzuk,
+        // innen NE animáljuk, mert a komponens saját ctx-ben él
 
-        gsap.to(".bg-line-2", {
-          xPercent: 10,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ".services-section",
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1.5,
-          },
-        });
-
-      }, rootRef);
+      }, rootRef); // ← a context a rootRef-re van szűkítve!
     }
 
     initGSAP();
 
-    return () => ctx?.revert();
+    return () => {
+      mounted = false;
+      ctx?.revert();
+    };
   }, []);
 
   return (
@@ -198,9 +184,11 @@ export default function LandingPage() {
       <HeroInteractive />
 
       {/* ── SERVICES ──────────────────────────────────────────── */}
-      <HorizontalScrollSection/>
-       {/* ── US ──────────────────────────────────────────── */}
+      <HorizontalScrollSection />
+
+      {/* ── TEAM ──────────────────────────────────────────────── */}
       <TeamSection />
+
       {/* ── STATS ─────────────────────────────────────────────── */}
       <section className="stats-section py-20 bg-[#F5EFE6] border-y border-[#EDE8E0]">
         <div className="max-w-7xl mx-auto px-8 lg:px-16">
@@ -226,11 +214,7 @@ export default function LandingPage() {
 
             {/* Kép oszlop */}
             <div className="about-visual relative">
-              {/* Fő keret */}
-              <div
-                className="relative aspect-[3/4] bg-[#EDE8E0] border border-[#DDD5C8] overflow-hidden flex items-center justify-center"
-              >
-                {/* Sarokdíszek */}
+              <div className="relative aspect-[3/4] bg-[#EDE8E0] border border-[#DDD5C8] overflow-hidden flex items-center justify-center">
                 {["top-3 left-3 border-t border-l", "top-3 right-3 border-t border-r", "bottom-3 left-3 border-b border-l", "bottom-3 right-3 border-b border-r"].map((cls, i) => (
                   <div key={i} className={`absolute w-5 h-5 ${cls} border-[#C8A882]/50`} />
                 ))}
@@ -239,13 +223,11 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              {/* Lebegő badge */}
               <div className="absolute -bottom-5 -right-5 w-28 h-28 bg-[#C8A882] rounded-full flex flex-col items-center justify-center gap-0.5 shadow-xl">
                 <span className="font-['Cormorant_Garamond'] text-[2rem] font-light text-white leading-none">8+</span>
                 <span className="text-[8px] tracking-[0.1em] uppercase text-white/70 text-center leading-tight">év tapasz-<br />talat</span>
               </div>
 
-              {/* Dekoratív hátterű keret */}
               <div className="absolute -top-4 -left-4 w-32 h-32 border border-[#C8A882]/15 -z-10" />
             </div>
 
@@ -272,7 +254,6 @@ export default function LandingPage() {
                 való odafigyelés és a kreatív látásmód határozza meg munkánkat.
               </p>
 
-              {/* Mini stat sor */}
               <div className="flex gap-8 py-6 border-t border-b border-[#EDE8E0] mb-10">
                 {[
                   { num: "320+", lbl: "Projekt" },
@@ -363,10 +344,7 @@ export default function LandingPage() {
 
             {/* Jobb oldal – form */}
             <div className="contact-form-col">
-              <form
-                className="flex flex-col gap-6"
-                onSubmit={(e) => e.preventDefault()}
-              >
+              <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="cf-field-anim">
                     <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-2">Neve</label>

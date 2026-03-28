@@ -72,9 +72,11 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
-          <Button variant="primary">
+
+          {/* Button           <Button variant="primary">
                 Projekt indítása
               </Button>
+*/}
 
           {/* User section */}
           <div className="flex items-center gap-3 shrink-0">
