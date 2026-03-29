@@ -18,14 +18,14 @@ async function main() {
       {
         email: "monostorimark05@gmail.com",
         name: "Monostori Márk",
-        password: "2T925ivT",
+        password: await bcrypt.hash("2T925ivT", 10), //"2T925ivT",
         isVerified: true,
         role: "ADMIN",
       },    
       {
         email: "zugiviktoria@gmail.com",
         name: "Zugi Viktória",
-        password: "alma12345",
+        password: await bcrypt.hash("alma12345", 10),
         isVerified: true,
         role: "ADMIN",      
       },

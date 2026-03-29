@@ -1,10 +1,11 @@
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const response = await fetch("/api/user");
+  const users = await response.json();
+  console.log(users);
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">My Profile</h1>
-      <p className="text-lg mb-6">
-        Manage your account details and view your order history.
-      </p>
+      <h1>Profile Page</h1>
+      <p>This is the profile page.</p>
     </div>
   );
 }
