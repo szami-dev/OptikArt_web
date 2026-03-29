@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Button from "@/app/components/Button";
-import GSAPNavigationGuard from "./GSAPNavigationGuard";
-
 
 // ── Canvas particle mesh – egérre reagál ──────────────────────
 function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
@@ -19,7 +17,6 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
     let mouse = { x: -1000, y: -1000 };
     let particles: Particle[] = [];
 
-    // Canvas méret beállítás
     function resize() {
       canvas!.width = window.innerWidth;
       canvas!.height = window.innerHeight;
@@ -27,22 +24,12 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
     }
 
     class Particle {
-      x: number;
-      y: number;
-      baseX: number;
-      baseY: number;
-      vx: number;
-      vy: number;
-      size: number;
-      opacity: number;
+      x: number; y: number; baseX: number; baseY: number;
+      vx: number; vy: number; size: number; opacity: number;
 
       constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-        this.baseX = x;
-        this.baseY = y;
-        this.vx = 0;
-        this.vy = 0;
+        this.x = x; this.y = y; this.baseX = x; this.baseY = y;
+        this.vx = 0; this.vy = 0;
         this.size = Math.random() * 1.5 + 0.5;
         this.opacity = Math.random() * 0.4 + 0.1;
       }
@@ -55,20 +42,17 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
         const REPEL_FORCE = 3;
 
         if (dist < REPEL_RADIUS) {
-          // Taszítás az egértől
           const force = (REPEL_RADIUS - dist) / REPEL_RADIUS;
           this.vx -= (dx / dist) * force * REPEL_FORCE;
           this.vy -= (dy / dist) * force * REPEL_FORCE;
         }
 
-        // Visszahúzás az alaphelyzetbe (rugóerő)
         const SPRING = 0.04;
         const DAMPING = 0.85;
         this.vx += (this.baseX - this.x) * SPRING;
         this.vy += (this.baseY - this.y) * SPRING;
         this.vx *= DAMPING;
         this.vy *= DAMPING;
-
         this.x += this.vx;
         this.y += this.vy;
       }
@@ -85,10 +69,8 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       particles = [];
       const COLS = Math.floor(canvas!.width / 55);
       const ROWS = Math.floor(canvas!.height / 55);
-
       for (let i = 0; i < COLS; i++) {
         for (let j = 0; j < ROWS; j++) {
-          // Kis véletlenszerű elcsúszás a rácshoz képest
           const jitter = 12;
           const x = (canvas!.width / COLS) * i + (canvas!.width / COLS) / 2 + (Math.random() - 0.5) * jitter;
           const y = (canvas!.height / ROWS) * j + (canvas!.height / ROWS) / 2 + (Math.random() - 0.5) * jitter;
@@ -104,7 +86,6 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-
           if (dist < MAX_DIST) {
             const opacity = (1 - dist / MAX_DIST) * 0.12;
             ctx!.beginPath();
@@ -118,7 +99,6 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       }
     }
 
-    // Egér mozgás – parallax ripple kör
     let ripples: { x: number; y: number; r: number; opacity: number }[] = [];
 
     function drawRipple() {
@@ -136,36 +116,24 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
 
     function animate() {
       ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-
       drawConnections();
       drawRipple();
-
-      particles.forEach((p) => {
-        p.update(mouse.x, mouse.y);
-        p.draw(ctx!);
-      });
-
+      particles.forEach((p) => { p.update(mouse.x, mouse.y); p.draw(ctx!); });
       animId = requestAnimationFrame(animate);
     }
 
     function onMouseMove(e: MouseEvent) {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
-
-      // Ripple hozzáadása ritkán
       if (Math.random() < 0.08) {
         ripples.push({ x: e.clientX, y: e.clientY, r: 5, opacity: 0.25 });
       }
     }
 
-    function onMouseLeave() {
-      mouse.x = -1000;
-      mouse.y = -1000;
-    }
+    function onMouseLeave() { mouse.x = -1000; mouse.y = -1000; }
 
     resize();
     animate();
-
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseleave", onMouseLeave);
@@ -179,7 +147,7 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   }, [canvasRef]);
 }
 
-// ── Lebegő parallax elem – egérrel mozog ─────────────────────
+// ── Lebegő parallax elem ──────────────────────────────────────
 function useMouseParallax() {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const targetRef = useRef({ x: 0, y: 0 });
@@ -194,9 +162,7 @@ function useMouseParallax() {
       };
     }
 
-    function lerp(a: number, b: number, t: number) {
-      return a + (b - a) * t;
-    }
+    function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
     function tick() {
       currentRef.current.x = lerp(currentRef.current.x, targetRef.current.x, 0.06);
@@ -220,36 +186,53 @@ function useMouseParallax() {
 // ── Fő Hero komponens ─────────────────────────────────────────
 export default function HeroInteractive() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const mouse = useMouseParallax();
 
   useParticleMesh(canvasRef);
 
   useEffect(() => {
     let ctx: any;
+    let mounted = true;
 
     async function init() {
       const { gsap } = await import("gsap");
 
+      // Ha már unmountolódott az async import alatt, ne fusson le
+      if (!mounted) return;
+
       ctx = gsap.context(() => {
-        // Betöltési animációk
         const tl = gsap.timeline({ delay: 0.3 });
 
-        tl.from(".hero-eyebrow-v2", { opacity: 0, y: 16, duration: 0.7, ease: "power3.out" })
-          .from(".hero-title-v2 > *", { opacity: 0, y: 50, stagger: 0.12, duration: 0.9, ease: "power4.out" }, "-=0.3")
-          .from(".hero-desc-v2", { opacity: 0, y: 20, duration: 0.7, ease: "power2.out" }, "-=0.4")
-          .from(".hero-cta-v2", { opacity: 0, y: 16, duration: 0.6, ease: "power2.out" }, "-=0.3")
+        tl.from(".hero-eyebrow-v2", {
+            opacity: 0, y: 16, duration: 0.7, ease: "power3.out",
+            immediateRender: false,
+          })
+          .from(".hero-title-v2 > *", {
+            opacity: 0, y: 50, stagger: 0.12, duration: 0.9, ease: "power4.out",
+            immediateRender: false,
+          }, "-=0.3")
+          .from(".hero-desc-v2", {
+            opacity: 0, y: 20, duration: 0.7, ease: "power2.out",
+            immediateRender: false,
+          }, "-=0.4")
+          .from(".hero-cta-v2", {
+            opacity: 0, y: 16, duration: 0.6, ease: "power2.out",
+            immediateRender: false,
+          }, "-=0.3")
           .from(".hero-float-cards > *", {
-            opacity: 0,
-            x: 20,
-            stagger: 0.1,
-            duration: 0.6,
-            ease: "power2.out",
+            opacity: 0, x: 20, stagger: 0.1, duration: 0.6, ease: "power2.out",
+            immediateRender: false,
           }, "-=0.4");
-      });
+      }, sectionRef); // ← sectionRef-re szűkítve, nem globális
     }
 
     init();
-    return () => ctx?.revert();
+
+    return () => {
+      mounted = false;
+      ctx?.revert();
+    };
   }, []);
 
   const stats = [
@@ -259,15 +242,10 @@ export default function HeroInteractive() {
   ];
 
   return (
-    <section className="relative h-screen min-h-[680px] flex items-center overflow-hidden bg-[#F5EFE6]">
-      <GSAPNavigationGuard />
+    <section ref={sectionRef} className="relative h-screen min-h-[680px] flex items-center overflow-hidden bg-[#F5EFE6]">
 
-      {/* Canvas háttér – particle mesh */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ zIndex: 1 }}
-      />
+      {/* Canvas háttér */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }} />
 
       {/* Gradient overlay */}
       <div
@@ -287,8 +265,6 @@ export default function HeroInteractive() {
 
           {/* Bal: szöveg */}
           <div className="lg:col-span-7">
-
-            {/* Eyebrow */}
             <div className="hero-eyebrow-v2 flex items-center gap-3 mb-8">
               <div className="w-10 h-px bg-[#C8A882]" />
               <span className="text-[10px] tracking-[0.28em] uppercase text-[#A08060] font-light">
@@ -296,7 +272,6 @@ export default function HeroInteractive() {
               </span>
             </div>
 
-            {/* Cím */}
             <h1
               className="hero-title-v2 font-['Cormorant_Garamond'] font-thin leading-[0.92] tracking-[-0.02em] text-[#1A1510] mb-8"
               style={{ fontSize: "clamp(4rem, 9vw, 8.5rem)" }}
@@ -305,13 +280,11 @@ export default function HeroInteractive() {
               <em className="block not-italic text-[#C8A882]">mesélnek</em>
             </h1>
 
-            {/* Leírás */}
             <p className="hero-desc-v2 max-w-sm text-[14px] font-light text-[#7A6A58] leading-[1.9] tracking-[0.03em] mb-10">
               Professzionális fotó és videó alkotások,<br />
               amelyek mesélnek a te történetedről.
             </p>
 
-            {/* CTA */}
             <div className="hero-cta-v2 flex items-center gap-5">
               <Button
                 variant="primary"
@@ -336,7 +309,7 @@ export default function HeroInteractive() {
             </div>
           </div>
 
-          {/* Jobb: lebegő stat kártyák – egérrel mozognak */}
+          {/* Jobb: lebegő stat kártyák */}
           <div
             className="hero-float-cards lg:col-span-4 lg:col-start-9 hidden lg:flex flex-col gap-3"
             style={{
@@ -366,7 +339,6 @@ export default function HeroInteractive() {
               </div>
             ))}
 
-            {/* Extra lebegő dekoratív elem – más sebességgel mozog */}
             <div
               className="mt-2 flex items-center gap-3 pl-2"
               style={{
@@ -375,9 +347,7 @@ export default function HeroInteractive() {
               }}
             >
               <div className="w-6 h-px bg-[#C8A882]/40" />
-              <span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]/40">
-                Budapest, HU
-              </span>
+              <span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]/40">Budapest, HU</span>
             </div>
           </div>
         </div>

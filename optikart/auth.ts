@@ -34,6 +34,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!passwordMatch) return null;
 
+        // ── Email verifikáció ellenőrzés ───────────────────────
+       
+
         return {
           id: String(user.id),
           email: user.email,
