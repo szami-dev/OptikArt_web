@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Button from "@/app/components/Button";
 
-// ── Particle Mesh (Változatlan) ──────────────────────
 function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -43,12 +42,11 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
         this.opacity = Math.random() * 0.4 + 0.1;
       }
       update(mouseX: number, mouseY: number) {
-        const dx = mouseX - this.x;
-        const dy = mouseY - this.y;
+        const dx = mouseX - this.x,
+          dy = mouseY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const REPEL_RADIUS = 120;
-        if (dist < REPEL_RADIUS) {
-          const force = (REPEL_RADIUS - dist) / REPEL_RADIUS;
+        if (dist < 120) {
+          const force = (120 - dist) / 120;
           this.vx -= (dx / dist) * force * 3;
           this.vy -= (dy / dist) * force * 3;
         }
@@ -71,8 +69,8 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       particles = [];
       const COLS = Math.floor(canvas!.width / 55);
       const ROWS = Math.floor(canvas!.height / 55);
-      for (let i = 0; i < COLS; i++) {
-        for (let j = 0; j < ROWS; j++) {
+      for (let i = 0; i < COLS; i++)
+        for (let j = 0; j < ROWS; j++)
           particles.push(
             new Particle(
               (canvas!.width / COLS) * i +
@@ -83,8 +81,6 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
                 (Math.random() - 0.5) * 12,
             ),
           );
-        }
-      }
     }
 
     function animate() {
@@ -112,29 +108,24 @@ function useParticleMesh(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   }, [canvasRef]);
 }
 
-// ── FIXÁLT PARALLAX: Nincs State, nincs re-render! ──
 function useParallaxRef(containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
-    let targetX = 0;
-    let targetY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let rafId: number;
-
+    let targetX = 0,
+      targetY = 0,
+      currentX = 0,
+      currentY = 0,
+      rafId: number;
     const onMove = (e: MouseEvent) => {
       targetX = (e.clientX / window.innerWidth - 0.5) * 30;
       targetY = (e.clientY / window.innerHeight - 0.5) * 30;
     };
-
     const update = () => {
       currentX += (targetX - currentX) * 0.05;
       currentY += (targetY - currentY) * 0.05;
-      if (containerRef.current) {
+      if (containerRef.current)
         containerRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
       rafId = requestAnimationFrame(update);
     };
-
     window.addEventListener("mousemove", onMove);
     update();
     return () => {
@@ -150,18 +141,20 @@ export default function HeroInteractive() {
   const parallaxBoxRef = useRef<HTMLDivElement>(null);
 
   useParticleMesh(canvasRef);
-  useParallaxRef(parallaxBoxRef); // A stat kártyák dobozát mozgatja
+  useParallaxRef(parallaxBoxRef);
 
   useEffect(() => {
     let ctx: any;
+    let mounted = true;
+
     async function init() {
       const { gsap } = await import("gsap");
+      if (!mounted) return;
+
       ctx = gsap.context(() => {
         const tl = gsap.timeline({
           defaults: { ease: "power4.out", duration: 1.2 },
         });
-
-        // Beállítjuk a kezdőpontot a GSAP-pel, és onnan indítjuk
         tl.fromTo(
           ".hero-eyebrow-v2",
           { opacity: 0, y: 20 },
@@ -193,8 +186,12 @@ export default function HeroInteractive() {
           );
       }, sectionRef);
     }
+
     init();
-    return () => ctx?.revert();
+    return () => {
+      mounted = false;
+      ctx?.revert();
+    };
   }, []);
 
   const stats = [
@@ -206,7 +203,8 @@ export default function HeroInteractive() {
   return (
     <section
       ref={sectionRef}
-      className="relative h-screen min-h-[680px] flex items-center overflow-hidden bg-[#F5EFE6]"
+      className="relative w-full flex items-center overflow-hidden bg-[#F5EFE6]"
+      style={{ minHeight: "100svh" }} // svh = small viewport height, laptopon is jól viselkedik
     >
       <canvas
         ref={canvasRef}
@@ -222,22 +220,25 @@ export default function HeroInteractive() {
         }}
       />
 
+      {/* ── Főtartalom – py-20 védi a tetejét/alját kis képernyőn ── */}
       <div
-        className="relative w-full max-w-7xl mx-auto px-8 lg:px-16"
+        className="relative w-full max-w-7xl mx-auto px-8 lg:px-16 py-20 lg:py-0"
         style={{ zIndex: 3 }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Bal: szöveg */}
           <div className="lg:col-span-7">
-            <div className="hero-eyebrow-v2 opacity-0 flex items-center gap-3 mb-8">
+            <div className="hero-eyebrow-v2 opacity-0 flex items-center gap-3 mb-6 lg:mb-8">
               <div className="w-10 h-px bg-[#C8A882]" />
               <span className="text-[10px] tracking-[0.28em] uppercase text-[#A08060] font-light">
                 Fotó & Videó Stúdió
               </span>
             </div>
 
+            {/* ── HERO FIX: clamp értékek csökkentve, hogy laptopon ne lógjon ki ── */}
             <h1
-              className="hero-title-v2 font-['Cormorant_Garamond'] font-thin leading-[0.92] tracking-[-0.02em] text-[#1A1510] mb-8"
-              style={{ fontSize: "clamp(4rem, 9vw, 8.5rem)" }}
+              className="hero-title-v2 font-['Cormorant_Garamond'] font-thin leading-[0.92] tracking-[-0.02em] text-[#1A1510] mb-6 lg:mb-8"
+              style={{ fontSize: "clamp(3.2rem, 7vw, 8.5rem)" }}
             >
               <span className="block opacity-0">Képek, amik</span>
               <em className="block not-italic text-[#C8A882] opacity-0">
@@ -245,7 +246,7 @@ export default function HeroInteractive() {
               </em>
             </h1>
 
-            <p className="hero-desc-v2 opacity-0 max-w-sm text-[14px] font-light text-[#7A6A58] leading-[1.9] mb-10">
+            <p className="hero-desc-v2 opacity-0 max-w-sm text-[13px] lg:text-[14px] font-light text-[#7A6A58] leading-[1.9] mb-8 lg:mb-10">
               Professzionális fotó és videó alkotások,
               <br />
               amelyek mesélnek a te történetedről.
@@ -280,7 +281,7 @@ export default function HeroInteractive() {
             </div>
           </div>
 
-          {/* JOBB OLDAL: A ParallaxBoxRef mozgatja a konténert, a stat-card-v2 pedig animálódik benne */}
+          {/* Jobb: stat kártyák */}
           <div className="lg:col-span-4 lg:col-start-9 hidden lg:block">
             <div
               ref={parallaxBoxRef}
@@ -310,8 +311,9 @@ export default function HeroInteractive() {
         </div>
       </div>
 
+      {/* Scroll indikátor */}
       <div
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         style={{ zIndex: 3 }}
       >
         <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]/50">
