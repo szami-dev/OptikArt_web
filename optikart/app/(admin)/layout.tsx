@@ -1,4 +1,4 @@
-import Sidebar from "../components/UserDashNav";
+import SidebarDark from "../components/AdminDashNav";
 
 export default function PublicLayout({
   children,
@@ -7,7 +7,7 @@ export default function PublicLayout({
 }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
+      <SidebarDark />
       <main style={{ marginLeft: "260px", flex: 1, padding: "2rem" }}>
         {children}
       </main>
