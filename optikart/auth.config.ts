@@ -13,12 +13,12 @@ export const authConfig: NextAuthConfig = {
         password: { label: "Jelszó", type: "password" },
       },
       async authorize() {
-        // Itt ne legyen prisma! Az auth.ts-ben lesz
+        // Prisma nincs itt – az auth.ts-ben van
         return null;
       },
     }),
   ],
-  
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -28,15 +28,23 @@ export const authConfig: NextAuthConfig = {
       }
       return token;
     },
-    
+
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        (session.user as any).role = token.role as string;
         (session.user as any).phone = token.phone;
       }
-      
       return session;
+    },
+
+    // ── Middleware-ben ezt is használjuk a role olvasáshoz ────────
+    // A `req.auth?.user?.role` csak akkor működik middleware-ben
+    // ha a session callback beírja a user objektumba
+    authorized({ auth }) {
+      // Alapértelmezett: bejelentkezett = authorized
+      // A részletes role-check a middleware-ben történik
+      return !!auth;
     },
   },
 };
