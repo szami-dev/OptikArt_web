@@ -130,7 +130,7 @@ export default function SidebarDark() {
       <div className="px-2.5 pb-4 pt-2.5 border-t border-white/[0.05] flex flex-col gap-0.5">
 
         <Link
-          href="/user/profile"
+          href="/profile"
           className={`flex items-center gap-2.5 rounded-sm hover:bg-white/[0.04] transition-colors duration-200 overflow-hidden ${
             collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"
           }`}

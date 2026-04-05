@@ -12,7 +12,7 @@ const menuItems = [
   { label: "Esküvő", href: "/wedding" },
   { label: "Portré", href: "/portrait" },
   { label: "Marketing", href: "/marketing" },
-  { label: "Rendszerünk", href: "/system" },
+  { label: "Rendezvény", href: "/event" },
 ];
 
 export default function Navbar() {
