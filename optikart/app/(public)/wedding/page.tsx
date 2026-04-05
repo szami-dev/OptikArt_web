@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import WeddingTimeline from "@/app/components/WeddingTimeline";
 import Footer from "@/app/components/Footer";
+import WeddingHero from "@/app/components/WeddingHero";
 // ── Adatok ───────────────────────────────────────────────────
 
 const photoPackages = [
@@ -344,105 +345,7 @@ export default function WeddingsPage() {
       {/* ══════════════════════════════════════════
           HERO
       ══════════════════════════════════════════ */}
-      <section className="w-hero-section relative min-h-screen flex items-center bg-white overflow-hidden">
-
-        {/* Finom grid háttér */}
-        <div className="absolute inset-0 opacity-[0.025]" style={{
-          backgroundImage: `linear-gradient(#C8A882 1px, transparent 1px), linear-gradient(90deg, #C8A882 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }} />
-
-        <div className="relative w-full max-w-7xl mx-auto px-8 lg:px-16 py-24 z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-
-            {/* Bal: szöveg */}
-            <div className="lg:col-span-6">
-              <div className="w-hero-label opacity-0 flex items-center gap-3 mb-8">
-                <div className="w-10 h-px bg-[#C8A882]" />
-                <span className="text-[10px] tracking-[0.3em] uppercase text-[#A08060]">Esküvői fotó & videó</span>
-              </div>
-
-              <h1 className="w-hero-title font-['Cormorant_Garamond'] font-thin leading-[0.88] tracking-[-0.02em] text-[#1A1510] mb-8" style={{ fontSize: "clamp(3.5rem, 7vw, 8rem)" }}>
-                <span className="block opacity-0">A ti</span>
-                <span className="block opacity-0">történetetek,</span>
-                <em className="block not-italic opacity-0 text-[#C8A882]">örökre.</em>
-              </h1>
-
-              <p className="w-hero-sub opacity-0 max-w-sm text-[14px] text-[#7A6A58] leading-[1.9] mb-10">
-                Professzionális esküvői fotózás és videózás, amely megőrzi a nagy nap minden emlékezetes pillanatát — természetes, időtlen stílusban.
-              </p>
-
-              <div className="w-hero-cta opacity-0 flex items-center gap-6 mb-14">
-                <Link
-                  href="/contact"
-                  className="bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-8 py-4 hover:bg-[#C8A882] transition-colors duration-300"
-                >
-                  Időpont egyeztetés
-                </Link>
-                <a href="#csomagok" className="text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all duration-200">
-                  Csomagok →
-                </a>
-              </div>
-
-              {/* Hero stats */}
-              <div className="flex gap-8">
-                {[{ n: "120+", l: "Esküvő" }, { n: "8 év", l: "Tapasztalat" }, { n: "98%", l: "Elégedett pár" }].map((s) => (
-                  <div key={s.l} className="w-hero-stat opacity-0">
-                    <div className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#C8A882] leading-none">{s.n}</div>
-                    <div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mt-1">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Jobb: képkollázs */}
-            <div className="lg:col-span-6 hidden lg:flex items-center justify-center">
-              <div className="relative w-[460px] h-[540px]">
-
-                {/* Kép 1 – nagy, álló */}
-                <div className="w-hero-img opacity-0 absolute top-0 left-8 w-hero-parallax" style={{ zIndex: 2 }}>
-                  <div className="relative overflow-hidden shadow-2xl border border-[#EDE8E0]" style={{ width: "220px", height: "300px" }}>
-                    <Image src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80" alt="Esküvő" fill className="object-cover" sizes="220px" priority />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/20 to-transparent" />
-                  </div>
-                </div>
-
-                {/* Kép 2 – jobb felső */}
-                <div className="w-hero-img opacity-0 absolute top-12 right-0" style={{ zIndex: 3 }}>
-                  <div className="relative overflow-hidden shadow-xl border border-[#EDE8E0] rotate-1" style={{ width: "200px", height: "240px" }}>
-                    <Image src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600&q=80" alt="Menyasszony" fill className="object-cover" sizes="200px" priority />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/20 to-transparent" />
-                  </div>
-                </div>
-
-                {/* Kép 3 – alsó */}
-                <div className="w-hero-img opacity-0 absolute bottom-0 left-1/2 -translate-x-1/2" style={{ zIndex: 4 }}>
-                  <div className="relative overflow-hidden shadow-lg border border-[#EDE8E0] -rotate-1" style={{ width: "240px", height: "160px" }}>
-                    <Image src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600&q=80" alt="Pár" fill className="object-cover" sizes="240px" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/15 to-transparent" />
-                  </div>
-                </div>
-
-                {/* Lebegő badge */}
-                <div className="w-hero-stat opacity-0 absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white border border-[#EDE8E0] shadow-xl px-5 py-4" style={{ zIndex: 5 }}>
-                  <div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#C8A882] leading-none">120+</div>
-                  <div className="text-[8px] tracking-[0.15em] uppercase text-[#A08060] mt-1">Boldog pár</div>
-                </div>
-
-                {/* Sarokdíszek */}
-                <div className="absolute -top-4 -right-4 w-14 h-14 border-t border-r border-[#C8A882]/25" />
-                <div className="absolute -bottom-4 -left-4 w-14 h-14 border-b border-l border-[#C8A882]/25" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll vonal */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10">
-          <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]/50">Scroll</span>
-          <div className="w-px h-12 bg-gradient-to-b from-[#C8A882]/50 to-transparent animate-[scrollPulse_2s_ease-in-out_infinite]" />
-        </div>
-      </section>
+      <WeddingHero />
 
       {/* ══════════════════════════════════════════
           FOLYAMAT – hogyan működik
