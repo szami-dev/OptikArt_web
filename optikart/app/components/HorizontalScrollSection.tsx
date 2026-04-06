@@ -2,251 +2,131 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
-// ── Minden slide-hoz saját médiaanyag ────────────────────────
-// Cseréld ki a src értékeket a sajátjaidra!
 const slides = [
   {
+    id: "eskuvo",
     number: "01",
-    title: "Fotózás",
-    description:
-      "Portré, termék, esemény és architectural fotózás. Minden kép egy gondosan megkomponált pillanat — a fény, az árnyék és az érzelem tökéletes egyensúlya.",
-    tags: ["RAW feldolgozás", "Retusálás", "Helyszíni konzultáció"],
-    accent: "#C8A882",
+    title: "Esküvő",
+    subtitle: "A ti történetetek, örökre.",
+    description: "Professzionális esküvői fotózás és videózás, amely megőrzi a nagy nap minden pillanatát — természetes, időtlen stílusban.",
+    href: "/weddings",
+    tags: ["Fotózás", "Videózás", "Highlight film"],
+    theme: "light" as const,
     bg: "#FAF8F4",
-    media: [
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600&q=75",
-        alt: "Esküvői fotó",
-        aspect: "tall",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&q=75",
-        alt: "Portré",
-        aspect: "square",
-      },
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=600&q=75",
-        alt: "Videó preview",
-        aspect: "wide",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=75",
-        alt: "Esemény",
-        aspect: "square",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600&q=75",
-        alt: "Termékfotó",
-        aspect: "tall",
-      },
+    accent: "#C8A882",
+    images: [
+      { src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80", alt: "Esküvői pár", aspect: "tall" },
+      { src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80", alt: "Menyasszony", aspect: "square" },
+      { src: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&q=80", alt: "Virágok", aspect: "wide" },
     ],
+    stat: { n: "120+", l: "Esküvő" },
   },
   {
+    id: "portre",
     number: "02",
-    title: "Videógyártás",
-    description:
-      "Reklámfilm, dokumentumfilm, social media content — komplex gyártástól a posztprodukcióig. Képek, amelyek mozognak és érzelmeket keltenek.",
-    tags: ["4K · 6K felbontás", "Color grading", "Motion graphics"],
-    accent: "#A08060",
-    bg: "#F5EFE6",
-    media: [
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1601506521793-dc748fc80b67?w=600&q=75",
-        alt: "Reklámfilm",
-        aspect: "wide",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&q=75",
-        alt: "Forgatás",
-        aspect: "tall",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1585951237318-9ea5e175b891?w=600&q=75",
-        alt: "Stúdió",
-        aspect: "square",
-      },
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1536240478700-b869ad10e128?w=600&q=75",
-        alt: "Motion",
-        aspect: "square",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?w=600&q=75",
-        alt: "Color grade",
-        aspect: "wide",
-      },
-    ],
-  },
-  {
-    number: "03",
-    title: "Drón felvételek",
-    description:
-      "Légifotók és videók, amelyek új perspektívát adnak — engedéllyel, profi felszereléssel. A világ felülnézetből egészen más.",
-    tags: ["Engedéllyel", "6K felbontás", "GPS pontosság"],
-    accent: "#B89870",
-    bg: "#EDE8E0",
-    media: [
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=600&q=75",
-        alt: "Drón",
-        aspect: "wide",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=75",
-        alt: "Légifotó",
-        aspect: "tall",
-      },
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1508444845599-5c89863b1c44?w=600&q=75",
-        alt: "Drón videó",
-        aspect: "square",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=600&q=75",
-        alt: "Táj",
-        aspect: "square",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=600&q=75",
-        alt: "Felülnézet",
-        aspect: "wide",
-      },
-    ],
-  },
-  {
-    number: "04",
-    title: "Projektek",
-    description:
-      "Komplex alkotói projektek, ahol fotó és videó kéz a kézben dolgozik. Kampányoktól márkafilmekig — egy csapattal, egy vízióval.",
-    tags: ["Kampányok", "Márkafilmek", "Éves szerződés"],
+    title: "Portré",
+    subtitle: "Pillantások — arcok, pillanatok, emlékek.",
+    description: "Páros, jegyes, családi és egyéni portré fotózás. Természetes fényben, valódi pillanatokból — mert minden arc mesél valamit.",
+    href: "/portrait",
+    tags: ["Páros", "Családi", "Egyéni portré"],
+    theme: "light" as const,
+    bg: "#FFFFFF",
     accent: "#C8A882",
-    bg: "#FAF8F4",
-    media: [
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=75",
-        alt: "Kampány",
-        aspect: "tall",
-      },
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&q=75",
-        alt: "Márkafilm",
-        aspect: "wide",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=75",
-        alt: "Projekt",
-        aspect: "square",
-      },
-      {
-        type: "image",
-        src: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&q=75",
-        alt: "Csapat",
-        aspect: "square",
-      },
-      {
-        type: "video",
-        src: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=75",
-        alt: "Behind scenes",
-        aspect: "tall",
-      },
+    images: [
+      { src: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80", alt: "Portré", aspect: "tall" },
+      { src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80", alt: "Nő portré", aspect: "square" },
+      { src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80", alt: "Férfi portré", aspect: "wide" },
     ],
+    stat: { n: "350+", l: "Portré" },
+  },
+  {
+    id: "rendezvenyek",
+    number: "03",
+    title: "Rendezvény",
+    subtitle: "Minden pillanat számít.",
+    description: "Céges rendezvény, fesztivál, party vagy konferencia — mi ott vagyunk és megörökítjük az energiát. Gyors, precíz, profi.",
+    href: "/events",
+    tags: ["Céges", "Fesztivál", "Magán"],
+    theme: "dark" as const,
+    bg: "#1A1410",
+    accent: "#C8A882",
+    images: [
+      { src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80", alt: "Konferencia", aspect: "wide" },
+      { src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80", alt: "Koncert", aspect: "tall" },
+      { src: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&q=80", alt: "Party", aspect: "square" },
+    ],
+    stat: { n: "80+", l: "Rendezvény" },
+  },
+  {
+    id: "marketing",
+    number: "04",
+    title: "Marketing",
+    subtitle: "Content, ami megállít.",
+    description: "Professzionális fotó és short-form videó tartalom — Instagram, TikTok, Facebook. Amit az algoritmus szeret és az emberek megnéznek.",
+    href: "/marketing",
+    tags: ["Instagram", "TikTok", "Brand film"],
+    theme: "light" as const,
+    bg: "#FAF8F4",
+    accent: "#1A1510",
+    images: [
+      { src: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=800&q=80", alt: "Termékfotó", aspect: "square" },
+      { src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", alt: "Brand", aspect: "tall" },
+      { src: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80", alt: "Social", aspect: "wide" },
+    ],
+    stat: { n: "500+", l: "Poszt/hó" },
+  },
+  {
+    id: "dron",
+    number: "05",
+    title: "Drón",
+    subtitle: "A világ felülnézetből egészen más.",
+    description: "Légifotók és videók, amelyek új perspektívát adnak — engedéllyel, profi felszereléssel, 6K felbontásban.",
+    href: "/gallery",
+    tags: ["Légifotó", "6K videó", "Engedéllyel"],
+    theme: "dark" as const,
+    bg: "#0C0A08",
+    accent: "#C8A882",
+    images: [
+      { src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80", alt: "Drón", aspect: "wide" },
+      { src: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&q=80", alt: "Légifotó", aspect: "tall" },
+      { src: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80", alt: "Táj", aspect: "wide" },
+    ],
+    stat: { n: "6K", l: "Felbontás" },
   },
 ];
 
-// aspect → magasság arány a justified gridben
-const aspectHeights: Record<string, string> = {
-  tall: "h-64",
-  square: "h-44",
-  wide: "h-36",
+const aspectSizes: Record<string, { basis: string; minH: string }> = {
+  tall:   { basis: "150px", minH: "240px" },
+  square: { basis: "180px", minH: "180px" },
+  wide:   { basis: "260px", minH: "150px" },
 };
 
-function MediaItem({
-  item,
-  accent,
-}: {
-  item: (typeof slides)[0]["media"][0];
+function SlideImage({ img, accent, theme }: {
+  img: { src: string; alt: string; aspect: string };
   accent: string;
+  theme: "dark" | "light";
 }) {
   const [hovered, setHovered] = useState(false);
+  const sz = aspectSizes[img.aspect];
 
   return (
     <div
-      className={`relative overflow-hidden group cursor-pointer flex-shrink-0 ${aspectHeights[item.aspect]}`}
-      style={{
-        flexBasis:
-          item.aspect === "wide"
-            ? "280px"
-            : item.aspect === "tall"
-              ? "160px"
-              : "200px",
-        flexGrow: 1,
-      }}
+      className="relative overflow-hidden flex-shrink-0 cursor-pointer"
+      style={{ flexBasis: sz.basis, flexGrow: 1, minHeight: sz.minH, maxHeight: "260px" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Image
-        src={item.src}
-        alt={item.alt}
-        fill
-        className={`object-cover transition-transform duration-700 ${hovered ? "scale-105" : "scale-100"}`}
-        sizes="200px"
-      />
-
-      {/* Video overlay */}
-      {item.type === "video" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${hovered ? "scale-110" : "scale-100"}`}
-            style={{ background: `${accent}cc`, backdropFilter: "blur(4px)" }}
-          >
-            <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4 ml-0.5">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-          </div>
-        </div>
-      )}
-
-      {/* Hover overlay */}
-      <div
-        className="absolute inset-0 transition-opacity duration-300"
-        style={{
-          background: `linear-gradient(to top, ${accent}50, transparent)`,
-          opacity: hovered ? 1 : 0,
-        }}
-      />
-
-      {/* Label */}
-      <div
-        className={`absolute bottom-2 left-3 transition-all duration-300 ${hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
-      >
-        <span className="text-[9px] tracking-[0.12em] uppercase text-white/90">
-          {item.alt}
-        </span>
-      </div>
+      <Image src={img.src} alt={img.alt} fill className={`object-cover transition-transform duration-700 ${hovered ? "scale-105" : "scale-100"}`} sizes="200px" />
+      <div className={`absolute inset-0 transition-opacity duration-400 ${hovered ? "opacity-100" : "opacity-0"}`}
+        style={{ background: `linear-gradient(to top, ${accent}60, transparent)` }} />
     </div>
   );
 }
 
-export default function HorizontalScrollSection() {
+// ── Desktop horizontal scroll ─────────────────────────────────
+function DesktopScroll() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -263,8 +143,6 @@ export default function HorizontalScrollSection() {
         const section = sectionRef.current;
         if (!track || !section) return;
 
-        gsap.set(".hscroll-card-content", { opacity: 1, clearProps: "all" });
-
         const getTotal = () => track.scrollWidth - window.innerWidth;
 
         const tl = gsap.timeline({
@@ -276,16 +154,13 @@ export default function HorizontalScrollSection() {
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onRefresh: () =>
-              gsap.set(".hscroll-card-content", { clearProps: "all" }),
           },
         });
 
         tl.to(track, { x: () => -getTotal(), ease: "none" });
 
         gsap.to(".hs-progress-bar", {
-          scaleX: 1,
-          ease: "none",
+          scaleX: 1, ease: "none",
           scrollTrigger: {
             trigger: section,
             start: "top top",
@@ -300,10 +175,7 @@ export default function HorizontalScrollSection() {
           end: () => `+=${getTotal()}`,
           scrub: true,
           onUpdate: (self) => {
-            const current = Math.min(
-              Math.ceil(self.progress * slides.length) || 1,
-              slides.length,
-            );
+            const current = Math.min(Math.ceil(self.progress * slides.length) || 1, slides.length);
             const el = document.querySelector(".hs-counter-current");
             if (el) el.textContent = String(current).padStart(2, "0");
           },
@@ -316,172 +188,183 @@ export default function HorizontalScrollSection() {
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative w-full overflow-hidden"
-      style={{ height: "100vh" }}
-    >
-      {/* Bal felirat */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-3 pointer-events-none">
-        <span
-          className="text-[9px] tracking-[0.3em] uppercase text-[#A08060]/50"
-          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-        >
-          Szolgáltatások
-        </span>
-        <div className="w-px h-12 bg-gradient-to-b from-[#C8A882]/30 to-transparent" />
+    <section ref={sectionRef} className="relative w-full overflow-hidden" style={{ height: "100vh" }}>
+      {/* Számláló */}
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none mix-blend-difference">
+        <span className="hs-counter-current font-['Cormorant_Garamond'] text-2xl font-light text-white">01</span>
+        <div className="w-px h-8 bg-white/30" />
+        <span className="font-['Cormorant_Garamond'] text-base font-light text-white/40">{String(slides.length).padStart(2, "0")}</span>
       </div>
 
-      {/* Jobb számláló */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none">
-        <span className="hs-counter-current font-['Cormorant_Garamond'] text-2xl font-light text-[#C8A882]">
-          01
-        </span>
-        <div className="w-px h-8 bg-[#DDD5C8]" />
-        <span className="font-['Cormorant_Garamond'] text-base font-light text-[#C8B8A0]/50">
-          {String(slides.length).padStart(2, "0")}
-        </span>
-      </div>
-
-      {/* Scroll hint */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none">
-        <div className="w-8 h-px bg-[#C8A882]/30" />
-        <span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]/40">
-          Görgets jobbra
-        </span>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-          className="w-4 h-4 text-[#C8A882]/30"
-        >
-          <line x1="5" y1="12" x2="19" y2="12" />
-          <polyline points="12 5 19 12 12 19" />
-        </svg>
-      </div>
-
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-[#EDE8E0] z-20">
-        <div
-          className="hs-progress-bar h-full bg-[#C8A882] origin-left"
-          style={{ transform: "scaleX(0)" }}
-        />
+      {/* Progress */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-black/10 z-20">
+        <div className="hs-progress-bar h-full bg-[#C8A882] origin-left" style={{ transform: "scaleX(0)" }} />
       </div>
 
       {/* Track */}
-      <div
-        ref={trackRef}
-        className="flex h-full will-change-transform"
-        style={{ width: `${slides.length * 100}vw` }}
-      >
-        {slides.map((slide, i) => (
-          <div
-            key={i}
-            className="hscroll-card relative flex-shrink-0 w-screen h-full flex flex-col justify-center overflow-hidden"
-            style={{ backgroundColor: slide.bg }}
-          >
-            {/* Dekoratív háttérszám */}
-            <div
-              className="absolute right-16 bottom-0 font-['Cormorant_Garamond'] font-light select-none pointer-events-none"
-              style={{
-                fontSize: "clamp(10rem, 18vw, 18rem)",
-                color: "rgba(200,168,130,0.05)",
-                lineHeight: 0.85,
-              }}
-            >
+      <div ref={trackRef} className="flex h-full will-change-transform" style={{ width: `${slides.length * 100}vw` }}>
+        {slides.map((slide, i) => {
+          const isDark = slide.theme === "dark";
+          const textMain = isDark ? "text-white" : "text-[#1A1510]";
+          const textSub = isDark ? "text-white/50" : "text-[#7A6A58]";
+          const textMuted = isDark ? "text-white/25" : "text-[#A08060]";
+          const borderColor = isDark ? "border-white/10" : "border-[#EDE8E0]";
+
+          return (
+            <div key={i} className="relative flex-shrink-0 w-screen h-full flex flex-col justify-center overflow-hidden" style={{ backgroundColor: slide.bg }}>
+              {/* Háttér dekor szám */}
+              <div className="absolute pointer-events-none select-none font-['Cormorant_Garamond'] font-light"
+                style={{ fontSize: "clamp(12rem, 22vw, 22rem)", color: isDark ? "rgba(200,168,130,0.04)" : "rgba(200,168,130,0.07)", lineHeight: 0.85, bottom: "-2rem", right: "4rem" }}>
+                {slide.number}
+              </div>
+
+              {slide.id === "marketing" && (
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `radial-gradient(#C8A882 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
+              )}
+
+              <div className="relative z-10 w-full px-12 lg:px-20">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+                  <div className="lg:col-span-5">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-8 h-px" style={{ background: slide.accent }} />
+                      <span className="text-[10px] tracking-[0.25em] uppercase font-light" style={{ color: slide.accent }}>
+                        {slide.number} / {String(slides.length).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <h2 className={`font-['Cormorant_Garamond'] font-light leading-[0.95] tracking-[-0.02em] mb-3 ${textMain}`}
+                      style={{ fontSize: "clamp(2.8rem, 5vw, 5.5rem)" }}>
+                      {slide.title}
+                    </h2>
+                    <p className={`font-['Cormorant_Garamond'] text-[1.1rem] font-light italic ${textMuted}`}>{slide.subtitle}</p>
+                  </div>
+
+                  <div className="lg:col-span-5 lg:col-start-7 flex flex-col justify-end gap-5">
+                    <p className={`text-[13px] font-light leading-[1.9] ${textSub}`}>{slide.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {slide.tags.map(tag => (
+                        <span key={tag} className="text-[9px] tracking-[0.12em] uppercase px-3 py-1.5 border"
+                          style={{ color: slide.accent, borderColor: `${slide.accent}35` }}>{tag}</span>
+                      ))}
+                    </div>
+                    <div className={`flex items-center justify-between pt-4 border-t ${borderColor}`}>
+                      <div>
+                        <div className="font-['Cormorant_Garamond'] text-[1.8rem] font-light leading-none" style={{ color: slide.accent }}>{slide.stat.n}</div>
+                        <div className={`text-[9px] tracking-[0.12em] uppercase mt-0.5 ${textMuted}`}>{slide.stat.l}</div>
+                      </div>
+                      <Link href={slide.href} className={`inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase border-b pb-0.5 transition-all ${isDark ? "text-white/60 border-white/20 hover:text-white hover:border-white/50" : "text-[#1A1510] border-[#C8A882]/40 hover:border-[#C8A882]"}`}>
+                        Részletek
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 items-end overflow-hidden" style={{ maxHeight: "270px" }}>
+                  {slide.images.map((img, j) => (
+                    <SlideImage key={j} img={img} accent={slide.accent} theme={slide.theme} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: `linear-gradient(to bottom, transparent, ${slide.accent}40, transparent)` }} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scroll hint */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none">
+        <div className="w-6 h-px bg-[#C8A882]/40" />
+        <span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]/50">Görgets jobbra</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-4 h-4 text-[#C8A882]/40">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </div>
+    </section>
+  );
+}
+
+// ── Mobil vertikális kártyák ──────────────────────────────────
+function MobileSlides() {
+  return (
+    <div className="lg:hidden flex flex-col">
+      {slides.map((slide, i) => {
+        const isDark = slide.theme === "dark";
+        const textMain = isDark ? "text-white" : "text-[#1A1510]";
+        const textSub = isDark ? "text-white/50" : "text-[#7A6A58]";
+        const textMuted = isDark ? "text-white/30" : "text-[#A08060]";
+        const borderColor = isDark ? "border-white/10" : "border-[#EDE8E0]";
+
+        return (
+          <div key={i} className="relative overflow-hidden py-12 px-6 sm:px-10" style={{ backgroundColor: slide.bg }}>
+            {/* Dekor szám */}
+            <div className="absolute pointer-events-none select-none font-['Cormorant_Garamond'] font-light opacity-60"
+              style={{ fontSize: "10rem", color: isDark ? "rgba(200,168,130,0.05)" : "rgba(200,168,130,0.08)", lineHeight: 0.9, bottom: "-1rem", right: "1rem" }}>
               {slide.number}
             </div>
 
-            <div
-              className="hscroll-card-content relative z-10 w-full px-16 lg:px-24"
-              style={{ opacity: 1, visibility: "visible" }}
-            >
-              {/* Felső sor: eyebrow + cím + leírás + tagek */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-                <div className="lg:col-span-5">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div
-                      className="w-8 h-px"
-                      style={{ background: slide.accent }}
-                    />
-                    <span
-                      className="text-[10px] tracking-[0.25em] uppercase font-light"
-                      style={{ color: slide.accent }}
-                    >
-                      {slide.number} / {String(slides.length).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <h2
-                    className="font-['Cormorant_Garamond'] font-light leading-[1] tracking-[-0.02em] text-[#1A1510]"
-                    style={{ fontSize: "clamp(2.5rem, 4.5vw, 5rem)" }}
-                  >
-                    {slide.title}
-                  </h2>
-                </div>
-
-                <div className="lg:col-span-5 lg:col-start-7 flex flex-col justify-end">
-                  <p className="text-[13px] font-light text-[#7A6A58] leading-[1.9] mb-5">
-                    {slide.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {slide.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[9px] tracking-[0.12em] uppercase px-3 py-1.5 border"
-                        style={{
-                          color: slide.accent,
-                          borderColor: `${slide.accent}40`,
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            <div className="relative z-10">
+              {/* Eyebrow */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-px" style={{ background: slide.accent }} />
+                <span className="text-[9px] tracking-[0.22em] uppercase font-light" style={{ color: slide.accent }}>
+                  {slide.number} / {String(slides.length).padStart(2, "0")}
+                </span>
               </div>
 
-              {/* Justified galéria sor */}
-              <div
-                className="flex gap-2 items-end overflow-hidden"
-                style={{ maxHeight: "280px" }}
-              >
-                {slide.media.map((item, j) => (
-                  <MediaItem key={j} item={item} accent={slide.accent} />
+              {/* Cím */}
+              <h2 className={`font-['Cormorant_Garamond'] font-light leading-[0.95] tracking-[-0.02em] mb-2 ${textMain}`}
+                style={{ fontSize: "clamp(2.4rem, 10vw, 4rem)" }}>
+                {slide.title}
+              </h2>
+              <p className={`font-['Cormorant_Garamond'] text-[1rem] font-light italic mb-4 ${textMuted}`}>{slide.subtitle}</p>
+              <p className={`text-[13px] font-light leading-[1.8] mb-5 ${textSub}`}>{slide.description}</p>
+
+              {/* Tagek */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {slide.tags.map(tag => (
+                  <span key={tag} className="text-[9px] tracking-[0.1em] uppercase px-2.5 py-1.5 border"
+                    style={{ color: slide.accent, borderColor: `${slide.accent}35` }}>{tag}</span>
                 ))}
               </div>
 
-              {/* CTA */}
-              <div className="mt-6">
-                <a
-                  href="#"
-                  className="inline-flex items-center gap-3 text-[11px] tracking-[0.15em] uppercase text-[#1A1510] border-b border-[#C8A882]/40 pb-0.5 hover:border-[#C8A882] transition-all duration-200"
-                >
-                  Bővebben
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="w-3 h-3"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </a>
+              {/* Képek – vízszintes scroll */}
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 sm:-mx-10 sm:px-10 scrollbar-none snap-x snap-mandatory">
+                {slide.images.map((img, j) => (
+                  <div key={j} className="relative overflow-hidden flex-shrink-0 rounded-sm snap-start" style={{ width: "160px", height: "200px" }}>
+                    <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="160px" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Stat + link */}
+              <div className={`flex items-center justify-between pt-5 mt-5 border-t ${borderColor}`}>
+                <div>
+                  <div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light leading-none" style={{ color: slide.accent }}>{slide.stat.n}</div>
+                  <div className={`text-[8px] tracking-[0.12em] uppercase mt-0.5 ${textMuted}`}>{slide.stat.l}</div>
+                </div>
+                <Link href={slide.href} className={`inline-flex items-center gap-2 text-[11px] tracking-[0.12em] uppercase border-b pb-0.5 transition-all ${isDark ? "text-white/60 border-white/20" : "text-[#1A1510] border-[#C8A882]/40"}`}>
+                  Részletek →
+                </Link>
               </div>
             </div>
-
-            {/* Oldalsáv */}
-            <div
-              className="absolute right-0 top-0 bottom-0 w-1"
-              style={{
-                background: `linear-gradient(to bottom, transparent, ${slide.accent}25, transparent)`,
-              }}
-            />
           </div>
-        ))}
+        );
+      })}
+    </div>
+  );
+}
+
+export default function HorizontalScrollSection() {
+  return (
+    <>
+      {/* Desktop: horizontal pin scroll */}
+      <div className="hidden lg:block">
+        <DesktopScroll />
       </div>
-    </section>
+
+      {/* Mobil: egyszerű vertikális stack – GSAP nélkül, nincs overlap */}
+      <MobileSlides />
+    </>
   );
 }
