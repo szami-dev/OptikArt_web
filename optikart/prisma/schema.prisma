@@ -39,6 +39,13 @@ model User {
 
   
 }
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
 
 model Project {
   id             Int             @id @default(autoincrement())
@@ -46,6 +53,7 @@ model Project {
   description    String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime?       @updatedAt
+  status         ProjectStatus?  @default(PLANNING)
   users          User[]
   category       Package?        @relation(fields: [packageId], references: [id])
   packageId      Int?
