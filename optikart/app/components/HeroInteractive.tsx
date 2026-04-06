@@ -147,7 +147,7 @@ export default function HeroInteractive() {
             </div>
           </div>
 
-          {/* Stat sor */}
+          {/* Stat sor 
           <div className="flex flex-wrap gap-6 sm:gap-8 pt-5 border-t border-[#EDE8E0]">
             {[
               { n: "320+", l: "Projekt" },
@@ -159,7 +159,7 @@ export default function HeroInteractive() {
                 <div className="text-[8px] tracking-[0.15em] uppercase text-[#A08060] mt-1">{s.l}</div>
               </div>
             ))}
-          </div>
+          </div>*/}
         </div>
 
         {/* JOBB: képváltós panel – csak desktop */}

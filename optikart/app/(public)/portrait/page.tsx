@@ -89,7 +89,6 @@ export default function PortrePage() {
       if (!mounted) return;
 
       ctx = gsap.context(() => {
-        // Hero
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
         tl.fromTo(".ph-mosaic-cell", { opacity: 0, scale: 1.05 }, { opacity: 1, scale: 1, stagger: 0.08, duration: 1.1, ease: "power2.out" })
           .fromTo(".ph-eyebrow", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.6 }, 0.2)
@@ -98,17 +97,14 @@ export default function PortrePage() {
           .fromTo(".ph-hero-btn", { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.07, duration: 0.6 }, 1.0)
           .fromTo(".ph-hero-stat", { opacity: 0, y: 10 }, { opacity: 1, y: 0, stagger: 0.06, duration: 0.5 }, 1.1);
 
-        // ── Scroll animációk – start: "top 95%", nincs toggleActions ──
         gsap.from(".ph-cat-header > *", {
           opacity: 0, y: 10, stagger: 0.08, duration: 0.6, immediateRender: false,
           scrollTrigger: { trigger: ".ph-cat-section", start: "top 95%" },
         });
-
         gsap.from(".ph-photo-card", {
           opacity: 0, y: 16, stagger: 0.12, duration: 0.8, ease: "power2.out", immediateRender: false,
           scrollTrigger: { trigger: ".ph-photographers", start: "top 95%" },
         });
-
         document.querySelectorAll(".ph-split").forEach((el) => {
           const split = new SplitText(el, { type: "lines" });
           gsap.from(split.lines, {
@@ -116,7 +112,6 @@ export default function PortrePage() {
             scrollTrigger: { trigger: el, start: "top 95%" },
           });
         });
-
         gsap.to(".ph-cta-bg", {
           yPercent: 15, ease: "none",
           scrollTrigger: { trigger: ".ph-cta-section", start: "top bottom", end: "bottom top", scrub: 1 },
@@ -130,81 +125,146 @@ export default function PortrePage() {
 
   return (
     <div ref={rootRef} className="bg-white overflow-x-hidden">
-      {/* HERO */}
-      <section className="relative w-full bg-white overflow-hidden" style={{ height: "100svh", minHeight: "600px" }}>
-        <div className="absolute inset-0 grid grid-cols-2 lg:grid-cols-[1fr_38%_24%] grid-rows-2 gap-1.5 p-1.5">
-          <div className="row-span-2 bg-white flex flex-col gap-5 px-8 sm:px-10 lg:px-14 py-8 lg:py-12 relative z-10 overflow-y-auto min-h-0">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-px bg-[#C8A882]" />
-              <span className="ph-eyebrow opacity-0 text-[9px] tracking-[0.28em] uppercase text-[#A08060]">OptikArt · Portré</span>
-            </div>
-            <div className="flex flex-col gap-6">
-              <div className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882] ph-title-word opacity-0">Pillantások</div>
-              <div className="font-['Cormorant_Garamond'] font-thin text-[#1A1510] leading-[0.88] tracking-[-0.02em]" style={{ fontSize: "clamp(2.8rem, 5.5vw, 6.5rem)" }}>
-                <div className="ph-title-word opacity-0 overflow-hidden"><span className="block">Arcok,</span></div>
-                <div className="ph-title-word opacity-0 overflow-hidden"><span className="block">pillanatok,</span></div>
-                <div className="ph-title-word opacity-0 overflow-hidden"><em className="block not-italic text-[#C8A882]">emlékek.</em></div>
-              </div>
-              <p className="ph-hero-desc opacity-0 text-[13px] font-light text-[#7A6A58] leading-[1.9] max-w-xs">Páros, jegyes, családi és egyéni portré fotózás. Természetes fényben, valódi pillanatokból.</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <Link href="/contact" className="ph-hero-btn opacity-0 bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-7 py-3.5 hover:bg-[#C8A882] transition-all duration-300 whitespace-nowrap">Időpontot kérek</Link>
-                <a href="#kategoriák" className="ph-hero-btn opacity-0 text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] transition-all whitespace-nowrap">Kategóriák →</a>
-              </div>
-            </div>
-            
-          </div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2 hidden lg:block">
+
+      {/* ══ HERO ══════════════════════════════════════════════════
+          Mobil: teljes szélességű szöveg + háttérkép overlay
+          Desktop: mozaik grid
+      ═══════════════════════════════════════════════════════════ */}
+      <section
+        className="relative w-full bg-white overflow-hidden"
+        style={{ minHeight: "100svh" }}
+      >
+        {/* ── Mobil háttérkép ── */}
+        <div className="lg:hidden absolute inset-0 z-0">
+          <Image
+            src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80"
+            alt="Portré"
+            fill
+            className="object-cover object-top"
+            sizes="100vw"
+            priority
+          />
+          <div className="absolute inset-0 bg-white/85" />
+        </div>
+
+        {/* ── Desktop mozaik grid ── */}
+        <div className="hidden lg:grid absolute inset-0 grid-cols-[1fr_38%_24%] grid-rows-2 gap-1.5 p-1.5">
+          {/* Placeholder bal oszlop – fehér, tartalom a flex layerben van */}
+          <div className="row-span-2 bg-white" />
+
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2">
             <Image src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80" alt="Egyéni portré" fill className="object-cover object-top hover:scale-105 transition-transform duration-700" sizes="38vw" priority />
           </div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden hidden lg:block">
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden">
             <Image src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80" alt="Páros fotó" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" priority />
             <div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Páros</span></div>
           </div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden hidden lg:block">
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden">
             <Image src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80" alt="Família" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" />
             <div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Família</span></div>
           </div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2 lg:hidden">
-            <Image src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80" alt="Portré" fill className="object-cover object-top" sizes="50vw" priority />
+        </div>
+
+        {/* ── Szöveg layer – minden képernyőn felül ── */}
+        <div
+          className="relative z-10 flex flex-col w-full lg:w-[38%] xl:w-[36%] px-6 sm:px-10 lg:px-14 py-10 lg:py-12"
+          style={{ minHeight: "100svh" }}
+        >
+          {/* Fejléc */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-8 h-px bg-[#C8A882]" />
+            <span className="ph-eyebrow opacity-0 text-[9px] tracking-[0.28em] uppercase text-[#A08060]">OptikArt · Portré</span>
+          </div>
+
+          {/* Cím blokk – flex-1 hogy kitöltse a középső teret */}
+          <div className="flex-1 flex flex-col justify-center gap-5 py-8">
+            <div className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882] ph-title-word opacity-0">Pillantások</div>
+
+            <div
+              className="font-['Cormorant_Garamond'] font-thin text-[#1A1510] leading-[0.88] tracking-[-0.02em]"
+              style={{ fontSize: "clamp(2.6rem, 6vw, 6.5rem)" }}
+            >
+              <div className="ph-title-word opacity-0 overflow-hidden"><span className="block">Arcok,</span></div>
+              <div className="ph-title-word opacity-0 overflow-hidden"><span className="block">pillanatok,</span></div>
+              <div className="ph-title-word opacity-0 overflow-hidden"><em className="block not-italic text-[#C8A882]">emlékek.</em></div>
+            </div>
+
+            <p className="ph-hero-desc opacity-0 text-[13px] font-light text-[#7A6A58] leading-[1.9] max-w-xs">
+              Páros, jegyes, családi és egyéni portré fotózás. Természetes fényben, valódi pillanatokból.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Link href="/contact" className="ph-hero-btn opacity-0 bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-7 py-3.5 hover:bg-[#C8A882] transition-all duration-300 whitespace-nowrap">
+                Időpontot kérek
+              </Link>
+              <a href="#kategoriák" className="ph-hero-btn opacity-0 text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] transition-all whitespace-nowrap">
+                Kategóriák →
+              </a>
+            </div>
+          </div>
+
+          {/* Stat sor – alul, shrink-0 hogy ne nyomódjon ki */}
+          <div className="shrink-0 flex gap-6 pt-4 border-t border-[#EDE8E0]">
+            {[{ n: "350+", l: "Portré" }, { n: "5 év", l: "Tapasztalat" }, { n: "2", l: "Fotós" }].map((s) => (
+              <div key={s.l} className="ph-hero-stat opacity-0">
+                <div className="font-['Cormorant_Garamond'] text-[1.5rem] font-light text-[#C8A882] leading-none">{s.n}</div>
+                <div className="text-[8px] tracking-[0.12em] uppercase text-[#A08060] mt-0.5">{s.l}</div>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="absolute bottom-6 left-[25%] lg:left-[13%] -translate-x-1/2 flex flex-col items-center gap-2 z-20">
+
+        {/* Scroll indikátor */}
+        <div className="absolute bottom-6 left-6 sm:left-10 lg:left-[13%] flex flex-col items-center gap-2 z-20">
           <span className="text-[8px] tracking-[0.22em] uppercase text-[#A08060]/40">Scroll</span>
           <div className="w-px h-10 bg-gradient-to-b from-[#C8A882]/50 to-transparent animate-[scrollPulse_2s_ease-in-out_infinite]" />
         </div>
       </section>
 
       {/* KATEGÓRIÁK */}
-      <section id="kategoriák" className="ph-cat-section py-28 bg-[#FAFAFA]">
-        <div className="max-w-7xl mx-auto px-8 lg:px-16">
-          <div className="ph-cat-header flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-14">
+      <section id="kategoriák" className="ph-cat-section py-20 sm:py-28 bg-[#FAFAFA]">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-16">
+          <div className="ph-cat-header flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10 sm:mb-14">
             <div>
-              <div className="flex items-center gap-3 mb-5"><div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Mit kínálunk</span></div>
-              <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510]">Válaszd ki<br /><em className="not-italic text-[#C8A882]">a te stílusodat</em></h2>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-px bg-[#C8A882]" />
+                <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Mit kínálunk</span>
+              </div>
+              <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510]">
+                Válaszd ki<br /><em className="not-italic text-[#C8A882]">a te stílusodat</em>
+              </h2>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mb-10">
+
+          {/* Tab gombok – mobilon görgethetők */}
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-none">
             {categories.map((cat, i) => (
-              <button key={i} onClick={() => setActiveCategory(i)} className={`text-[11px] tracking-[0.12em] uppercase px-5 py-2.5 border transition-all duration-200 ${activeCategory === i ? "bg-[#1A1510] text-white border-[#1A1510]" : "text-[#7A6A58] border-[#EDE8E0] hover:border-[#C8A882]/50 hover:text-[#1A1510]"}`}>{cat.title}</button>
+              <button key={i} onClick={() => setActiveCategory(i)}
+                className={`text-[11px] tracking-[0.12em] uppercase px-4 sm:px-5 py-2.5 border transition-all duration-200 shrink-0 ${activeCategory === i ? "bg-[#1A1510] text-white border-[#1A1510]" : "text-[#7A6A58] border-[#EDE8E0] hover:border-[#C8A882]/50 hover:text-[#1A1510]"}`}>
+                {cat.title}
+              </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div className="grid grid-cols-3 gap-2" style={{ height: "420px" }}>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start lg:items-center">
+            {/* Képek – mobilon kisebb */}
+            <div className="grid grid-cols-3 gap-2" style={{ height: "280px", minHeight: "220px" }}>
               {categories[activeCategory].images.map((src, i) => (
                 <div key={`${activeCategory}-${i}`} className={`relative overflow-hidden ${i === 1 ? "mt-6" : ""}`}>
-                  <Image src={src} alt={categories[activeCategory].title} fill className="object-cover" sizes="25vw" />
+                  <Image src={src} alt={categories[activeCategory].title} fill className="object-cover" sizes="(max-width: 768px) 33vw, 20vw" />
                 </div>
               ))}
             </div>
-            <div className="flex flex-col gap-6">
+
+            <div className="flex flex-col gap-5">
               <div>
-                <div className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882] mb-3">{categories[activeCategory].subtitle}</div>
-                <h3 className="font-['Cormorant_Garamond'] text-[clamp(1.8rem,3vw,2.8rem)] font-light text-[#1A1510] leading-[1.1] mb-4">{categories[activeCategory].title}</h3>
+                <div className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882] mb-2">{categories[activeCategory].subtitle}</div>
+                <h3 className="font-['Cormorant_Garamond'] text-[clamp(1.6rem,3vw,2.8rem)] font-light text-[#1A1510] leading-[1.1] mb-3">{categories[activeCategory].title}</h3>
                 <p className="text-[14px] font-light text-[#7A6A58] leading-[1.9]">{categories[activeCategory].desc}</p>
               </div>
-              <div className="flex gap-8 py-5 border-t border-b border-[#EDE8E0]">
-                <div><div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mb-1">Ár</div><div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#1A1510]">{categories[activeCategory].price}</div></div>
-                <div><div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mb-1">Időtartam</div><div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#1A1510]">{categories[activeCategory].duration}</div></div>
+              <div className="flex gap-8 py-4 border-t border-b border-[#EDE8E0]">
+                <div><div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mb-1">Ár</div><div className="font-['Cormorant_Garamond'] text-[1.5rem] font-light text-[#1A1510]">{categories[activeCategory].price}</div></div>
+                <div><div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mb-1">Időtartam</div><div className="font-['Cormorant_Garamond'] text-[1.5rem] font-light text-[#1A1510]">{categories[activeCategory].duration}</div></div>
               </div>
               <Link href="/contact" className="inline-flex items-center gap-3 bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-7 py-4 hover:bg-[#C8A882] transition-all duration-300 w-fit">
                 Időpontot kérek
@@ -216,35 +276,42 @@ export default function PortrePage() {
       </section>
 
       {/* FOTÓSOK */}
-      <section className="ph-photographers py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-8 lg:px-16">
-          <div className="flex items-center gap-3 mb-5"><div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">A fotósaink</span></div>
-          <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510] mb-16">Akik a kamera<br /><em className="not-italic text-[#C8A882]">mögött állnak</em></h2>
-          <div className="flex flex-col gap-24">
+      <section className="ph-photographers py-20 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-16">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-px bg-[#C8A882]" />
+            <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">A fotósaink</span>
+          </div>
+          <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510] mb-12 sm:mb-16">
+            Akik a kamera<br /><em className="not-italic text-[#C8A882]">mögött állnak</em>
+          </h2>
+          <div className="flex flex-col gap-16 sm:gap-24">
             {photographers.map((p, i) => (
-              <div key={i} className={`ph-photo-card grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start ${i % 2 !== 0 ? "lg:[direction:rtl]" : ""}`}>
+              <div key={i} className={`ph-photo-card grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start ${i % 2 !== 0 ? "lg:[direction:rtl]" : ""}`}>
                 <div className={`lg:col-span-5 ${i % 2 !== 0 ? "lg:[direction:ltr]" : ""}`}>
-                  <div className="relative aspect-[3/4] overflow-hidden border border-[#EDE8E0] mb-5">
+                  <div className="relative overflow-hidden border border-[#EDE8E0] mb-4" style={{ aspectRatio: "3/4" }}>
                     <Image src={p.image} alt={p.name} fill className="object-cover grayscale hover:grayscale-0 transition-all duration-700" sizes="(max-width: 1024px) 100vw, 40vw" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/20 to-transparent" />
                     {["top-3 left-3 border-t border-l", "top-3 right-3 border-t border-r", "bottom-3 left-3 border-b border-l", "bottom-3 right-3 border-b border-r"].map((cls, j) => (
                       <div key={j} className={`absolute w-4 h-4 ${cls}`} style={{ borderColor: `${p.accent}60` }} />
                     ))}
                   </div>
-                  <div className="flex flex-wrap gap-2">{p.specialties.map((s) => (<span key={s} className="text-[9px] tracking-[0.1em] uppercase px-3 py-1.5 border border-[#EDE8E0] text-[#A08060]">{s}</span>))}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {p.specialties.map((s) => (<span key={s} className="text-[9px] tracking-[0.1em] uppercase px-3 py-1.5 border border-[#EDE8E0] text-[#A08060]">{s}</span>))}
+                  </div>
                 </div>
-                <div className={`lg:col-span-7 flex flex-col gap-7 ${i % 2 !== 0 ? "lg:[direction:ltr]" : ""}`}>
+                <div className={`lg:col-span-7 flex flex-col gap-6 ${i % 2 !== 0 ? "lg:[direction:ltr]" : ""}`}>
                   <div>
-                    <div className="flex items-center gap-3 mb-4"><div className="w-6 h-px" style={{ background: p.accent }} /><span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: p.accent }}>Fotós</span></div>
+                    <div className="flex items-center gap-3 mb-3"><div className="w-6 h-px" style={{ background: p.accent }} /><span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: p.accent }}>Fotós</span></div>
                     <h3 className="font-['Cormorant_Garamond'] text-[clamp(2rem,4vw,3rem)] font-light text-[#1A1510] leading-none mb-1">{p.name}</h3>
-                    <p className="text-[11px] tracking-[0.12em] uppercase text-[#A08060] mb-5">{p.role}</p>
+                    <p className="text-[11px] tracking-[0.12em] uppercase text-[#A08060] mb-4">{p.role}</p>
                     <p className="text-[14px] font-light text-[#7A6A58] leading-[1.9] max-w-lg">{p.bio}</p>
                   </div>
-                  <div className="flex gap-8 py-5 border-t border-b border-[#EDE8E0]">
-                    {p.stats.map((s) => (<div key={s.l}><div className="font-['Cormorant_Garamond'] text-[2rem] font-light leading-none mb-0.5" style={{ color: p.accent }}>{s.n}</div><div className="text-[9px] tracking-[0.12em] uppercase text-[#A08060]">{s.l}</div></div>))}
+                  <div className="flex gap-8 py-4 border-t border-b border-[#EDE8E0]">
+                    {p.stats.map((s) => (<div key={s.l}><div className="font-['Cormorant_Garamond'] text-[1.8rem] font-light leading-none mb-0.5" style={{ color: p.accent }}>{s.n}</div><div className="text-[9px] tracking-[0.12em] uppercase text-[#A08060]">{s.l}</div></div>))}
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 mb-4"><div className="w-5 h-px bg-[#EDE8E0]" /><span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]">Így dolgozom</span></div>
+                    <div className="flex items-center gap-3 mb-3"><div className="w-5 h-px bg-[#EDE8E0]" /><span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]">Így dolgozom</span></div>
                     <YouTubeEmbed videoId={p.youtubeId} title={`${p.name} – munkamódszer`} />
                   </div>
                 </div>
@@ -255,17 +322,19 @@ export default function PortrePage() {
       </section>
 
       {/* CTA */}
-      <section className="ph-cta-section relative py-32 overflow-hidden bg-[#1A1510]">
+      <section className="ph-cta-section relative py-24 sm:py-32 overflow-hidden bg-[#1A1510]">
         <div className="ph-cta-bg absolute overflow-hidden" style={{ inset: "-10% 0" }}>
           <Image src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1600&q=75" alt="Portré háttér" fill className="object-cover opacity-20" sizes="100vw" />
         </div>
-        <div className="relative z-10 max-w-3xl mx-auto px-8 text-center">
+        <div className="relative z-10 max-w-3xl mx-auto px-6 sm:px-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-6"><div className="w-8 h-px bg-[#C8A882]/50" /><span className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882]/60">Foglalj időpontot</span><div className="w-8 h-px bg-[#C8A882]/50" /></div>
-          <h2 className="font-['Cormorant_Garamond'] text-[clamp(2.5rem,5vw,4.5rem)] font-thin leading-[1] text-white mb-6">Örökítsük meg<br /><em className="not-italic text-[#C8A882]">a te pillanataidat</em></h2>
-          <p className="text-[14px] text-white/40 leading-[1.9] mb-10 max-w-md mx-auto">Egyeztesd az időpontot most, és mi gondoskodunk a többiről.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/contact" className="bg-white text-[#1A1510] text-[11px] tracking-[0.18em] uppercase px-10 py-4 hover:bg-[#C8A882] hover:text-white transition-colors duration-300 whitespace-nowrap">Időpontot kérek</Link>
-            <a href="tel:+36301234567" className="border border-white/20 text-white/60 text-[11px] tracking-[0.15em] uppercase px-8 py-4 hover:border-[#C8A882]/50 hover:text-white/80 transition-all duration-300 whitespace-nowrap">+36 30 123 4567</a>
+          <h2 className="font-['Cormorant_Garamond'] text-[clamp(2.2rem,5vw,4.5rem)] font-thin leading-[1] text-white mb-6">
+            Örökítsük meg<br /><em className="not-italic text-[#C8A882]">a te pillanataidat</em>
+          </h2>
+          <p className="text-[14px] text-white/40 leading-[1.9] mb-8 sm:mb-10 max-w-md mx-auto">Egyeztesd az időpontot most, és mi gondoskodunk a többiről.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Link href="/contact" className="w-full sm:w-auto bg-white text-[#1A1510] text-[11px] tracking-[0.18em] uppercase px-10 py-4 hover:bg-[#C8A882] hover:text-white transition-colors duration-300 text-center whitespace-nowrap">Időpontot kérek</Link>
+            <a href="tel:+36301234567" className="w-full sm:w-auto border border-white/20 text-white/60 text-[11px] tracking-[0.15em] uppercase px-8 py-4 hover:border-[#C8A882]/50 hover:text-white/80 transition-all duration-300 text-center whitespace-nowrap">+36 30 123 4567</a>
           </div>
         </div>
       </section>

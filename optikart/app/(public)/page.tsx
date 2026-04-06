@@ -9,8 +9,8 @@ import HeroInteractive from "../components/HeroInteractive";
 import Footer from "../components/Footer";
 
 const stats = [
-  { number: "320+", label: "Lezárt projekt" },
-  { number: "8 év", label: "Szakmai tapasztalat" },
+  { number: "100+", label: "Lezárt projekt" },
+  { number: "6 év", label: "Szakmai tapasztalat" },
   { number: "98%", label: "Elégedett ügyfél" },
   { number: "15+", label: "Szakmai díj" },
 ];
