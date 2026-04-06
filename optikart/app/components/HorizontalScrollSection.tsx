@@ -132,11 +132,25 @@ function DesktopScroll() {
 
   useEffect(() => {
     let ctx: any;
+    let mounted = true;
+    let refreshTimer: ReturnType<typeof setTimeout>;
 
     async function init() {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
+
+      if (!mounted) return;
+
+      // ── Fix: Next.js client nav után a pin-spacer és scroll pozíció
+      // megmaradhat a memóriában. Töröljük az összes régi trigger-t,
+      // majd adjunk időt a DOM-nak hogy rendbe jöjjön, aztán init.
+      ScrollTrigger.getAll().forEach(t => t.kill());
+      ScrollTrigger.clearScrollMemory?.();
+
+      // Kis delay – DOM-nak kell pár ms hogy a pin-spacer eltűnjön
+      await new Promise(resolve => { refreshTimer = setTimeout(resolve, 60); });
+      if (!mounted) return;
 
       ctx = gsap.context(() => {
         const track = trackRef.current;
@@ -144,6 +158,9 @@ function DesktopScroll() {
         if (!track || !section) return;
 
         const getTotal = () => track.scrollWidth - window.innerWidth;
+
+        // track x visszaállítása 0-ra induláskor
+        gsap.set(track, { x: 0 });
 
         const tl = gsap.timeline({
           scrollTrigger: {
@@ -159,6 +176,7 @@ function DesktopScroll() {
 
         tl.to(track, { x: () => -getTotal(), ease: "none" });
 
+        gsap.set(".hs-progress-bar", { scaleX: 0 });
         gsap.to(".hs-progress-bar", {
           scaleX: 1, ease: "none",
           scrollTrigger: {
@@ -180,11 +198,18 @@ function DesktopScroll() {
             if (el) el.textContent = String(current).padStart(2, "0");
           },
         });
+
+        // Refresh – biztosítja hogy a méretek helyesek legyenek
+        ScrollTrigger.refresh();
       }, sectionRef);
     }
 
     init();
-    return () => ctx?.revert();
+    return () => {
+      mounted = false;
+      clearTimeout(refreshTimer);
+      ctx?.revert();
+    };
   }, []);
 
   return (

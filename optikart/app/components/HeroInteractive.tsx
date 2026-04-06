@@ -120,14 +120,16 @@ export default function HeroInteractive() {
             </p>
 
             <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-              <Button
-                variant="primary"
-                size="lg"
-                icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>}
-                iconPosition="right"
-              >
-                <span className="hi-cta">Projekt indítása</span>
-              </Button>
+              <Link href="/contact">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>}
+                  iconPosition="right"
+                >
+                  <span className="hi-cta">Projekt indítása</span>
+                </Button>
+              </Link>
               <Link href="/gallery" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
                 Galéria →
               </Link>

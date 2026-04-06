@@ -5,8 +5,51 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { menuItems, bottomItems } from "./sidebarData";
 
+// ── Nav elemek beégetve ───────────────────────────────────────
+const menuItems = [
+  {
+    href: "/admin/dashboard",
+    label: "Dashboard",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  },
+  {
+    href: "/admin/projects",
+    label: "Projektek",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>,
+  },
+  {
+    href: "/admin/users",
+    label: "Felhasználók",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  },
+  {
+    href: "/admin/messages",
+    label: "Üzenetek",
+    badge: 3,
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  },
+  {
+    href: "/admin/calendar",
+    label: "Naptár",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  },
+  {
+    href: "/admin/gallery",
+    label: "Galériák",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+  },
+];
+
+const bottomItems = [
+  {
+    href: "/admin/settings",
+    label: "Beállítások",
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  },
+];
+
+// ── Komponens ─────────────────────────────────────────────────
 export default function SidebarDark({
   collapsed: collapsedProp,
   onCollapse,
@@ -26,7 +69,6 @@ export default function SidebarDark({
   };
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
-
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -35,16 +77,13 @@ export default function SidebarDark({
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
-  // ── Sidebar belső tartalom ─────────────────────────────────
   function SidebarContent({ isMobile = false }: { isMobile?: boolean }) {
     const isCollapsed = !isMobile && collapsed;
 
     return (
       <>
         {/* Header */}
-        <div className={`flex items-center border-b border-white/[0.06] min-h-[68px] py-[22px] transition-all duration-[350ms] ${
-          isCollapsed ? "justify-center px-0" : "justify-between px-5"
-        }`}>
+        <div className={`flex items-center border-b border-white/[0.06] min-h-[68px] py-[22px] transition-all duration-[350ms] ${isCollapsed ? "justify-center px-0" : "justify-between px-5"}`}>
           {isCollapsed ? (
             <Link href="/admin" className="w-8 h-8 border border-[#C8A882]/30 flex items-center justify-center shrink-0">
               <span className="font-['Cormorant_Garamond'] text-[15px] font-light text-[#C8A882]">O</span>
@@ -54,9 +93,9 @@ export default function SidebarDark({
               <Image src="/assets/10optik2 (1).png" alt="OptikArt" width={110} height={40} className="object-contain brightness-0 invert opacity-90" />
             </Link>
           )}
-          {!isMobile && !collapsed && (
+          {!isMobile && !isCollapsed && (
             <button onClick={() => setCollapsed(true)} className="w-7 h-7 rounded-md border border-white/[0.08] flex items-center justify-center text-[#5A5248] hover:bg-white/[0.04] hover:text-[#C8A882] transition-all shrink-0 ml-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><polyline points="15 18 9 12 15 6" /></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           )}
           {isMobile && (
@@ -72,11 +111,11 @@ export default function SidebarDark({
           {!isCollapsed && (
             <div className="text-[9px] font-medium tracking-[0.18em] uppercase text-[#3A3530] px-3 pt-4 pb-2">Navigáció</div>
           )}
-          {menuItems.map((item) => (
+          {menuItems.map(item => (
             <NavItem key={item.href} item={item} active={isActive(item.href)} collapsed={isCollapsed} />
           ))}
           <div className={`h-px bg-white/[0.05] my-1 ${isCollapsed ? "mx-3" : "mx-2.5"}`} />
-          {bottomItems.map((item) => (
+          {bottomItems.map(item => (
             <NavItem key={item.href} item={item} active={isActive(item.href)} collapsed={isCollapsed} />
           ))}
         </nav>
@@ -85,7 +124,7 @@ export default function SidebarDark({
         <div className={`pb-4 pt-2.5 border-t border-white/[0.05] flex flex-col gap-0.5 ${isCollapsed ? "px-0 items-center" : "px-2.5"}`}>
           {isCollapsed && (
             <button onClick={() => setCollapsed(false)} className="w-9 h-9 rounded-md border border-white/[0.08] flex items-center justify-center text-[#5A5248] hover:bg-white/[0.04] hover:text-[#C8A882] transition-all mb-1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5 rotate-180"><polyline points="15 18 9 12 15 6" /></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5 rotate-180"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           )}
           <Link href="/admin/users" className={`flex items-center rounded-sm hover:bg-white/[0.04] transition-colors group relative ${isCollapsed ? "justify-center w-10 h-10 mx-auto" : "gap-2.5 px-3 py-2.5"}`}>
@@ -124,7 +163,7 @@ export default function SidebarDark({
 
   return (
     <>
-      {/* ── MOBIL topbar ── */}
+      {/* Mobil topbar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-4 bg-[#0E0C0A] border-b border-white/[0.06]">
         <Link href="/admin">
           <Image src="/assets/10optik2 (1).png" alt="OptikArt" width={90} height={32} className="object-contain brightness-0 invert opacity-90" />
@@ -136,18 +175,16 @@ export default function SidebarDark({
         </button>
       </div>
 
-      {/* ── MOBIL overlay ── */}
-      <div
-        className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        onClick={() => setMobileOpen(false)}
-      />
+      {/* Mobil overlay */}
+      <div className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={() => setMobileOpen(false)} />
 
-      {/* ── MOBIL drawer ── */}
+      {/* Mobil drawer */}
       <aside className={`lg:hidden fixed top-0 left-0 bottom-0 w-[280px] flex flex-col bg-[#0E0C0A] border-r border-white/[0.06] z-50 transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <SidebarContent isMobile />
       </aside>
 
-      {/* ── DESKTOP sidebar ── */}
+      {/* Desktop sidebar */}
       <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 flex-col bg-[#0E0C0A] border-r border-white/[0.06] z-50 transition-[width] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed ? "w-[72px]" : "w-[260px]"}`}>
         <SidebarContent />
       </aside>
