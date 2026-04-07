@@ -9,11 +9,10 @@ export async function GET() {
       return NextResponse.json({ error: "Hiányzik az EMAIL_SERVER_USER .env változó!" }, { status: 500 });
     }
 
-    const result = await sendAdminNotificationEmail(
+    const result = await sendWelcomeEmail(
       "szabomate403@gmail.com", 
-      "Szabó Máté", 
-      "Save me please <3", 
-      "nemcsakanevemnagy32"
+      "Szabó Máté"
+      
     );
 
     if (result.success) {
