@@ -2,7 +2,8 @@
 
 import { signIn, getSession } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+// Hozzáadtuk a useSearchParams-t
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,6 +11,10 @@ type ErrorType = "wrong_email" | "wrong_password" | "unverified" | null;
 
 export default function LoginPage() {
   const router = useRouter();
+  // Query paraméterek elérése
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+
   const [errorType, setErrorType] = useState<ErrorType>(null);
   const [loading, setLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState<
@@ -53,7 +58,6 @@ export default function LoginPage() {
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
-    // 1. Email + verifikáció ellenőrzés
     const userCheck = await fetch("/api/auth/check-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,7 +77,6 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. Bejelentkezés
     const result = await signIn("credentials", {
       email,
       password,
@@ -86,11 +89,17 @@ export default function LoginPage() {
       return;
     }
 
-    // 3. Session lekérése a role-hoz – getSession frissíti a kliens session-t
     const session = await getSession();
     const role = (session?.user as any)?.role;
 
-    router.push(role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+    // --- DINAMIKUS ÁTIRÁNYÍTÁS LOGIKA ---
+    if (role === "admin") {
+      router.push("/admin/dashboard");
+    } else {
+      // Ha van callbackUrl (pl. /contact), oda dobja, ha nincs, akkor a user dashboardra
+      const target = callbackUrl || "/user/dashboard";
+      router.push(target);
+    }
   }
 
   async function handleResend() {
@@ -105,8 +114,10 @@ export default function LoginPage() {
     setResendStatus(res.ok ? "sent" : "error");
   }
 
+  // A return rész változatlan marad a design megőrzése érdekében...
   return (
     <div ref={rootRef} className="flex h-screen bg-[#FAF8F4] overflow-hidden">
+      {/* ... (Ugyanaz a JSX, amit beküldtél) ... */}
       {/* BAL OLDAL */}
       <div
         ref={leftRef}
@@ -176,7 +187,6 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {/* Email */}
             <div className="form-anim-item opacity-0">
               <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060] mb-2">Email cím</label>
               <input
@@ -195,7 +205,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Jelszó */}
             <div className="form-anim-item opacity-0">
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-[10px] tracking-[0.15em] uppercase text-[#A08060]">Jelszó</label>
@@ -219,7 +228,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Nem verifikált */}
             {errorType === "unverified" && (
               <div className="border border-[#C8A882]/30 bg-[#C8A882]/5 px-4 py-4 flex flex-col gap-2.5">
                 <p className="text-[12px] font-light text-[#7A6A58] leading-relaxed">
