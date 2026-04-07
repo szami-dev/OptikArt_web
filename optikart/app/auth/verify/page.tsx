@@ -1,21 +1,18 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react"; // Suspense hozzáadva
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function VerifyPage() {
+function VerifyContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState("loading"); // loading, success, error
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     if (!token) {
       setStatus("error");
       return;
     }
-
-    // Meghívjuk a backend API-t a megerősítéshez
     fetch(`/api/auth/verify?token=${token}`)
       .then((res) => {
         if (res.ok) setStatus("success");
@@ -26,7 +23,7 @@ export default function VerifyPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#FAF8F4] p-6 text-center">
-      <div className="max-w-md w-full bg-white p-10 border border-[#EDE8E0] shadow-sm">
+       <div className="max-w-md w-full bg-white p-10 border border-[#EDE8E0] shadow-sm">
         {status === "loading" && <p className="text-[#A08060] animate-pulse">Ellenőrzés folyamatban...</p>}
         
         {status === "success" && (
@@ -48,5 +45,13 @@ export default function VerifyPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div>Ellenőrzés...</div>}>
+      <VerifyContent />
+    </Suspense>
   );
 }

@@ -6,10 +6,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
+import { Suspense } from "react";
 type ErrorType = "wrong_email" | "wrong_password" | "unverified" | null;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   // Query paraméterek elérése
   const searchParams = useSearchParams();
@@ -273,5 +273,12 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-[#FAF8F4]" />}>
+      <LoginForm />
+    </Suspense>
   );
 }
