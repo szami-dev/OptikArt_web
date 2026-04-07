@@ -43,6 +43,7 @@ export const HUN_CITIES: HunCity[] = [
   { name: "Baja", lat: 46.1830, lng: 18.9480 },
   { name: "Ballószög", lat: 46.8580, lng: 19.5780 },
   { name: "Balotaszállás", lat: 46.3470, lng: 19.5630 },
+  { name: "Pozsony", lat: 48.1478, lng: 17.1072 },
   { name: "Bátmonostor", lat: 46.1080, lng: 18.9320 },
   { name: "Bátya", lat: 46.4860, lng: 18.9560 },
   { name: "Borota", lat: 46.2620, lng: 19.2270 },

@@ -376,7 +376,8 @@ export async function sendProjectDeletedEmail(email: string, name: string, proje
   });
 }
 export async function sendAdminNotificationEmail(
-  userEmail: string, 
+  userEmails: string[],
+  userEmail: string,
   userName: string, 
   projectName: string, 
   projectId: string
@@ -389,7 +390,7 @@ export async function sendAdminNotificationEmail(
   try {
     const info = await transporter.sendMail({
       from: `"OptikArt Rendszer" <${process.env.EMAIL_SERVER_USER}>`,
-      to: userEmail,
+      to: userEmails.join(", "), // Több címzett vesszővel elválasztva
       subject: `🚨 ÚJ PROJEKT: ${projectName} | OptikArt`,
       html: `
         <!DOCTYPE html>

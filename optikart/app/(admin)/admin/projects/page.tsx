@@ -17,13 +17,28 @@ type Project = {
   _count: { messages: number; galleries: number; calendarEvents: number };
 };
 
+type Package = { id: number; name: string | null; price: number | null; categoryId: number | null };
+type User    = { id: number; name: string | null; email: string };
+
 const STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
-  PLANNING:    { label: "Tervezés",     color: "#C8A882", bg: "rgba(200,168,130,0.1)" },
-  IN_PROGRESS: { label: "Folyamatban",  color: "#60A5FA", bg: "rgba(96,165,250,0.1)" },
-  COMPLETED:   { label: "Kész",         color: "#34D399", bg: "rgba(52,211,153,0.1)" },
-  ON_HOLD:     { label: "Felfüggesztve",color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
-  CANCELLED:   { label: "Törölve",      color: "#F87171", bg: "rgba(248,113,113,0.1)" },
+  PLANNING:    { label: "Tervezés",      color: "#C8A882", bg: "rgba(200,168,130,0.1)" },
+  IN_PROGRESS: { label: "Folyamatban",   color: "#60A5FA", bg: "rgba(96,165,250,0.1)" },
+  COMPLETED:   { label: "Kész",          color: "#34D399", bg: "rgba(52,211,153,0.1)" },
+  ON_HOLD:     { label: "Felfüggesztve", color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
+  CANCELLED:   { label: "Törölve",       color: "#F87171", bg: "rgba(248,113,113,0.1)" },
 };
+
+const PROJECT_TYPES = [
+  { id: 1, name: "Esküvő" },
+  { id: 2, name: "Portré" },
+  { id: 3, name: "Rendezvény" },
+  { id: 4, name: "Marketing" },
+  { id: 5, name: "Drón" },
+  { id: 6, name: "Egyéb" },
+];
+
+// Csomagok csak esküvőhöz (cat 1) és portréhoz (cat 2) vannak
+const TYPES_WITH_PACKAGES = [1, 2];
 
 const STATUSES = Object.keys(STATUS_META) as ProjectStatus[];
 
@@ -50,12 +65,194 @@ function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error";
   );
 }
 
+const inputCls = "w-full bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40 transition-colors";
+
+function DarkField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] tracking-[0.14em] uppercase text-[#5A5248]">
+        {label}{required && <span className="text-[#C8A882]/60 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+// ── Új projekt modal ──────────────────────────────────────────
+function NewProjectModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [name, setName]           = useState("");
+  const [description, setDesc]    = useState("");
+  const [typeId, setTypeId]       = useState<number>(1);
+  const [packageId, setPackageId] = useState<number | null>(null);
+  const [status, setStatus]       = useState<ProjectStatus>("PLANNING");
+  const [userId, setUserId]       = useState<number | null>(null);
+  const [totalPrice, setTotalPrice] = useState("");
+
+  const [packages, setPackages]   = useState<Package[]>([]);
+  const [users, setUsers]         = useState<User[]>([]);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState("");
+
+  // Betöltések
+  useEffect(() => {
+    fetch("/api/packages").then(r => r.json()).then(d => setPackages(d.packages ?? []));
+    fetch("/api/user/getusers").then(r => r.json()).then(d => setUsers(d.users ?? []));
+  }, []);
+
+  // Ha típus változik, töröljük a csomag választást
+  useEffect(() => { setPackageId(null); }, [typeId]);
+
+  const hasPackages = TYPES_WITH_PACKAGES.includes(typeId);
+  const filteredPackages = packages.filter(p => {
+    const catMap: Record<number, number> = { 1: 1, 2: 2 };
+    return p.categoryId === catMap[typeId];
+  });
+
+  async function handleCreate() {
+    if (!name.trim()) { setError("A projekt neve kötelező"); return; }
+    setSaving(true); setError("");
+    try {
+      // Admin közvetlenül a /api/projects route-on keresztül hoz létre projektet
+      const res = await fetch("/api/projects/admin/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          typeId,
+          packageId,
+          status,
+          userId: userId || null,
+          totalPrice: totalPrice ? parseFloat(totalPrice) : null,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      onCreated();
+    } catch (e: any) {
+      setError(e.message ?? "Hiba a létrehozásnál");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative z-10 w-full max-w-lg mx-4 bg-[#0E0C0A] border border-white/[0.08] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+
+        {/* Fejléc */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] sticky top-0 bg-[#0E0C0A] z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-3 h-px bg-[#C8A882]/50" />
+              <span className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882]/50">Admin</span>
+            </div>
+            <h3 className="font-['Cormorant_Garamond'] text-[1.3rem] font-light text-white">Új projekt létrehozása</h3>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 border border-white/[0.08] flex items-center justify-center text-[#5A5248] hover:text-white transition-all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div className="px-5 py-5 flex flex-col gap-4">
+
+          {/* Projekt neve */}
+          <DarkField label="Projekt neve" required>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Pl. Kovács Esküvő 2025" className={inputCls} />
+          </DarkField>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Típus */}
+            <DarkField label="Típus">
+              <select value={typeId} onChange={e => setTypeId(parseInt(e.target.value))} className={inputCls}>
+                {PROJECT_TYPES.map(t => (
+                  <option key={t.id} value={t.id} style={{ background: "#141210" }}>{t.name}</option>
+                ))}
+              </select>
+            </DarkField>
+
+            {/* Státusz */}
+            <DarkField label="Státusz">
+              <select value={status} onChange={e => setStatus(e.target.value as ProjectStatus)} className={inputCls}
+                style={{ color: STATUS_META[status].color }}>
+                {STATUSES.map(s => (
+                  <option key={s} value={s} style={{ background: "#141210", color: STATUS_META[s].color }}>
+                    {STATUS_META[s].label}
+                  </option>
+                ))}
+              </select>
+            </DarkField>
+          </div>
+
+          {/* Csomag – csak esküvő/portré típusnál */}
+          {hasPackages && (
+            <DarkField label="Csomag">
+              <select value={packageId ?? ""} onChange={e => setPackageId(e.target.value ? parseInt(e.target.value) : null)} className={inputCls}>
+                <option value="" style={{ background: "#141210" }}>Nincs csomag</option>
+                {filteredPackages.map(p => (
+                  <option key={p.id} value={p.id} style={{ background: "#141210" }}>
+                    {p.name}{p.price ? ` – ${p.price.toLocaleString("hu-HU")} Ft` : ""}
+                  </option>
+                ))}
+              </select>
+            </DarkField>
+          )}
+
+          {/* Ügyfél hozzárendelés */}
+          <DarkField label="Ügyfél (opcionális)">
+            <select value={userId ?? ""} onChange={e => setUserId(e.target.value ? parseInt(e.target.value) : null)} className={inputCls}>
+              <option value="" style={{ background: "#141210" }}>Nincs hozzárendelve</option>
+              {users.filter(u => (u as any).role !== "ADMIN").map(u => (
+                <option key={u.id} value={u.id} style={{ background: "#141210" }}>
+                  {u.name ?? u.email}
+                </option>
+              ))}
+            </select>
+          </DarkField>
+
+          {/* Végösszeg */}
+          <DarkField label="Végösszeg (Ft, opcionális)">
+            <input type="number" value={totalPrice} onChange={e => setTotalPrice(e.target.value)}
+              placeholder="Pl. 380000" className={inputCls} min="0" />
+          </DarkField>
+
+          {/* Leírás */}
+          <DarkField label="Megjegyzés">
+            <textarea value={description} onChange={e => setDesc(e.target.value)} rows={3}
+              placeholder="Belső megjegyzés, részletek..." className={`${inputCls} resize-none`} />
+          </DarkField>
+
+          {error && <p className="text-[11px] text-red-400/70">{error}</p>}
+
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="flex-1 py-2.5 border border-white/[0.08] text-[11px] tracking-[0.1em] uppercase text-[#5A5248] hover:text-[#D4C4B0] transition-all">
+              Mégsem
+            </button>
+            <button onClick={handleCreate} disabled={saving}
+              className="flex-1 py-2.5 bg-[#C8A882] text-[11px] tracking-[0.12em] uppercase text-[#0C0A08] font-medium hover:bg-[#D4B892] transition-all disabled:opacity-50">
+              {saving ? "Létrehozás..." : "Projekt létrehozása"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Fő oldal ──────────────────────────────────────────────────
 export default function AdminProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [projects, setProjects]   = useState<Project[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "ALL">("ALL");
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -86,10 +283,10 @@ export default function AdminProjectsPage() {
   }
 
   const stats = {
-    total: projects.length,
-    planning: projects.filter(p => p.status === "PLANNING").length,
+    total:      projects.length,
+    planning:   projects.filter(p => p.status === "PLANNING").length,
     inProgress: projects.filter(p => p.status === "IN_PROGRESS").length,
-    completed: projects.filter(p => p.status === "COMPLETED").length,
+    completed:  projects.filter(p => p.status === "COMPLETED").length,
   };
 
   return (
@@ -106,6 +303,12 @@ export default function AdminProjectsPage() {
             <h1 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2rem] font-light text-white leading-tight">Projektek</h1>
             <p className="text-[12px] text-[#3A3530] mt-0.5">{stats.total} projekt az adatbázisban</p>
           </div>
+          {/* Új projekt gomb */}
+          <button onClick={() => setShowNewModal(true)}
+            className="flex items-center gap-2 bg-[#C8A882] text-[#0C0A08] text-[11px] tracking-[0.14em] uppercase px-4 py-2.5 hover:bg-[#D4B892] transition-colors font-medium whitespace-nowrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Új projekt
+          </button>
         </div>
       </div>
 
@@ -114,10 +317,10 @@ export default function AdminProjectsPage() {
         {/* Stat kártyák */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {[
-            { label: "Összes", value: stats.total, color: "#C8A882" },
-            { label: "Tervezés", value: stats.planning, color: "#C8A882" },
+            { label: "Összes",      value: stats.total,      color: "#C8A882" },
+            { label: "Tervezés",    value: stats.planning,   color: "#C8A882" },
             { label: "Folyamatban", value: stats.inProgress, color: "#60A5FA" },
-            { label: "Kész", value: stats.completed, color: "#34D399" },
+            { label: "Kész",        value: stats.completed,  color: "#34D399" },
           ].map(s => (
             <div key={s.label} className="bg-[#0E0C0A] border border-white/[0.05] px-3 sm:px-5 py-3 sm:py-4">
               <div className="text-[9px] tracking-[0.14em] uppercase text-[#3A3530] mb-1">{s.label}</div>
@@ -138,7 +341,8 @@ export default function AdminProjectsPage() {
               className="w-full bg-[#0E0C0A] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] focus:outline-none focus:border-[#C8A882]/40 pl-9 pr-3 py-2.5 transition-colors" />
           </div>
           <div className="flex border border-white/[0.06] overflow-x-auto scrollbar-none">
-            <button onClick={() => setStatusFilter("ALL")} className={`px-3 py-2 text-[10px] tracking-[0.1em] uppercase transition-all whitespace-nowrap border-r border-white/[0.04] ${statusFilter === "ALL" ? "bg-[#C8A882]/15 text-[#C8A882]" : "text-[#3A3530] hover:text-[#5A5248]"}`}>
+            <button onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-2 text-[10px] tracking-[0.1em] uppercase transition-all whitespace-nowrap border-r border-white/[0.04] ${statusFilter === "ALL" ? "bg-[#C8A882]/15 text-[#C8A882]" : "text-[#3A3530] hover:text-[#5A5248]"}`}>
               Mind
             </button>
             {STATUSES.map(s => (
@@ -158,7 +362,6 @@ export default function AdminProjectsPage() {
               <div key={h} className="py-3 text-[9px] tracking-[0.14em] uppercase text-[#3A3530]">{h}</div>
             ))}
           </div>
-
           {loading ? (
             <div className="flex items-center justify-center py-16 gap-3">
               <div className="w-4 h-4 border border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
@@ -183,16 +386,11 @@ export default function AdminProjectsPage() {
                   <span className="text-[11px] text-[#5A5248]">{p.type?.name ?? "—"}</span>
                 </div>
                 <div className="py-3.5">
-                  <select
-                    value={p.status ?? "PLANNING"}
-                    onChange={e => quickStatusChange(p.id, e.target.value as ProjectStatus)}
+                  <select value={p.status ?? "PLANNING"} onChange={e => quickStatusChange(p.id, e.target.value as ProjectStatus)}
                     className="bg-transparent text-[11px] focus:outline-none cursor-pointer w-full"
-                    style={{ color: p.status ? STATUS_META[p.status].color : "#3A3530" }}
-                  >
+                    style={{ color: p.status ? STATUS_META[p.status].color : "#3A3530" }}>
                     {STATUSES.map(s => (
-                      <option key={s} value={s} style={{ background: "#0E0C0A", color: STATUS_META[s].color }}>
-                        {STATUS_META[s].label}
-                      </option>
+                      <option key={s} value={s} style={{ background: "#0E0C0A", color: STATUS_META[s].color }}>{STATUS_META[s].label}</option>
                     ))}
                   </select>
                 </div>
@@ -200,9 +398,9 @@ export default function AdminProjectsPage() {
                   <span className="text-[10px] text-[#3A3530]">{p._count.messages} üzenet</span>
                   <span className="text-[10px] text-[#3A3530]">{p._count.galleries} galéria</span>
                 </div>
-                <div className="py-3.5 flex items-center gap-1.5">
+                <div className="py-3.5">
                   <Link href={`/admin/projects/${p.id}`}
-                    className="flex-1 text-center py-1.5 border border-white/[0.08] text-[10px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all">
+                    className="flex-1 block text-center py-1.5 border border-white/[0.08] text-[10px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all">
                     Megnyit
                   </Link>
                 </div>
@@ -247,6 +445,18 @@ export default function AdminProjectsPage() {
           ))}
         </div>
       </div>
+
+      {/* Új projekt modal */}
+      {showNewModal && (
+        <NewProjectModal
+          onClose={() => setShowNewModal(false)}
+          onCreated={() => {
+            setShowNewModal(false);
+            fetchProjects();
+            setToast({ msg: "Projekt létrehozva", type: "success" });
+          }}
+        />
+      )}
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>

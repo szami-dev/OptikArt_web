@@ -6,13 +6,17 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 
-type ProjectStatus = "PLANNING" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" | "CANCELLED";
+type ProjectStatus  = "PLANNING" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" | "CANCELLED";
+type PaymentStatus  = "PENDING" | "PAID" | "OVERDUE" | "REFUNDED";
+type Tab            = "overview" | "messages" | "gallery" | "calendar";
 
 type Project = {
   id: number;
   name: string | null;
   description: string | null;
   status: ProjectStatus | null;
+  paymentStatus: PaymentStatus | null;
+  totalPrice: number | null;
   createdAt: string;
   updatedAt: string | null;
   users: { id: number; name: string | null; email: string; phone: string | null }[];
@@ -39,7 +43,15 @@ const STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: str
   CANCELLED:   { label: "Törölve",       color: "#F87171", bg: "rgba(248,113,113,0.1)" },
 };
 
-type Tab = "overview" | "messages" | "gallery" | "calendar";
+const PAYMENT_META: Record<PaymentStatus, { label: string; color: string; bg: string; desc: string }> = {
+  PENDING:  { label: "Függőben",      color: "#FBBF24", bg: "rgba(251,191,36,0.1)",  desc: "A fizetés még nem érkezett meg." },
+  PAID:     { label: "Fizetve",       color: "#34D399", bg: "rgba(52,211,153,0.1)",  desc: "A fizetés sikeresen megérkezett." },
+  OVERDUE:  { label: "Lejárt",        color: "#F87171", bg: "rgba(248,113,113,0.1)", desc: "A fizetési határidő lejárt." },
+  REFUNDED: { label: "Visszatérítve", color: "#A78BFA", bg: "rgba(167,139,250,0.1)", desc: "Az összeg visszatérítésre került." },
+};
+
+const STATUSES         = Object.keys(STATUS_META) as ProjectStatus[];
+const PAYMENT_STATUSES = Object.keys(PAYMENT_META) as PaymentStatus[];
 
 function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error"; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
@@ -57,26 +69,24 @@ export default function AdminProjectDetailPage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("overview");
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [project, setProject]   = useState<Project | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [tab, setTab]           = useState<Tab>("overview");
+  const [toast, setToast]       = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [saving, setSaving]     = useState(false);
 
-  // Szerkesztés
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-  const [editStatus, setEditStatus] = useState<ProjectStatus>("PLANNING");
+  const [editing, setEditing]             = useState(false);
+  const [editName, setEditName]           = useState("");
+  const [editDesc, setEditDesc]           = useState("");
+  const [editStatus, setEditStatus]       = useState<ProjectStatus>("PLANNING");
+  const [editTotalPrice, setEditTotalPrice] = useState("");
 
-  // Üzenet
   const [msgContent, setMsgContent] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Törlés modal
   const [deleteModal, setDeleteModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]       = useState(false);
 
   const fetchProject = useCallback(async () => {
     try {
@@ -87,6 +97,7 @@ export default function AdminProjectDetailPage() {
       setEditName(data.project.name ?? "");
       setEditDesc(data.project.description ?? "");
       setEditStatus(data.project.status ?? "PLANNING");
+      setEditTotalPrice(data.project.totalPrice?.toString() ?? "");
     } catch { setToast({ msg: "Nem sikerült betölteni", type: "error" }); }
     finally { setLoading(false); }
   }, [id]);
@@ -94,9 +105,7 @@ export default function AdminProjectDetailPage() {
   useEffect(() => { fetchProject(); }, [fetchProject]);
 
   useEffect(() => {
-    if (tab === "messages") {
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    }
+    if (tab === "messages") setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }, [tab, project?.messages?.length]);
 
   async function saveEdit() {
@@ -105,7 +114,12 @@ export default function AdminProjectDetailPage() {
       const res = await fetch(`/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName, description: editDesc, status: editStatus }),
+        body: JSON.stringify({
+          name: editName,
+          description: editDesc,
+          status: editStatus,
+          totalPrice: editTotalPrice ? parseFloat(editTotalPrice) : null,
+        }),
       });
       if (!res.ok) throw new Error();
       await fetchProject();
@@ -115,6 +129,32 @@ export default function AdminProjectDetailPage() {
     finally { setSaving(false); }
   }
 
+  async function updatePaymentStatus(paymentStatus: PaymentStatus) {
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentStatus }),
+      });
+      if (!res.ok) throw new Error();
+      setProject(p => p ? { ...p, paymentStatus } : p);
+      setToast({ msg: `Fizetési státusz: ${PAYMENT_META[paymentStatus].label}`, type: "success" });
+    } catch { setToast({ msg: "Hiba a frissítésnél", type: "error" }); }
+  }
+
+  async function quickStatusUpdate(status: ProjectStatus) {
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      setProject(p => p ? { ...p, status } : p);
+      setToast({ msg: "Státusz frissítve", type: "success" });
+    } catch { setToast({ msg: "Hiba a státuszváltásnál", type: "error" }); }
+  }
+
   async function sendMessage() {
     if (!msgContent.trim() || !project?.users[0]) return;
     setSendingMsg(true);
@@ -122,10 +162,7 @@ export default function AdminProjectDetailPage() {
       const res = await fetch(`/api/projects/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: msgContent.trim(),
-          receiverId: project.users[0].id,
-        }),
+        body: JSON.stringify({ content: msgContent.trim(), receiverId: project.users[0].id }),
       });
       if (!res.ok) throw new Error();
       setMsgContent("");
@@ -160,13 +197,15 @@ export default function AdminProjectDetailPage() {
   );
 
   const status = project.status ?? "PLANNING";
-  const sm = STATUS_META[status];
-  const myId = parseInt(session?.user?.id as string ?? "0");
+  const sm     = STATUS_META[status];
+  const ps     = project.paymentStatus;
+  const pm     = ps ? PAYMENT_META[ps] : null;
+  const myId   = parseInt(session?.user?.id as string ?? "0");
 
   return (
     <div className="min-h-screen bg-[#0C0A08] text-[#D4C4B0]">
 
-      {/* Top bar */}
+      {/* ── Top bar ─────────────────────────────────────────── */}
       <div className="border-b border-white/[0.05] px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
@@ -182,9 +221,25 @@ export default function AdminProjectDetailPage() {
                   style={{ color: sm.color, background: sm.bg, borderColor: `${sm.color}30` }}>
                   {sm.label}
                 </span>
+                {pm && (
+                  <span className="text-[9px] tracking-[0.1em] uppercase px-2 py-1 border shrink-0"
+                    style={{ color: pm.color, background: pm.bg, borderColor: `${pm.color}30` }}>
+                    {pm.label}
+                  </span>
+                )}
               </div>
-              <div className="text-[11px] text-[#3A3530] mt-0.5">
-                #{project.id} · {project.type?.name ?? "—"} · {new Date(project.createdAt).toLocaleDateString("hu-HU")}
+              <div className="text-[11px] text-[#3A3530] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>#{project.id}</span>
+                <span>·</span>
+                <span>{project.type?.name ?? "—"}</span>
+                <span>·</span>
+                <span>{new Date(project.createdAt).toLocaleDateString("hu-HU")}</span>
+                {project.totalPrice != null && (
+                  <>
+                    <span>·</span>
+                    <span className="text-[#C8A882]">{project.totalPrice.toLocaleString("hu-HU")} Ft</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -215,10 +270,15 @@ export default function AdminProjectDetailPage() {
           </div>
         </div>
 
-        {/* Tab navigáció */}
+        {/* Tabok */}
         <div className="flex gap-0 mt-5 border-b border-white/[0.04] -mb-4 overflow-x-auto scrollbar-none">
           {(["overview", "messages", "gallery", "calendar"] as Tab[]).map(t => {
-            const labels: Record<Tab, string> = { overview: "Áttekintés", messages: `Üzenetek (${project.messages.length})`, gallery: `Galéria (${project.galleries.length})`, calendar: `Naptár (${project.calendarEvents.length})` };
+            const labels: Record<Tab, string> = {
+              overview: "Áttekintés",
+              messages: `Üzenetek (${project.messages.length})`,
+              gallery:  `Galéria (${project.galleries.length})`,
+              calendar: `Naptár (${project.calendarEvents.length})`,
+            };
             return (
               <button key={t} onClick={() => setTab(t)}
                 className={`px-4 py-2.5 text-[11px] tracking-[0.08em] uppercase border-b-2 transition-all whitespace-nowrap ${tab === t ? "border-[#C8A882] text-[#C8A882]" : "border-transparent text-[#3A3530] hover:text-[#5A5248]"}`}>
@@ -231,14 +291,12 @@ export default function AdminProjectDetailPage() {
 
       <div className="px-4 sm:px-6 lg:px-8 py-6">
 
-        {/* ── OVERVIEW ─────────────────────────────────────────── */}
+        {/* ── OVERVIEW ──────────────────────────────────────── */}
         {tab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-            {/* Bal: részletek */}
+            {/* Bal: projekt adatok */}
             <div className="lg:col-span-2 flex flex-col gap-4">
-
-              {/* Név + leírás szerkesztés */}
               <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
                 <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-4">Projekt adatok</div>
                 {editing ? (
@@ -253,15 +311,23 @@ export default function AdminProjectDetailPage() {
                       <textarea rows={5} value={editDesc} onChange={e => setEditDesc(e.target.value)}
                         className="w-full bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40 transition-colors resize-none" />
                     </div>
-                    <div>
-                      <label className="text-[10px] tracking-[0.12em] uppercase text-[#5A5248] block mb-1.5">Státusz</label>
-                      <select value={editStatus} onChange={e => setEditStatus(e.target.value as ProjectStatus)}
-                        className="bg-[#141210] border border-white/[0.08] text-[13px] px-3 py-2.5 focus:outline-none w-full sm:w-auto"
-                        style={{ color: STATUS_META[editStatus].color }}>
-                        {Object.entries(STATUS_META).map(([k, v]) => (
-                          <option key={k} value={k} style={{ background: "#141210", color: v.color }}>{v.label}</option>
-                        ))}
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] tracking-[0.12em] uppercase text-[#5A5248] block mb-1.5">Státusz</label>
+                        <select value={editStatus} onChange={e => setEditStatus(e.target.value as ProjectStatus)}
+                          className="bg-[#141210] border border-white/[0.08] text-[13px] px-3 py-2.5 focus:outline-none w-full"
+                          style={{ color: STATUS_META[editStatus].color }}>
+                          {STATUSES.map(s => (
+                            <option key={s} value={s} style={{ background: "#141210", color: STATUS_META[s].color }}>{STATUS_META[s].label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] tracking-[0.12em] uppercase text-[#5A5248] block mb-1.5">Végösszeg (Ft)</label>
+                        <input type="number" min="0" value={editTotalPrice} onChange={e => setEditTotalPrice(e.target.value)}
+                          placeholder="Pl. 380000"
+                          className="w-full bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40 transition-colors" />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -275,24 +341,14 @@ export default function AdminProjectDetailPage() {
                       <div className="text-[13px] text-[#5A5248] leading-relaxed whitespace-pre-wrap">{project.description ?? "—"}</div>
                     </div>
                     <div className="flex flex-wrap gap-6 pt-3 border-t border-white/[0.04]">
-                      <div>
-                        <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Típus</div>
-                        <div className="text-[12px] text-[#D4C4B0]">{project.type?.name ?? "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Csomag</div>
-                        <div className="text-[12px] text-[#D4C4B0]">{project.category?.name ?? "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Létrehozva</div>
-                        <div className="text-[12px] text-[#D4C4B0]">{new Date(project.createdAt).toLocaleDateString("hu-HU")}</div>
-                      </div>
+                      <div><div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Típus</div><div className="text-[12px] text-[#D4C4B0]">{project.type?.name ?? "—"}</div></div>
+                      <div><div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Csomag</div><div className="text-[12px] text-[#D4C4B0]">{project.category?.name ?? "—"}</div></div>
+                      <div><div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Létrehozva</div><div className="text-[12px] text-[#D4C4B0]">{new Date(project.createdAt).toLocaleDateString("hu-HU")}</div></div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Galériák összefoglaló */}
               {project.galleries.length > 0 && (
                 <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
                   <div className="flex items-center justify-between mb-4">
@@ -311,8 +367,10 @@ export default function AdminProjectDetailPage() {
               )}
             </div>
 
-            {/* Jobb: ügyfél info */}
+            {/* Jobb: ügyfél + státuszok + fizetés */}
             <div className="flex flex-col gap-4">
+
+              {/* Ügyfél */}
               <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
                 <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-4">Ügyfél</div>
                 {project.users.length === 0 ? (
@@ -342,27 +400,77 @@ export default function AdminProjectDetailPage() {
                 ))}
               </div>
 
-              {/* Gyors státuszváltás */}
+              {/* Projekt státusz */}
               <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
-                <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-3">Gyors státuszváltás</div>
+                <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-3">Projekt státusz</div>
                 <div className="flex flex-col gap-1.5">
-                  {Object.entries(STATUS_META).map(([k, v]) => (
-                    <button key={k} onClick={() => {
-                      if (project.status === k) return;
-                      quickStatusUpdate(k as ProjectStatus);
-                    }}
-                      className={`py-2 px-3 text-left text-[11px] tracking-[0.08em] uppercase border transition-all ${project.status === k ? "border-current" : "border-white/[0.04] hover:border-current/30"}`}
-                      style={{ color: v.color, background: project.status === k ? v.bg : "transparent", borderColor: project.status === k ? `${v.color}40` : undefined }}>
-                      {project.status === k && "✓ "}{v.label}
+                  {STATUSES.map(s => {
+                    const v = STATUS_META[s];
+                    const active = project.status === s;
+                    return (
+                      <button key={s} onClick={() => !active && quickStatusUpdate(s)} disabled={active}
+                        className={`py-2 px-3 text-left text-[11px] tracking-[0.08em] uppercase border transition-all ${active ? "cursor-default" : "border-white/[0.04] hover:border-current/30 cursor-pointer"}`}
+                        style={{ color: v.color, background: active ? v.bg : "transparent", borderColor: active ? `${v.color}40` : undefined }}>
+                        {active && "✓ "}{v.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── FIZETÉSI STÁTUSZ ── */}
+              <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
+                <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-4">Fizetési státusz</div>
+
+                {/* Végösszeg megjelenítés */}
+                {project.totalPrice != null ? (
+                  <div className="mb-4 pb-4 border-b border-white/[0.05]">
+                    <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1.5">Fizetendő összeg</div>
+                    <div className="font-['Cormorant_Garamond'] text-[1.8rem] font-light text-[#C8A882] leading-none">
+                      {project.totalPrice.toLocaleString("hu-HU")} Ft
+                    </div>
+                    <button onClick={() => setEditing(true)} className="text-[10px] text-[#3A3530] hover:text-[#5A5248] mt-1 transition-colors">
+                      Szerkesztés →
                     </button>
-                  ))}
+                  </div>
+                ) : (
+                  <div className="mb-4 pb-4 border-b border-white/[0.05]">
+                    <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1">Fizetendő összeg</div>
+                    <div className="text-[12px] text-[#3A3530]">Nincs megadva</div>
+                    <button onClick={() => setEditing(true)} className="text-[10px] text-[#C8A882]/50 hover:text-[#C8A882] mt-1 transition-colors">
+                      + Összeg megadása
+                    </button>
+                  </div>
+                )}
+
+                {/* Aktuális státusz leírás */}
+                {pm && (
+                  <div className="mb-3 px-3 py-2.5 border text-[11px] leading-relaxed"
+                    style={{ borderColor: `${pm.color}30`, background: pm.bg, color: pm.color }}>
+                    {pm.desc}
+                  </div>
+                )}
+
+                {/* Státusz váltó gombok */}
+                <div className="flex flex-col gap-1.5">
+                  {PAYMENT_STATUSES.map(s => {
+                    const v = PAYMENT_META[s];
+                    const active = project.paymentStatus === s;
+                    return (
+                      <button key={s} onClick={() => !active && updatePaymentStatus(s)} disabled={active}
+                        className={`py-2 px-3 text-left text-[11px] tracking-[0.08em] uppercase border transition-all ${active ? "cursor-default" : "border-white/[0.04] hover:border-current/30 cursor-pointer"}`}
+                        style={{ color: v.color, background: active ? v.bg : "transparent", borderColor: active ? `${v.color}40` : undefined }}>
+                        {active && "✓ "}{v.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── MESSAGES ─────────────────────────────────────────── */}
+        {/* ── MESSAGES ──────────────────────────────────────── */}
         {tab === "messages" && (
           <div className="max-w-2xl flex flex-col gap-4">
             <div className="bg-[#0E0C0A] border border-white/[0.05] flex flex-col" style={{ minHeight: "400px", maxHeight: "600px" }}>
@@ -371,133 +479,102 @@ export default function AdminProjectDetailPage() {
                   <div className="flex items-center justify-center h-32">
                     <span className="text-[12px] text-[#3A3530]">Még nincs üzenet</span>
                   </div>
-                ) : (
-                  project.messages.map(msg => {
-                    const isMe = msg.sender.id === myId;
-                    return (
-                      <div key={msg.id} className={`flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}>
-                        <div className={`max-w-[80%] px-4 py-2.5 text-[13px] leading-relaxed ${
-                          isMe ? "bg-[#C8A882]/15 border border-[#C8A882]/20 text-[#D4C4B0]" : "bg-white/[0.04] border border-white/[0.06] text-[#D4C4B0]"
-                        }`}>
-                          {msg.content}
-                        </div>
-                        <div className="flex items-center gap-2 text-[9px] text-[#3A3530]">
-                          <span>{isMe ? "Te" : msg.sender.name}</span>
-                          <span>·</span>
-                          <span>{new Date(msg.createdAt).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                        </div>
+                ) : project.messages.map(msg => {
+                  const isMe = msg.sender.id === myId;
+                  return (
+                    <div key={msg.id} className={`flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}>
+                      <div className={`max-w-[80%] px-4 py-2.5 text-[13px] leading-relaxed ${isMe ? "bg-[#C8A882]/15 border border-[#C8A882]/20 text-[#D4C4B0]" : "bg-white/[0.04] border border-white/[0.06] text-[#D4C4B0]"}`}>
+                        {msg.content}
                       </div>
-                    );
-                  })
-                )}
+                      <div className="flex items-center gap-2 text-[9px] text-[#3A3530]">
+                        <span>{isMe ? "Te" : msg.sender.name}</span><span>·</span>
+                        <span>{new Date(msg.createdAt).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
-
-              {/* Küldő mező */}
               <div className="border-t border-white/[0.05] p-4 flex gap-3">
-                <input
-                  value={msgContent}
-                  onChange={e => setMsgContent(e.target.value)}
+                <input value={msgContent} onChange={e => setMsgContent(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                   placeholder="Írj üzenetet az ügyfélnek..."
-                  className="flex-1 bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40 transition-colors"
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={sendingMsg || !msgContent.trim() || !project.users[0]}
-                  className="px-5 py-2.5 bg-[#C8A882] text-[11px] tracking-[0.1em] uppercase text-[#0C0A08] font-medium hover:bg-[#D4B892] transition-all disabled:opacity-40"
-                >
+                  className="flex-1 bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40 transition-colors" />
+                <button onClick={sendMessage} disabled={sendingMsg || !msgContent.trim() || !project.users[0]}
+                  className="px-5 py-2.5 bg-[#C8A882] text-[11px] tracking-[0.1em] uppercase text-[#0C0A08] font-medium hover:bg-[#D4B892] transition-all disabled:opacity-40">
                   {sendingMsg ? "..." : "Küldés"}
                 </button>
               </div>
             </div>
-            {!project.users[0] && (
-              <p className="text-[11px] text-[#3A3530]">Üzenet küldéséhez először kapcsolj ügyfelet a projekthez.</p>
-            )}
+            {!project.users[0] && <p className="text-[11px] text-[#3A3530]">Üzenet küldéséhez először kapcsolj ügyfelet a projekthez.</p>}
           </div>
         )}
 
-        {/* ── GALLERY ──────────────────────────────────────────── */}
+        {/* ── GALLERY ───────────────────────────────────────── */}
         {tab === "gallery" && (
           <div className="flex flex-col gap-5">
             {project.galleries.length === 0 ? (
               <div className="bg-[#0E0C0A] border border-white/[0.05] p-10 text-center">
-                <p className="text-[12px] text-[#3A3530] mb-2">Még nincs galéria ehhez a projekthez</p>
-                <p className="text-[11px] text-[#2A2520]">Galéria létrehozásához töltsd fel a képeket a galéria kezelőben</p>
+                <p className="text-[12px] text-[#3A3530] mb-1">Még nincs galéria ehhez a projekthez</p>
               </div>
-            ) : (
-              project.galleries.map(gallery => (
-                <div key={gallery.id} className="bg-[#0E0C0A] border border-white/[0.05] p-5">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <div className="text-[14px] text-[#D4C4B0]">{gallery.title ?? "Névtelen galéria"}</div>
-                      <div className="text-[11px] text-[#3A3530] mt-0.5">
-                        {gallery.images.length + gallery.imagesFull.length} kép
-                        {gallery.expiresAt && ` · Lejár: ${new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}`}
-                      </div>
+            ) : project.galleries.map(gallery => (
+              <div key={gallery.id} className="bg-[#0E0C0A] border border-white/[0.05] p-5">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-[14px] text-[#D4C4B0]">{gallery.title ?? "Névtelen galéria"}</div>
+                    <div className="text-[11px] text-[#3A3530] mt-0.5">
+                      {gallery.images.length + gallery.imagesFull.length} kép
+                      {gallery.expiresAt && ` · Lejár: ${new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}`}
                     </div>
-                    {gallery.shareableLink && (
-                      <a href={gallery.shareableLink} target="_blank" rel="noopener noreferrer"
-                        className="text-[10px] tracking-[0.1em] uppercase text-[#C8A882]/60 border border-[#C8A882]/20 px-3 py-1.5 hover:text-[#C8A882] hover:border-[#C8A882]/40 transition-all whitespace-nowrap">
-                        Link →
-                      </a>
-                    )}
                   </div>
-
-                  {gallery.images.length > 0 && (
-                    <div>
-                      <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-2">Web galéria ({gallery.images.length} kép)</div>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1">
-                        {gallery.images.slice(0, 16).map(img => (
-                          <div key={img.id} className="relative bg-[#141210] overflow-hidden" style={{ aspectRatio: "1/1" }}>
-                            {img.filePath ? (
-                              <Image src={img.filePath} alt={img.fileName ?? ""} fill className="object-cover" sizes="80px" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-5 h-5 text-[#3A3530]"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {gallery.images.length > 16 && (
-                          <div className="relative bg-[#141210] border border-white/[0.04] flex items-center justify-center" style={{ aspectRatio: "1/1" }}>
-                            <span className="text-[10px] text-[#3A3530]">+{gallery.images.length - 16}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  {gallery.shareableLink && (
+                    <a href={gallery.shareableLink} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] tracking-[0.1em] uppercase text-[#C8A882]/60 border border-[#C8A882]/20 px-3 py-1.5 hover:text-[#C8A882] hover:border-[#C8A882]/40 transition-all whitespace-nowrap">
+                      Link →
+                    </a>
                   )}
                 </div>
-              ))
-            )}
+                {gallery.images.length > 0 && (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1">
+                    {gallery.images.slice(0, 16).map(img => (
+                      <div key={img.id} className="relative bg-[#141210] overflow-hidden" style={{ aspectRatio: "1/1" }}>
+                        {img.filePath
+                          ? <Image src={img.filePath} alt={img.fileName ?? ""} fill className="object-cover" sizes="80px" />
+                          : <div className="w-full h-full flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-5 h-5 text-[#3A3530]"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>}
+                      </div>
+                    ))}
+                    {gallery.images.length > 16 && (
+                      <div className="relative bg-[#141210] border border-white/[0.04] flex items-center justify-center" style={{ aspectRatio: "1/1" }}>
+                        <span className="text-[10px] text-[#3A3530]">+{gallery.images.length - 16}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* ── CALENDAR ─────────────────────────────────────────── */}
+        {/* ── CALENDAR ──────────────────────────────────────── */}
         {tab === "calendar" && (
           <div className="flex flex-col gap-4">
             {project.calendarEvents.length === 0 ? (
               <div className="bg-[#0E0C0A] border border-white/[0.05] p-10 text-center">
                 <p className="text-[12px] text-[#3A3530]">Nincs naptári esemény</p>
               </div>
-            ) : (
-              project.calendarEvents.map(ev => (
-                <div key={ev.id} className="bg-[#0E0C0A] border border-white/[0.05] p-4 flex items-start gap-4">
-                  <div className="w-10 h-10 border border-[#C8A882]/20 flex items-center justify-center shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#C8A882" strokeWidth="1.2" className="w-4 h-4"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  </div>
-                  <div>
-                    <div className="text-[13px] text-[#D4C4B0]">{ev.title ?? "Névtelen esemény"}</div>
-                    <div className="text-[11px] text-[#3A3530] mt-0.5">
-                      {ev.wholeDay ? "Egész napos" : [
-                        ev.startTime && new Date(ev.startTime).toLocaleString("hu-HU"),
-                        ev.endTime && `→ ${new Date(ev.endTime).toLocaleString("hu-HU")}`
-                      ].filter(Boolean).join(" ")}
-                    </div>
+            ) : project.calendarEvents.map(ev => (
+              <div key={ev.id} className="bg-[#0E0C0A] border border-white/[0.05] p-4 flex items-start gap-4">
+                <div className="w-10 h-10 border border-[#C8A882]/20 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#C8A882" strokeWidth="1.2" className="w-4 h-4"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <div className="text-[13px] text-[#D4C4B0]">{ev.title ?? "Névtelen esemény"}</div>
+                  <div className="text-[11px] text-[#3A3530] mt-0.5">
+                    {ev.wholeDay ? "Egész napos" : [ev.startTime && new Date(ev.startTime).toLocaleString("hu-HU"), ev.endTime && `→ ${new Date(ev.endTime).toLocaleString("hu-HU")}`].filter(Boolean).join(" ")}
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -527,17 +604,4 @@ export default function AdminProjectDetailPage() {
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
-
-  async function quickStatusUpdate(status: ProjectStatus) {
-    try {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error();
-      setProject(p => p ? { ...p, status } : p);
-      setToast({ msg: "Státusz frissítve", type: "success" });
-    } catch { setToast({ msg: "Hiba a státuszváltásnál", type: "error" }); }
-  }
 }

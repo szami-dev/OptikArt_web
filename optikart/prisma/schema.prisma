@@ -46,15 +46,28 @@ enum ProjectStatus {
   ON_HOLD
   CANCELLED
 }
-
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  REFUNDED
+}
+model Cities {
+  id       Int     @id @default(autoincrement())
+  name     String?
+  lat      Float?
+  lng      Float?
+}
 model Project {
   id             Int             @id @default(autoincrement())
   name           String?
   description    String?
   location       String?
+  totalPrice     Float?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime?       @updatedAt
   status         ProjectStatus?  @default(PLANNING)
+  paymentStatus  PaymentStatus?  @default(PENDING)
   users          User[]
   category       Package?        @relation(fields: [packageId], references: [id])
   packageId      Int?
@@ -75,6 +88,7 @@ model Package {
   id           Int           @id @default(autoincrement())
   name         String?
   description  String?
+  subtype String? // eskuvo: "foto"|"video"|"kombinalt" | portre: "egyeni"|"paros"|"csaladi"
   price        Float?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime?     @updatedAt

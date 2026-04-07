@@ -21,15 +21,10 @@ export async function GET(
         type: true,
         category: { include: { bulletPoints: true } },
         calendarEvents: { orderBy: { startTime: "asc" } },
-        galleries: {
-          include: {
-            images: true,
-            imagesFull: true,
-          },
-        },
+        galleries: { include: { images: true, imagesFull: true } },
         messages: {
           include: {
-            sender: { select: { id: true, name: true, role: true } },
+            sender:   { select: { id: true, name: true, role: true } },
             receiver: { select: { id: true, name: true, role: true } },
           },
           orderBy: { createdAt: "asc" },
@@ -38,7 +33,6 @@ export async function GET(
     });
 
     if (!project) return NextResponse.json({ error: "Nem található" }, { status: 404 });
-
     return NextResponse.json({ project });
   } catch (err) {
     console.error("[GET /api/projects/[id]]", err);
@@ -59,14 +53,16 @@ export async function PATCH(
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
     const body = await req.json();
-    const { name, description, status, typeId, packageId } = body;
+    const { name, description, status, typeId, packageId, paymentStatus, totalPrice } = body;
 
     const updateData: Record<string, any> = {};
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (status !== undefined) updateData.status = status;
-    if (typeId !== undefined) updateData.typeId = typeId;
-    if (packageId !== undefined) updateData.packageId = packageId;
+    if (name          !== undefined) updateData.name          = name;
+    if (description   !== undefined) updateData.description   = description;
+    if (status        !== undefined) updateData.status        = status;
+    if (typeId        !== undefined) updateData.typeId        = typeId;
+    if (packageId     !== undefined) updateData.packageId     = packageId;
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+    if (totalPrice    !== undefined) updateData.totalPrice    = totalPrice;
 
     const project = await prisma.project.update({
       where: { id },
@@ -92,18 +88,15 @@ export async function DELETE(
     const id = parseInt(rawId);
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
-    // Cascade: messages, calendarEvents, galleries törlése előbb
     await prisma.message.deleteMany({ where: { projectId: id } });
     await prisma.calendarEvent.deleteMany({ where: { projectId: id } });
 
-    // Gallery képek
     const galleries = await prisma.gallery.findMany({ where: { projectId: id } });
     for (const g of galleries) {
       await prisma.imagesGalleryWbp.deleteMany({ where: { galleryId: g.id } });
       await prisma.imagesFull.deleteMany({ where: { galleryId: g.id } });
     }
     await prisma.gallery.deleteMany({ where: { projectId: id } });
-
     await prisma.project.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
