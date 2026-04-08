@@ -6,10 +6,10 @@ import Link from "next/link";
 import Button from "@/app/components/Button";
 
 const heroImages = [
-  { src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1400&q=85", label: "Esküvő" },
-  { src: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1400&q=85", label: "Portré" },
-  { src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1400&q=85", label: "Rendezvény" },
-  { src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=1400&q=85", label: "Drón" },
+  { src: "/slides/kreativ-12.JPG", alt: "Esküvő", label: "Esküvő" },
+  { src: "/slides/kreativ-52.JPG", alt: "Portré", label: "Portré" },
+  { src: "/slides/marcidorina-59.JPG", alt: "Rendezvény", label: "Rendezvény" },
+  { src: "/slides/muzeumokejszakaja-230.jpg", alt: "Drón", label: "Drón" },
 ];
 
 export default function HeroInteractive() {

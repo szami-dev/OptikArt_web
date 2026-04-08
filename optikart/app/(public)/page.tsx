@@ -16,12 +16,10 @@ const stats = [
 ];
 
 const galleryItems = [
-  { type: "image", src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=900&q=75", alt: "Esküvői fotó", category: "Fotózás", colSpan: "lg:col-span-2 lg:row-span-2" },
-  { type: "video", src: "https://images.unsplash.com/photo-1601506521793-dc748fc80b67?w=700&q=75", alt: "Reklámfilm – Márkanév", category: "Videógyártás", duration: "2:34", colSpan: "lg:col-span-1 lg:row-span-1", videoSrc: "/videos/reel1.mp4" },
-  { type: "image", src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&q=75", alt: "Esemény fotózás", category: "Esemény", colSpan: "lg:col-span-1 lg:row-span-1" },
-  { type: "video", src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=700&q=75", alt: "Drón showreel", category: "Drón", duration: "1:12", colSpan: "lg:col-span-1 lg:row-span-2", videoSrc: "/videos/drone.mp4" },
-  { type: "image", src: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=700&q=75", alt: "Termékfotó", category: "Termék", colSpan: "lg:col-span-1 lg:row-span-1" },
-  { type: "image", src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=700&q=75", alt: "Portré sorozat", category: "Portré", colSpan: "lg:col-span-1 lg:row-span-1" },
+  { type: "image", src: "/slides/kreativ-12.JPG", alt: "Esküvői fotó", category: "Fotózás", colSpan: "lg:col-span-2 lg:row-span-2" },
+  { type: "image", src: "/slides/kreativ-52.JPG", alt: "Reklámfilm – Márkanév", category: "Videógyártás", duration: "2:34", colSpan: "lg:col-span-1 lg:row-span-1", videoSrc: "./slides/reel1.mp4" },
+  { type: "image", src: "/slides/marcidorina-59.JPG", alt: "Esemény fotózás", category: "Esemény", colSpan: "lg:col-span-1 lg:row-span-1" },
+  { type: "image", src: "/slides/muzeumokejszakaja-230.jpg", alt: "Drón showreel", category: "Drón", duration: "1:12", colSpan: "lg:col-span-1 lg:row-span-2", videoSrc: "./slides/drone.mp4" },
 ];
 
 function GalleryCard({ item }: { item: (typeof galleryItems)[0] }) {
@@ -293,7 +291,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </div>
   );
 }

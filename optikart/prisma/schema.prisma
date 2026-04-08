@@ -83,7 +83,14 @@ model Category {
   name     String?
   packages Package[]
 }
-
+model Analytics {
+  id        Int      @id @default(autoincrement())
+  url       String   // Melyik aloldalon járt
+  referrer  String?  // Honnan jött (pl. google.com vagy instagram)
+  device    String?  // Mobil vagy PC
+  duration  Int?     // Mennyi másodpercet töltött ott
+  createdAt DateTime @default(now())
+}
 model Package {
   id           Int           @id @default(autoincrement())
   name         String?

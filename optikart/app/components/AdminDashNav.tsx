@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { SiSalla } from "react-icons/si";
 
 // ── Nav elemek beégetve ───────────────────────────────────────
 const menuItems = [
@@ -28,6 +29,12 @@ const menuItems = [
     label: "Csomagok",
     //badge: 3,
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  },
+  {
+    href: "/admin/analytics",
+    label: "Analitika",
+    //badge: 3,
+    icon: <SiSalla size={18} className="text-[#C8A882]" />,
   },
   {
     href: "/admin/calendar",

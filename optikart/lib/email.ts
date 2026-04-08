@@ -133,13 +133,83 @@ export async function sendAdminCreatedProjectEmail(email: string, name: string, 
   `);
   return sendMailWrapper(email, "Új projektet indítottunk neked | OptikArt", html);
 }
+export async function sendPaymentStatusEmail(
+  email: string, 
+  name: string, 
+  projectName: string, 
+  status: string, 
+  color: string = "#f39c12" // Alapértelmezett narancs, ha nem jönne szín
+) {
+  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Pénzügyi értesítés</h2>
+    <p style="text-align: center; color: #555555;">Tájékoztatunk, hogy a <strong>"${projectName}"</strong> projekthez kapcsolódó fizetésed állapota megváltozott.</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; padding: 12px 30px; background-color: ${color}; color: #ffffff; border-radius: 4px; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        ${status}
+      </div>
+    </div>
+
+    <p style="text-align: center; color: #555555; font-size: 14px;">A részleteket és a bizonylatokat bármikor elérheted az ügyfélkapun keresztül.</p>
+    
+    <div style="text-align: center; margin: 35px 0;">
+      <a href="${dashboardLink}" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px; font-weight: 600;">Pénzügyi összesítő</a>
+    </div>
+  `);
+
+  return sendMailWrapper(email, `Fizetési státusz frissítés: ${projectName}`, html);
+}
+// Példa a projekt státusz emailre a mail.ts-ben
+export async function sendProjectStatusEmail(email: string, name: string, projectName: string, status: string, color: string = "#A08060") {
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">A projekted szintet lépett</h2>
+    <p style="text-align: center; color: #555555;">Szia ${name}, a <strong>"${projectName}"</strong> projekt állapota megváltozott:</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; padding: 10px 25px; background-color: ${color}; color: #ffffff; border-radius: 4px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+        ${status}
+      </div>
+    </div>
+
+    <p style="text-align: center; color: #555555;">Kattints az alábbi gombra a részletekért:</p>
+    
+    <div style="text-align: center; margin: 35px 0;">
+      <a href="${projectLink}" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt megnyitása</a>
+    </div>
+  `);
+
+  return sendMailWrapper(email, `Státuszfrissítés: ${projectName}`, html);
+}
+
+export async function sendGalleryReadyEmail(email: string, name: string, projectName: string, galleryLink: string) {
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Elkészültek a felvételeid!</h2>
+    <p style="text-align: center; color: #555555; font-size: 16px;">Kedves ${name}, örömmel értesítünk, hogy a <strong>"${projectName}"</strong> projekt utómunkálataival végeztünk.</p>
+    
+    <p style="text-align: center; color: #555555;">A válogatott és utómunkázott anyagokat feltöltöttük a személyes galériádba. Bízunk benne, hogy a végeredmény legalább annyira tetszeni fog, mint amennyire mi élveztük a közös alkotást!</p>
+    
+    <div style="text-align: center; margin: 45px 0;">
+      <a href="${galleryLink}" style="background-color: #A08060; color: #ffffff; padding: 20px 45px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 14px; font-weight: 700; letter-spacing: 2px; box-shadow: 0 4px 15px rgba(160,128,96,0.3);">Galéria megnyitása</a>
+    </div>
+
+    <p style="font-size: 13px; color: #888888; text-align: center; font-style: italic;">
+      Tipp: A képeket/videókat érdemes asztali gépen, jó minőségű kijelzőn megnézni az igazi élményért.
+    </p>
+  `);
+
+  return sendMailWrapper(email, `✨ Elkészült a galériád: ${projectName}`, html);
+}
 
 // PROJEKT TÖRLÉSE
 export async function sendProjectDeletedEmail(email: string, name: string, projectName: string) {
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">Szia ${name}!</h2>
     <p style="text-align: center; color: #555555;">Értesítünk, hogy a <strong>"${projectName}"</strong> megnevezésű projekted törlésre került a rendszerünkből.</p>
-    <p style="text-align: center; color: #e74c3c; font-weight: 500; margin-top: 20px;">Amennyiben nem te kérted a törlést, vagy kérdésed van, kérjük, azonnal vedd fel velünk a kapcsolatot erre az e-mailre válaszolva.</p>
+    <p style="text-align: center; color: #e74c3c; font-weight: 500; margin-top: 20px;">Amennyiben nem te kérted a törlést, vagy kérdésed van, kérjük, azonnal vedd fel velünk a kapcsolatot elérhetőségeink egyikén.</p>
   `);
   return sendMailWrapper(email, "Projekt eltávolítva | OptikArt", html);
 }
@@ -178,66 +248,3 @@ export async function sendMessageNotificationEmail(recipientEmail: string, sende
   return sendMailWrapper(recipientEmail, `💬 Új üzenet érkezett: ${projectName}`, html);
 }
 
-export async function sendPaymentStatusEmail(email: string, name: string, projectName: string, status: string) {
-  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
-  
-  const html = getBaseTemplate(`
-    <h2 style="text-align: center; font-weight: 400;">Pénzügyi értesítés</h2>
-    <p style="text-align: center; color: #555555;">Tájékoztatunk, hogy a <strong>"${projectName}"</strong> projekthez kapcsolódó fizetésed státusza megváltozott.</p>
-    
-    <div style="background-color: #f9f9f9; border: 1px solid #eeeeee; padding: 20px; text-align: center; margin: 25px 0; border-radius: 4px;">
-      <span style="color: #888888; font-size: 13px; text-transform: uppercase;">Új státusz:</span><br>
-      <span style="font-size: 18px; font-weight: 600; color: #1a1a1a;">${status}</span>
-    </div>
-
-    <p style="text-align: center; color: #555555; font-size: 14px;">A részletes elszámolást és a számlákat bármikor elérheted az ügyfélkapun keresztül.</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${dashboardLink}" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px; font-weight: 600;">Pénzügyi összesítő megnyitása</a>
-    </div>
-  `);
-
-  return sendMailWrapper(email, `Fizetési státusz frissítés: ${projectName}`, html);
-}
-
-export async function sendProjectStatusEmail(email: string, name: string, projectName: string, status: string) {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
-
-  const html = getBaseTemplate(`
-    <h2 style="text-align: center; font-weight: 400;">A projekted szintet lépett</h2>
-    <p style="text-align: center; color: #555555;">Szia ${name}, egy új mérföldkőhöz értünk a <strong>"${projectName}"</strong> munkafolyamatában.</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <div style="display: inline-block; padding: 10px 25px; background-color: #A08060; color: #ffffff; border-radius: 50px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-        ${status}
-      </div>
-    </div>
-
-    <p style="text-align: center; color: #555555;">Kattints az alábbi gombra a projekt aktuális részleteinek és ütemtervének megtekintéséhez:</p>
-    
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${projectLink}" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt adatlap megnyitása</a>
-    </div>
-  `);
-
-  return sendMailWrapper(email, `Státuszfrissítés: ${projectName}`, html);
-}
-
-export async function sendGalleryReadyEmail(email: string, name: string, projectName: string, galleryLink: string) {
-  const html = getBaseTemplate(`
-    <h2 style="text-align: center; font-weight: 400;">Elkészültek a felvételeid!</h2>
-    <p style="text-align: center; color: #555555; font-size: 16px;">Kedves ${name}, örömmel értesítünk, hogy a <strong>"${projectName}"</strong> projekt utómunkálataival végeztünk.</p>
-    
-    <p style="text-align: center; color: #555555;">A válogatott és utómunkázott anyagokat feltöltöttük a személyes galériádba. Bízunk benne, hogy a végeredmény legalább annyira tetszeni fog, mint amennyire mi élveztük a közös alkotást!</p>
-    
-    <div style="text-align: center; margin: 45px 0;">
-      <a href="${galleryLink}" style="background-color: #A08060; color: #ffffff; padding: 20px 45px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 14px; font-weight: 700; letter-spacing: 2px; box-shadow: 0 4px 15px rgba(160,128,96,0.3);">Galéria megnyitása</a>
-    </div>
-
-    <p style="font-size: 13px; color: #888888; text-align: center; font-style: italic;">
-      Tipp: A képeket/videókat érdemes asztali gépen, jó minőségű kijelzőn megnézni az igazi élményért.
-    </p>
-  `);
-
-  return sendMailWrapper(email, `✨ Elkészült a galériád: ${projectName}`, html);
-}

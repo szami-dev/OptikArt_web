@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import SidebarLight from "../components/UserDashNav";
+import AnalyticsTracker from "../components/ActivityMonitor";
 
 export default function UserLayout({
   children,
@@ -22,7 +23,7 @@ export default function UserLayout({
   return (
     <div className="flex min-h-screen bg-[#FAF8F4]">
       <SidebarLight collapsed={collapsed} onCollapse={setCollapsed} />
-
+        <AnalyticsTracker />
       <main
         className="flex-1 min-h-screen bg-[#FAF8F4] transition-[margin] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
