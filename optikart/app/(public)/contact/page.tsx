@@ -17,13 +17,8 @@ type DbPackage = {
   description: string | null;
   price: number | null;
   categoryId: number | null;
+  subtype: string | null;          // "foto" | "video" | "kombinalt" | "paros" | "csaladi" | "egyeni"
   bulletPoints: { id: number; title: string | null }[];
-};
-
-// Kategória → typeId mapping
-const CAT_TO_TYPE: Record<number, ProjectTypeId> = {
-  1: "eskuvo", 2: "portre", 3: "rendezvenyek",
-  4: "marketing", 5: "dron", 6: "egyeb",
 };
 
 const TYPE_TO_CAT: Record<ProjectTypeId, number> = {
@@ -37,27 +32,13 @@ const ESKUVO_AGAK = [
   { id: "kombinalt", label: "Fotó + Videó" },
 ];
 
-// Portré – esküvő ág alapján szűrjük a csomagokat névben
-// A DB-ben a csomag neve tartalmaz "fotó" / "videó" / "kombinált" szót
-const ESKUVO_AG_FILTER: Record<string, string[]> = {
-  foto:      ["fotó", "foto", "alap", "standard", "prémium", "premium"],
-  video:     ["videó", "video"],
-  kombinalt: ["kombinált", "kombinalt"],
-};
-
-const PORTRE_KATEGORIAK = [
-  { id: "paros",   label: "Páros / Jegyesfotózás" },
-  { id: "csaladi", label: "Családi fotózás" },
-  { id: "egyeni",  label: "Egyéni portré" },
-];
-
 const SZABADTERI_FELAR = 10000;
 
 const EGYEDI_TIPUSOK: Record<string, { label: string; ajanlat: string; megjegyzes: string }> = {
-  rendezvenyek: { label: "Rendezvény",     ajanlat: "Egyedi árajánlat", megjegyzes: "Az ár a rendezvény hosszától és helyszínétől függ. Egyeztetés alapján küldünk ajánlatot." },
-  marketing:    { label: "Marketing",      ajanlat: "Egyedi árajánlat", megjegyzes: "A dátum a személyes egyeztetési alkalom időpontja. Ezt követően egyedi tartalomtervet készítünk." },
-  dron:         { label: "Drón felvételek",ajanlat: "Egyedi árajánlat", megjegyzes: "A drón repülési engedélytől és időjárástól függ. Rossz idő esetén napolunk — erről előre értesítünk." },
-  egyeb:        { label: "Egyedi projekt", ajanlat: "Egyedi árajánlat", megjegyzes: "Írd le részletesen az elképzeléseidet, 24 órán belül visszajelzünk személyre szabott ajánlattal." },
+  rendezvenyek: { label: "Rendezvény",      ajanlat: "Egyedi árajánlat", megjegyzes: "Az ár a rendezvény hosszától és helyszínétől függ. Egyeztetés alapján küldünk ajánlatot." },
+  marketing:    { label: "Marketing",       ajanlat: "Egyedi árajánlat", megjegyzes: "A dátum a személyes egyeztetési alkalom időpontja. Ezt követően egyedi tartalomtervet készítünk." },
+  dron:         { label: "Drón felvételek", ajanlat: "Egyedi árajánlat", megjegyzes: "A drón repülési engedélytől és időjárástól függ. Rossz idő esetén napolunk — erről előre értesítünk." },
+  egyeb:        { label: "Egyedi projekt",  ajanlat: "Egyedi árajánlat", megjegyzes: "Írd le részletesen az elképzeléseidet, 24 órán belül visszajelzünk személyre szabott ajánlattal." },
 };
 
 // ── Segédfüggvények ───────────────────────────────────────────
@@ -102,14 +83,20 @@ function StepDots({ current, total }: { current: number; total: number }) {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[10px] tracking-[0.15em] uppercase text-[#A08060]">{label}{required && <span className="text-[#C8A882] ml-0.5">*</span>}</label>
+      <label className="text-[10px] tracking-[0.15em] uppercase text-[#A08060]">
+        {label}{required && <span className="text-[#C8A882] ml-0.5">*</span>}
+      </label>
       {children}
     </div>
   );
 }
 
-function InfoBox({ children, type = "tip" }: { children: React.ReactNode; type?: "info"|"warning"|"tip" }) {
-  const s = { info: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: "ℹ️" }, warning: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "⚠️" }, tip: { bg: "bg-[#FAF8F4]", border: "border-[#EDE8E0]", text: "text-[#7A6A58]", icon: "·" } }[type];
+function InfoBox({ children, type = "tip" }: { children: React.ReactNode; type?: "info" | "warning" | "tip" }) {
+  const s = {
+    info:    { bg: "bg-blue-50",       border: "border-blue-200",   text: "text-blue-700",   icon: "ℹ️" },
+    warning: { bg: "bg-amber-50",      border: "border-amber-200",  text: "text-amber-700",  icon: "⚠️" },
+    tip:     { bg: "bg-[#FAF8F4]",     border: "border-[#EDE8E0]",  text: "text-[#7A6A58]",  icon: "·"  },
+  }[type];
   return (
     <div className={`${s.bg} border ${s.border} px-4 py-3 flex items-start gap-2.5 text-[12px] ${s.text} leading-relaxed`}>
       <span className="shrink-0 mt-0.5">{s.icon}</span>
@@ -129,24 +116,30 @@ function MiniCalendar({ selectedDate, onSelect, busyDates }: {
   const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
   const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
   let off = first.getDay() - 1; if (off < 0) off = 6;
-  const days: (Date|null)[] = [];
+  const days: (Date | null)[] = [];
   for (let i = 0; i < off; i++) days.push(null);
   for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
-  const toYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const toYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   return (
     <div className="bg-white border border-[#EDE8E0] p-4">
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => setViewMonth(v => { const n = new Date(v); n.setMonth(n.getMonth()-1); return n; })} className="w-7 h-7 flex items-center justify-center border border-[#EDE8E0] text-[#A08060] hover:border-[#C8A882]/40 transition-all">
+        <button onClick={() => setViewMonth(v => { const n = new Date(v); n.setMonth(n.getMonth() - 1); return n; })}
+          className="w-7 h-7 flex items-center justify-center border border-[#EDE8E0] text-[#A08060] hover:border-[#C8A882]/40 transition-all">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <span className="text-[12px] font-medium text-[#1A1510]">{viewMonth.toLocaleDateString("hu-HU", { year: "numeric", month: "long" })}</span>
-        <button onClick={() => setViewMonth(v => { const n = new Date(v); n.setMonth(n.getMonth()+1); return n; })} className="w-7 h-7 flex items-center justify-center border border-[#EDE8E0] text-[#A08060] hover:border-[#C8A882]/40 transition-all">
+        <span className="text-[12px] font-medium text-[#1A1510]">
+          {viewMonth.toLocaleDateString("hu-HU", { year: "numeric", month: "long" })}
+        </span>
+        <button onClick={() => setViewMonth(v => { const n = new Date(v); n.setMonth(n.getMonth() + 1); return n; })}
+          className="w-7 h-7 flex items-center justify-center border border-[#EDE8E0] text-[#A08060] hover:border-[#C8A882]/40 transition-all">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
       <div className="grid grid-cols-7 mb-1">
-        {["H","K","Sz","Cs","P","Szo","V"].map(d => <div key={d} className="text-center text-[9px] tracking-[0.08em] uppercase text-[#C8B8A0] py-1">{d}</div>)}
+        {["H", "K", "Sz", "Cs", "P", "Szo", "V"].map(d => (
+          <div key={d} className="text-center text-[9px] tracking-[0.08em] uppercase text-[#C8B8A0] py-1">{d}</div>
+        ))}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, i) => {
@@ -155,8 +148,14 @@ function MiniCalendar({ selectedDate, onSelect, busyDates }: {
           const isPast = day < today, isBusy = busyDates.includes(ymd);
           const isSelected = selectedDate === ymd, disabled = isPast || isBusy;
           return (
-            <button key={i} disabled={disabled} onClick={() => !disabled && onSelect(ymd)} title={isBusy ? "Foglalt" : undefined}
-              className={`relative h-8 w-full text-[11px] transition-all ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${isSelected ? "bg-[#1A1510] text-white" : ""} ${!isSelected && isBusy ? "bg-[#C8A882]/15 text-[#C8A882]/50 line-through" : ""} ${!isSelected && isPast && !isBusy ? "text-[#C8B8A0]" : ""} ${!isSelected && !disabled ? "hover:bg-[#FAF8F4] text-[#1A1510]" : ""}`}>
+            <button key={i} disabled={disabled} onClick={() => !disabled && onSelect(ymd)}
+              title={isBusy ? "Foglalt" : undefined}
+              className={`relative h-8 w-full text-[11px] transition-all
+                ${disabled ? "cursor-not-allowed" : "cursor-pointer"}
+                ${isSelected ? "bg-[#1A1510] text-white" : ""}
+                ${!isSelected && isBusy ? "bg-[#C8A882]/15 text-[#C8A882]/50 line-through" : ""}
+                ${!isSelected && isPast && !isBusy ? "text-[#C8B8A0]" : ""}
+                ${!isSelected && !disabled ? "hover:bg-[#FAF8F4] text-[#1A1510]" : ""}`}>
               {day.getDate()}
               {isBusy && !isPast && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C8A882]" />}
             </button>
@@ -185,7 +184,9 @@ function LocationPicker({ value, onChangeName, onChangeFee }: {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const filtered = query.length >= 1 ? HUN_CITIES.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8) : [];
+  const filtered = query.length >= 1
+    ? HUN_CITIES.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : [];
 
   function select(city: HunCity) {
     setSelected(city); setQuery(city.name); setOpen(false);
@@ -205,16 +206,23 @@ function LocationPicker({ value, onChangeName, onChangeFee }: {
           onFocus={() => query.length >= 1 && setOpen(true)}
           placeholder="Helyszín keresése (pl. Budapest)..."
           className="w-full bg-white border border-[#EDE8E0] text-[13px] text-[#1A1510] placeholder:text-[#C8B8A0]/70 focus:outline-none focus:border-[#C8A882] pl-9 pr-9 py-2.5 transition-colors" />
-        {query && <button onClick={clear} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C8B8A0] hover:text-[#A08060]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
+        {query && (
+          <button onClick={clear} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C8B8A0] hover:text-[#A08060]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        )}
       </div>
       {open && filtered.length > 0 && (
         <div className="bg-white border border-[#EDE8E0] shadow-lg overflow-hidden relative z-50">
           {filtered.map(city => {
             const { km, fee, isFree } = calcTravel(city);
             return (
-              <button key={city.name} onClick={() => select(city)} className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#FAF8F4] transition-colors border-b border-[#EDE8E0]/60 last:border-b-0">
+              <button key={city.name} onClick={() => select(city)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#FAF8F4] transition-colors border-b border-[#EDE8E0]/60 last:border-b-0">
                 <span className="text-[13px] text-[#1A1510]">{city.name}</span>
-                <span className={`text-[10px] shrink-0 ml-4 ${isFree ? "text-[#16A34A]" : "text-[#A08060]"}`}>{isFree ? "✓ Ingyenes" : `+${fmt(fee)} (${Math.round(km)} km)`}</span>
+                <span className={`text-[10px] shrink-0 ml-4 ${isFree ? "text-[#16A34A]" : "text-[#A08060]"}`}>
+                  {isFree ? "✓ Ingyenes" : `+${fmt(fee)} (${Math.round(km)} km)`}
+                </span>
               </button>
             );
           })}
@@ -225,9 +233,13 @@ function LocationPicker({ value, onChangeName, onChangeFee }: {
           <div className="flex-1">
             <div className="flex items-center justify-between gap-4">
               <span className="text-[13px] font-medium text-[#1A1510]">{selected.name}</span>
-              {travel.isFree ? <span className="text-[11px] font-medium text-[#16A34A]">Ingyenes ✓</span> : <span className="text-[13px] font-medium text-[#C8A882]">+{fmt(travel.fee)}</span>}
+              {travel.isFree
+                ? <span className="text-[11px] font-medium text-[#16A34A]">Ingyenes ✓</span>
+                : <span className="text-[13px] font-medium text-[#C8A882]">+{fmt(travel.fee)}</span>}
             </div>
-            <div className="text-[11px] text-[#7A6A58] mt-0.5">{travel.isFree ? `${Math.round(travel.km)} km – 25 km körzetben` : `${Math.round(travel.km)} km × ${KISZALLASI_DIF_FT_PER_KM} Ft/km`}</div>
+            <div className="text-[11px] text-[#7A6A58] mt-0.5">
+              {travel.isFree ? `${Math.round(travel.km)} km – 25 km körzetben` : `${Math.round(travel.km)} km × ${KISZALLASI_DIF_FT_PER_KM} Ft/km`}
+            </div>
           </div>
         </div>
       )}
@@ -241,7 +253,8 @@ function PackageCard({ pkg, selected, extraPrice, onClick }: {
 }) {
   const finalPrice = (pkg.price ?? 0) + extraPrice;
   return (
-    <button onClick={onClick} className={`flex items-start gap-4 p-4 sm:p-5 border transition-all text-left w-full ${selected ? "border-[#C8A882]/50 bg-[#FAF8F4]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/30"}`}>
+    <button onClick={onClick}
+      className={`flex items-start gap-4 p-4 sm:p-5 border transition-all text-left w-full ${selected ? "border-[#C8A882]/50 bg-[#FAF8F4]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/30"}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-3 mb-1.5">
           <span className="text-[13px] text-[#1A1510] font-medium">{pkg.name}</span>
@@ -253,7 +266,11 @@ function PackageCard({ pkg, selected, extraPrice, onClick }: {
         {pkg.description && <p className="text-[11px] text-[#7A6A58] mb-2">{pkg.description}</p>}
         {pkg.bulletPoints.length > 0 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {pkg.bulletPoints.map((b, i) => <span key={i} className="flex items-center gap-1 text-[10px] text-[#A08060]"><span className="w-1 h-1 rounded-full bg-[#C8A882]/50" />{b.title}</span>)}
+            {pkg.bulletPoints.map((b, i) => (
+              <span key={i} className="flex items-center gap-1 text-[10px] text-[#A08060]">
+                <span className="w-1 h-1 rounded-full bg-[#C8A882]/50" />{b.title}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -272,27 +289,23 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // DB csomagok
   const [allPackages, setAllPackages] = useState<DbPackage[]>([]);
-  const [pkgLoading, setPkgLoading] = useState(true);
+  const [pkgLoading, setPkgLoading]   = useState(true);
 
-  // Wizard state
   const [typeId, setTypeId]           = useState<ProjectTypeId | null>(null);
   const [eskuvoAg, setEskuvoAg]       = useState<string | null>(null);
   const [portreKat, setPortreKat]     = useState<string | null>(null);
   const [szabadteri, setSzabadteri]   = useState<boolean | null>(null);
   const [selectedPkg, setSelectedPkg] = useState<DbPackage | null>(null);
 
-  const [projectName, setProjectName] = useState("");
-  const [description, setDescription] = useState("");
-  const [phone, setPhone]             = useState("");
+  const [projectName, setProjectName]     = useState("");
+  const [description, setDescription]     = useState("");
+  const [phone, setPhone]                 = useState("");
   const [preferredDate, setPreferredDate] = useState("");
-  const [location, setLocation]       = useState("");
-  const [travelFee, setTravelFee]     = useState(0);
+  const [location, setLocation]           = useState("");
+  const [travelFee, setTravelFee]         = useState(0);
+  const [busyDates, setBusyDates]         = useState<string[]>([]);
 
-  const [busyDates, setBusyDates] = useState<string[]>([]);
-
-  // DB betöltések
   useEffect(() => {
     fetch("/api/packages")
       .then(r => r.json())
@@ -304,36 +317,24 @@ export default function ContactPage() {
       .then(d => setBusyDates(d.busyDates ?? []));
   }, []);
 
-  // Aktuális típushoz tartozó csomagok
+  // ── Csomag szűrők ────────────────────────────────────────────
+
+  // Portré: az összes portré csomag (categoryId === 2)
   function getPackagesForType(type: ProjectTypeId): DbPackage[] {
-    const catId = TYPE_TO_CAT[type];
-    return allPackages.filter(p => p.categoryId === catId);
+    return allPackages.filter(p => p.categoryId === TYPE_TO_CAT[type]);
   }
 
-  // Esküvő ághoz szűrt csomagok
+  // Esküvő: SUBTYPE alapján szűrünk – "foto" | "video" | "kombinalt"
+  // NEM névkulcsszó alapján, hanem a DB subtype mezőjéből
   function getEskuvoPackages(ag: string): DbPackage[] {
-    const all = getPackagesForType("eskuvo");
-    // Ha nincsenek nevük alapján szűrve, adjuk vissza az összeset az adott ágnak
-    // A DB-ben a nevek tartalmazzák a "fotó"/"videó"/"kombinált" szavakat
-    const keywords = ESKUVO_AG_FILTER[ag] ?? [];
-    const filtered = all.filter(p =>
-      keywords.some(kw => p.name?.toLowerCase().includes(kw))
-    );
-    // Ha nincs névszűrés alapján találat, osszuk el egyenlően
-    if (filtered.length === 0) return all;
-    return filtered;
+    return allPackages.filter(p => p.categoryId === 1 && p.subtype === ag);
   }
 
   const hasPackages = typeId === "eskuvo" || typeId === "portre";
   const totalSteps  = hasPackages ? 4 : 3;
 
-  // totalPrice számítás
   const szabadteriFelar = typeId === "portre" && szabadteri === true ? SZABADTERI_FELAR : 0;
   const totalPrice = (selectedPkg?.price ?? 0) + szabadteriFelar + travelFee;
-
-  function getDbTypeId(t: ProjectTypeId): number {
-    return TYPE_TO_CAT[t];
-  }
 
   async function handleSubmit() {
     setSubmitting(true); setError("");
@@ -345,19 +346,19 @@ export default function ContactPage() {
           name: projectName,
           description: [
             description,
-            phone    ? `Telefon: ${phone}` : null,
-            location ? `Helyszín: ${location}` : null,
+            phone     ? `Telefon: ${phone}`    : null,
+            location  ? `Helyszín: ${location}` : null,
             travelFee > 0 ? `Kiszállási díj: ${fmt(travelFee)}` : null,
             typeId === "portre" && szabadteri !== null ? `Fotózás: ${szabadteri ? "Szabadtéri" : "Stúdió"}` : null,
-            eskuvoAg ? `Esküvő típusa: ${ESKUVO_AGAK.find(a => a.id === eskuvoAg)?.label}` : null,
+            eskuvoAg  ? `Esküvő típusa: ${ESKUVO_AGAK.find(a => a.id === eskuvoAg)?.label}` : null,
           ].filter(Boolean).join("\n\n"),
-          typeId:           getDbTypeId(typeId!),
-          packageId:        selectedPkg?.id ?? null,
-          date:             preferredDate || null,
-          phone:            phone || null,
-          location:         location || null,
+          typeId:          TYPE_TO_CAT[typeId!],
+          packageId:       selectedPkg?.id ?? null,
+          date:            preferredDate || null,
+          phone:           phone || null,
+          location:        location || null,
           travelFee,
-          szabadteriFelár:  szabadteriFelar,
+          szabadteriFelár: szabadteriFelar,
         }),
       });
       if (!res.ok) {
@@ -371,7 +372,7 @@ export default function ContactPage() {
     } finally { setSubmitting(false); }
   }
 
-  // ── Success ───────────────────────────────────────────────
+  // ── Success ───────────────────────────────────────────────────
   if (submitted) return (
     <div className="fixed inset-0 bg-[#FAF8F4] flex items-center justify-center px-6">
       <div className="max-w-sm w-full text-center">
@@ -379,7 +380,9 @@ export default function ContactPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="#C8A882" strokeWidth="1.5" className="w-6 h-6"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-5 h-px bg-[#C8A882]/40" /><span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]">Köszönjük</span><div className="w-5 h-px bg-[#C8A882]/40" />
+          <div className="w-5 h-px bg-[#C8A882]/40" />
+          <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]">Köszönjük</span>
+          <div className="w-5 h-px bg-[#C8A882]/40" />
         </div>
         <h2 className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#1A1510] mb-3">Igénylés elküldve!</h2>
         <p className="text-[13px] text-[#7A6A58] leading-relaxed mb-8">Hamarosan felvesszük veled a kapcsolatot.</p>
@@ -415,18 +418,21 @@ export default function ContactPage() {
             </h1>
             <div className="flex flex-col gap-3 mb-8">
               {Array.from({ length: totalSteps }, (_, i) => {
-                const labels = hasPackages ? ["Projekt típusa","Csomag","Részletek & Időpont","Összefoglaló"] : ["Projekt típusa","Részletek & Időpont","Összefoglaló"];
+                const labels = hasPackages
+                  ? ["Projekt típusa", "Csomag", "Részletek & Időpont", "Összefoglaló"]
+                  : ["Projekt típusa", "Részletek & Időpont", "Összefoglaló"];
                 return (
-                  <div key={i} className={`flex items-center gap-3 transition-all duration-300 ${step === i+1 ? "opacity-100" : step > i+1 ? "opacity-50" : "opacity-30"}`}>
-                    <div className={`w-6 h-6 flex items-center justify-center border text-[10px] shrink-0 ${step > i+1 ? "bg-[#C8A882] border-[#C8A882] text-white" : step === i+1 ? "border-[#C8A882] text-[#C8A882]" : "border-[#DDD5C8] text-[#A08060]"}`}>
-                      {step > i+1 ? <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg> : i + 1}
+                  <div key={i} className={`flex items-center gap-3 transition-all duration-300 ${step === i + 1 ? "opacity-100" : step > i + 1 ? "opacity-50" : "opacity-30"}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center border text-[10px] shrink-0 ${step > i + 1 ? "bg-[#C8A882] border-[#C8A882] text-white" : step === i + 1 ? "border-[#C8A882] text-[#C8A882]" : "border-[#DDD5C8] text-[#A08060]"}`}>
+                      {step > i + 1
+                        ? <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>
+                        : i + 1}
                     </div>
-                    <span className={`text-[12px] ${step === i+1 ? "text-[#1A1510] font-medium" : "text-[#7A6A58]"}`}>{labels[i]}</span>
+                    <span className={`text-[12px] ${step === i + 1 ? "text-[#1A1510] font-medium" : "text-[#7A6A58]"}`}>{labels[i]}</span>
                   </div>
                 );
               })}
             </div>
-            {/* Élő ár összesítő */}
             {selectedPkg && (
               <div className="bg-white/60 border border-[#EDE8E0] p-4">
                 <div className="text-[9px] tracking-[0.14em] uppercase text-[#A08060] mb-2">Becsült összeg</div>
@@ -469,17 +475,19 @@ export default function ContactPage() {
               {step === 1 && (
                 <div className="flex flex-col gap-6">
                   <div>
-                    <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510] mb-1">Milyen projektre van szükséged?</h2>
+                    <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510] mb-1">
+                      Milyen projektre van szükséged?
+                    </h2>
                     <p className="text-[12px] text-[#A08060]">Válaszd ki a kategóriát</p>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {([
-                      { id: "eskuvo" as ProjectTypeId,       icon: "ring",     name: "Esküvő",     desc: "Fotó, videó vagy kombinált" },
-                      { id: "portre" as ProjectTypeId,       icon: "person",   name: "Portré",     desc: "Páros, családi vagy egyéni" },
+                      { id: "eskuvo"       as ProjectTypeId, icon: "ring",     name: "Esküvő",     desc: "Fotó, videó vagy kombinált" },
+                      { id: "portre"       as ProjectTypeId, icon: "person",   name: "Portré",     desc: "Páros, családi vagy egyéni" },
                       { id: "rendezvenyek" as ProjectTypeId, icon: "calendar", name: "Rendezvény", desc: "Céges vagy magán esemény" },
-                      { id: "marketing" as ProjectTypeId,    icon: "phone2",   name: "Marketing",  desc: "Social media & brand tartalom" },
-                      { id: "dron" as ProjectTypeId,         icon: "drone",    name: "Drón",       desc: "Légifotó és videó" },
-                      { id: "egyeb" as ProjectTypeId,        icon: "dots",     name: "Egyéb",      desc: "Egyedi igény" },
+                      { id: "marketing"    as ProjectTypeId, icon: "phone2",   name: "Marketing",  desc: "Social media & brand tartalom" },
+                      { id: "dron"         as ProjectTypeId, icon: "drone",    name: "Drón",       desc: "Légifotó és videó" },
+                      { id: "egyeb"        as ProjectTypeId, icon: "dots",     name: "Egyéb",      desc: "Egyedi igény" },
                     ] as const).map(t => (
                       <button key={t.id} onClick={() => {
                         setTypeId(t.id); setEskuvoAg(null); setPortreKat(null);
@@ -506,25 +514,39 @@ export default function ContactPage() {
                     </div>
                     <InfoBox type="tip">A kombinált csomag (fotó + videó) általában kedvezőbb, mintha külön rendelnéd.</InfoBox>
 
+                    {/* Ág választó */}
                     <div className="grid grid-cols-3 gap-2">
-                      {[{ id:"foto", label:"Csak fotózás", icon:"camera" }, { id:"video", label:"Csak videó", icon:"video" }, { id:"kombinalt", label:"Fotó + Videó", icon:"sparkle" }].map(ag => (
+                      {[
+                        { id: "foto",      label: "Csak fotózás", icon: "camera" },
+                        { id: "video",     label: "Csak videó",   icon: "video" },
+                        { id: "kombinalt", label: "Fotó + Videó", icon: "sparkle" },
+                      ].map(ag => (
                         <button key={ag.id} onClick={() => { setEskuvoAg(ag.id); setSelectedPkg(null); }}
                           className={`flex flex-col items-center gap-2 p-4 border transition-all ${eskuvoAg === ag.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
-                          <span className={`transition-colors ${eskuvoAg === ag.id ? "text-[#C8A882]" : "text-[#A08060]"}`}>{IC[ag.icon as keyof typeof IC]}</span>
+                          <span className={`transition-colors ${eskuvoAg === ag.id ? "text-[#C8A882]" : "text-[#A08060]"}`}>
+                            {IC[ag.icon as keyof typeof IC]}
+                          </span>
                           <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">{ag.label}</span>
                         </button>
                       ))}
                     </div>
 
+                    {/* Csomagok – subtype alapján szűrve */}
                     {eskuvoAg && (
                       pkgLoading ? (
-                        <div className="flex items-center gap-2 py-4"><div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" /><span className="text-[12px] text-[#A08060]">Csomagok betöltése...</span></div>
+                        <div className="flex items-center gap-2 py-4">
+                          <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+                          <span className="text-[12px] text-[#A08060]">Csomagok betöltése...</span>
+                        </div>
                       ) : getEskuvoPackages(eskuvoAg).length === 0 ? (
-                        <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.</InfoBox>
+                        <InfoBox type="info">
+                          Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.
+                        </InfoBox>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {getEskuvoPackages(eskuvoAg).map(pkg => (
-                            <PackageCard key={pkg.id} pkg={pkg} selected={selectedPkg?.id === pkg.id} extraPrice={0} onClick={() => setSelectedPkg(pkg)} />
+                            <PackageCard key={pkg.id} pkg={pkg} selected={selectedPkg?.id === pkg.id}
+                              extraPrice={0} onClick={() => setSelectedPkg(pkg)} />
                           ))}
                         </div>
                       )
@@ -533,7 +555,9 @@ export default function ContactPage() {
                     <div className="flex gap-3">
                       <button onClick={() => setStep(1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
                       <button onClick={() => { if (eskuvoAg && selectedPkg) setStep(3); }} disabled={!eskuvoAg || !selectedPkg}
-                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">Tovább →</button>
+                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
+                        Tovább →
+                      </button>
                     </div>
                   </div>
 
@@ -541,11 +565,18 @@ export default function ContactPage() {
                   <div className="flex flex-col gap-6">
                     <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510]">Portré csomag</h2>
 
+                    {/* Kategória választó */}
                     <div className="grid grid-cols-3 gap-2">
-                      {[{ id:"paros", label:"Páros / Jegyesfotózás", icon:"people" }, { id:"csaladi", label:"Családi fotózás", icon:"people" }, { id:"egyeni", label:"Egyéni portré", icon:"person" }].map(k => (
+                      {[
+                        { id: "paros",   label: "Páros / Jegyesfotózás", icon: "people" },
+                        { id: "csaladi", label: "Családi fotózás",        icon: "people" },
+                        { id: "egyeni",  label: "Egyéni portré",          icon: "person" },
+                      ].map(k => (
                         <button key={k.id} onClick={() => { setPortreKat(k.id); setSelectedPkg(null); }}
                           className={`flex flex-col items-center gap-2 p-4 border transition-all ${portreKat === k.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
-                          <span className={`transition-colors ${portreKat === k.id ? "text-[#C8A882]" : "text-[#A08060]"}`}>{IC[k.icon as keyof typeof IC]}</span>
+                          <span className={`transition-colors ${portreKat === k.id ? "text-[#C8A882]" : "text-[#A08060]"}`}>
+                            {IC[k.icon as keyof typeof IC]}
+                          </span>
                           <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">{k.label}</span>
                         </button>
                       ))}
@@ -553,29 +584,46 @@ export default function ContactPage() {
 
                     {portreKat && (
                       <>
+                        {/* Helyszín választó */}
                         <div>
                           <div className="text-[10px] tracking-[0.14em] uppercase text-[#A08060] mb-2">Helyszín típusa</div>
                           <div className="grid grid-cols-2 gap-2">
-                            {[{ v: false, label: "Stúdió", desc: "Kontrollált fény, bármilyen időben", icon: "building" }, { v: true, label: "Szabadtéri", desc: `+${fmt(SZABADTERI_FELAR)} felár`, icon: "outdoor" }].map(opt => (
+                            {[
+                              { v: false, label: "Stúdió",     desc: "Kontrollált fény, bármilyen időben",  icon: "building" },
+                              { v: true,  label: "Szabadtéri", desc: `+${fmt(SZABADTERI_FELAR)} felár`,     icon: "outdoor" },
+                            ].map(opt => (
                               <button key={String(opt.v)} onClick={() => setSzabadteri(opt.v)}
                                 className={`flex items-start gap-3 p-4 border transition-all text-left ${szabadteri === opt.v ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
-                                <span className={`shrink-0 mt-0.5 transition-colors ${szabadteri === opt.v ? "text-[#C8A882]" : "text-[#A08060]"}`}>{IC[opt.icon as keyof typeof IC]}</span>
-                                <div><div className="text-[12px] text-[#1A1510] font-medium">{opt.label}</div><div className="text-[10px] text-[#A08060]">{opt.desc}</div></div>
+                                <span className={`shrink-0 mt-0.5 transition-colors ${szabadteri === opt.v ? "text-[#C8A882]" : "text-[#A08060]"}`}>
+                                  {IC[opt.icon as keyof typeof IC]}
+                                </span>
+                                <div>
+                                  <div className="text-[12px] text-[#1A1510] font-medium">{opt.label}</div>
+                                  <div className="text-[10px] text-[#A08060]">{opt.desc}</div>
+                                </div>
                               </button>
                             ))}
                           </div>
-                          {szabadteri && <div className="mt-2"><InfoBox type="tip">Szabadtéri fotózásnál az időjárás meghatározó. Esős napon közösen egyeztetünk az átütemezésről.</InfoBox></div>}
+                          {szabadteri && (
+                            <div className="mt-2">
+                              <InfoBox type="tip">Szabadtéri fotózásnál az időjárás meghatározó. Esős napon közösen egyeztetünk az átütemezésről.</InfoBox>
+                            </div>
+                          )}
                         </div>
 
+                        {/* Portré csomagok – az összes categoryId===2, portreKat csak UI szűrő */}
                         {szabadteri !== null && (
                           pkgLoading ? (
-                            <div className="flex items-center gap-2 py-4"><div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" /></div>
+                            <div className="flex items-center gap-2 py-4">
+                              <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+                            </div>
                           ) : getPackagesForType("portre").length === 0 ? (
                             <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva.</InfoBox>
                           ) : (
                             <div className="flex flex-col gap-2">
                               {getPackagesForType("portre").map(pkg => (
-                                <PackageCard key={pkg.id} pkg={pkg} selected={selectedPkg?.id === pkg.id} extraPrice={szabadteri ? SZABADTERI_FELAR : 0} onClick={() => setSelectedPkg(pkg)} />
+                                <PackageCard key={pkg.id} pkg={pkg} selected={selectedPkg?.id === pkg.id}
+                                  extraPrice={szabadteri ? SZABADTERI_FELAR : 0} onClick={() => setSelectedPkg(pkg)} />
                               ))}
                             </div>
                           )
@@ -585,22 +633,29 @@ export default function ContactPage() {
 
                     <div className="flex gap-3">
                       <button onClick={() => setStep(1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
-                      <button onClick={() => { if (portreKat && szabadteri !== null && selectedPkg) setStep(3); }} disabled={!portreKat || szabadteri === null || !selectedPkg}
-                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">Tovább →</button>
+                      <button onClick={() => { if (portreKat && szabadteri !== null && selectedPkg) setStep(3); }}
+                        disabled={!portreKat || szabadteri === null || !selectedPkg}
+                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
+                        Tovább →
+                      </button>
                     </div>
                   </div>
 
                 ) : (
-                  // Egyedi típusok – rögtön részletek
+                  // Egyedi típusok (rendezvény, marketing, drón, egyéb)
                   <StepReszletek
                     typeId={typeId} projectName={projectName} setProjectName={setProjectName}
                     description={description} setDescription={setDescription}
                     phone={phone} setPhone={setPhone}
                     preferredDate={preferredDate} setPreferredDate={setPreferredDate}
-                    location={location} setLocation={setLocation} travelFee={travelFee} setTravelFee={setTravelFee}
+                    location={location} setLocation={setLocation}
+                    travelFee={travelFee} setTravelFee={setTravelFee}
                     busyDates={busyDates} error={error}
                     onBack={() => setStep(1)}
-                    onNext={() => { if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; } setError(""); setStep(3); }}
+                    onNext={() => {
+                      if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; }
+                      setError(""); setStep(3);
+                    }}
                   />
                 )
               )}
@@ -612,10 +667,14 @@ export default function ContactPage() {
                   description={description} setDescription={setDescription}
                   phone={phone} setPhone={setPhone}
                   preferredDate={preferredDate} setPreferredDate={setPreferredDate}
-                  location={location} setLocation={setLocation} travelFee={travelFee} setTravelFee={setTravelFee}
+                  location={location} setLocation={setLocation}
+                  travelFee={travelFee} setTravelFee={setTravelFee}
                   busyDates={busyDates} error={error}
                   onBack={() => setStep(2)}
-                  onNext={() => { if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; } setError(""); setStep(4); }}
+                  onNext={() => {
+                    if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; }
+                    setError(""); setStep(4);
+                  }}
                 />
               )}
 
@@ -645,13 +704,17 @@ export default function ContactPage() {
                         <span className="text-[13px] text-[#1A1510] text-right truncate">{row.value}</span>
                       </div>
                     ))}
-
-                    {/* Árösszesítő */}
                     {totalPrice > 0 && (
                       <div className="bg-white border border-[#EDE8E0] px-4 py-3 flex flex-col gap-1.5">
-                        {selectedPkg?.price != null && <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Csomag ára</span><span className="text-[#1A1510]">{fmt(selectedPkg.price)}</span></div>}
-                        {szabadteriFelar > 0 && <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Szabadtéri felár</span><span className="text-[#C8A882]">+{fmt(szabadteriFelar)}</span></div>}
-                        {travelFee > 0 && <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Kiszállási díj</span><span className="text-[#C8A882]">+{fmt(travelFee)}</span></div>}
+                        {selectedPkg?.price != null && (
+                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Csomag ára</span><span className="text-[#1A1510]">{fmt(selectedPkg.price)}</span></div>
+                        )}
+                        {szabadteriFelar > 0 && (
+                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Szabadtéri felár</span><span className="text-[#C8A882]">+{fmt(szabadteriFelar)}</span></div>
+                        )}
+                        {travelFee > 0 && (
+                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Kiszállási díj</span><span className="text-[#C8A882]">+{fmt(travelFee)}</span></div>
+                        )}
                         <div className="flex items-center justify-between text-[13px] font-medium pt-1.5 border-t border-[#EDE8E0]">
                           <span className="text-[#1A1510]">Becsült összesen</span>
                           <span className="font-['Cormorant_Garamond'] text-[1.2rem] text-[#C8A882]">{fmt(totalPrice)}</span>
@@ -711,10 +774,10 @@ function StepReszletek({
   onBack: () => void; onNext: () => void;
 }) {
   const egyedi = EGYEDI_TIPUSOK[typeId];
-  const isMarketing = typeId === "marketing";
+  const isMarketing       = typeId === "marketing";
   const isSzabadteriTipus = ["eskuvo", "portre", "dron"].includes(typeId);
-  const showTelWarning = preferredDate && isTelHonap(preferredDate) && isSzabadteriTipus;
-  const showOsziWarning = preferredDate && isOsziHonap(preferredDate) && isSzabadteriTipus && !showTelWarning;
+  const showTelWarning    = preferredDate && isTelHonap(preferredDate) && isSzabadteriTipus;
+  const showOsziWarning   = preferredDate && isOsziHonap(preferredDate) && isSzabadteriTipus && !showTelWarning;
 
   return (
     <div className="flex flex-col gap-6">
@@ -728,10 +791,12 @@ function StepReszletek({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Projekt neve" required>
             <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)}
-              placeholder={isMarketing ? "Pl. Kovács Kft. social media" : "Pl. Szabó Esküvő 2025"} className={inputCls} />
+              placeholder={isMarketing ? "Pl. Kovács Kft. social media" : "Pl. Szabó Esküvő 2025"}
+              className={inputCls} />
           </Field>
           <Field label="Telefonszám">
-            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+36 30 123 4567" className={inputCls} />
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+              placeholder="+36 30 123 4567" className={inputCls} />
           </Field>
         </div>
         <Field label="Helyszín">
@@ -739,7 +804,8 @@ function StepReszletek({
         </Field>
         <Field label="Leírás, elképzelések" required>
           <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)}
-            placeholder="Mesélj a projektről — hangulat, különleges kérések..." className={`${inputCls} resize-none`} />
+            placeholder="Mesélj a projektről — hangulat, különleges kérések..."
+            className={`${inputCls} resize-none`} />
         </Field>
       </div>
 
@@ -764,8 +830,12 @@ function StepReszletek({
                 <div className="text-[10px] text-[#C8B8A0] mt-1">(nem kötelező)</div>
               </div>
             )}
-            {showTelWarning && <InfoBox type="warning"><strong>Téli időpont!</strong> Dec–feb között szabadtéri fotózás korlátozott. Hideg időben átütemezünk.</InfoBox>}
-            {showOsziWarning && <InfoBox type="warning">Őszi időpontban az időjárás változékony. Esős nap esetén halasztási lehetőséget biztosítunk.</InfoBox>}
+            {showTelWarning && (
+              <InfoBox type="warning"><strong>Téli időpont!</strong> Dec–feb között szabadtéri fotózás korlátozott. Hideg időben átütemezünk.</InfoBox>
+            )}
+            {showOsziWarning && (
+              <InfoBox type="warning">Őszi időpontban az időjárás változékony. Esős nap esetén halasztási lehetőséget biztosítunk.</InfoBox>
+            )}
             <InfoBox type="tip">A foglalt napok (áthúzva) már le vannak kötve.</InfoBox>
           </div>
         </div>

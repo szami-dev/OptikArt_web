@@ -23,32 +23,19 @@ export async function GET(req: Request) {
       select: { startTime: true },
     });
 
-    // ── Timezone fix ─────────────────────────────────────────────
-    // A DB-ben UTC-ben van tárolva. toISOString() UTC dátumot ad.
-    // Ha pl. 2025-04-13T00:00:00+02:00 volt a szándék,
-    // az UTC-ben 2025-04-12T22:00:00Z → toISOString slice → "2025-04-12" HIBÁS
+    // ── Timezone fix ──────────────────────────────────────────
+    // Minden esemény T12:00:00.000Z-vel van mentve (déli 12 UTC).
+    // A .toISOString() UTC-ban adja vissza → "2025-04-13T12:00:00.000Z"
+    // → .slice(0, 10) → "2025-04-13" ✓ HELYES
     //
-    // Megoldás: a dátumot a szerver LOCAL időzónájában konvertáljuk,
-    // vagy – mivel a DB-ben egész napos eseményeknél T00:00:00 van mentve
-    // helyi idő szerint – a toLocaleDateString-et használjuk hu-HU locale-lel.
-    //
-    // Legegyszerűbb megoldás: a nap meghatározásához ne UTC-t, hanem
-    // a timestamp értékét adjuk vissza YYYY-MM-DD formátumban úgy, hogy
-    // a +-2 órát hozzáadjuk (Budapest = UTC+1/+2).
-    // De ez fragilis. A legtisztább: a frontend küldi a timezone offsetet,
-    // vagy: mindkét oldalon T12:00:00-t használunk (déli 12 óra mindig
-    // biztonságos, nem csúszik át előző/következő napra UTC±14 zónában sem).
+    // NE adjunk hozzá +12 órát – az régi kód volt T00:00:00Z-vel mentett
+    // eseményekhez. Most hogy mindent T12:00:00Z-vel mentünk, a +12h
+    // kétszeres eltolódást okoz: T12Z + 12h = T00Z másnap → HIBÁS.
 
     const busyDates = [...new Set(
       events
         .filter(e => e.startTime)
-        .map(e => {
-          const d = e.startTime!;
-          // Budapest UTC+1/+2 – a legbiztonságosabb: ha a nap 00:00:00 UTC-ben
-          // van mentve, adjunk hozzá 12 órát hogy biztosan ugyanazon a napon legyünk
-          const adjusted = new Date(d.getTime() + 12 * 60 * 60 * 1000);
-          return adjusted.toISOString().slice(0, 10);
-        })
+        .map(e => e.startTime!.toISOString().slice(0, 10))
     )];
 
     return NextResponse.json({ busyDates });
