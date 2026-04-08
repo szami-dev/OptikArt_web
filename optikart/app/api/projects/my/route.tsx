@@ -12,22 +12,27 @@ export async function GET() {
     const userId = parseInt(session.user.id as string);
 
     const projects = await prisma.project.findMany({
-      where: {
-        users: { some: { id: userId } },
-      },
+      where: { users: { some: { id: userId } } },
       include: {
         type: true,
-        category: true,
-        _count: {
-          select: { messages: true, galleries: true, calendarEvents: true },
+        category: { include: { bulletPoints: true } },
+        // ── Dashboard-hoz szükséges mezők ──────────────────────
+        calendarEvents: {
+          select: { id: true, title: true, startTime: true, endTime: true, wholeDay: true },
+          orderBy: { startTime: "asc" },
+        },
+        galleries: {
+          select: { id: true },
         },
         messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
           include: {
             sender: { select: { id: true, name: true, role: true } },
+            receiver: { select: { id: true, name: true, role: true } },
           },
+          orderBy: { createdAt: "desc" },
+          take: 10,
         },
+        _count: { select: { messages: true, galleries: true, calendarEvents: true } },
       },
       orderBy: { createdAt: "desc" },
     });
