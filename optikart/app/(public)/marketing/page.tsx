@@ -313,7 +313,7 @@ export default function MarketingPage() {
           </div>
 
           <div className="mt-8 sm:mt-10 flex justify-center">
-            <Link href="/gallery" className="inline-flex items-center gap-3 text-[11px] tracking-[0.14em] uppercase text-white/25 border-b border-white/[0.08] pb-0.5 hover:text-white/50 hover:border-white/20 transition-all">
+            <Link href="/references" className="inline-flex items-center gap-3 text-[11px] tracking-[0.14em] uppercase text-white/25 border-b border-white/[0.08] pb-0.5 hover:text-white/50 hover:border-white/20 transition-all">
               Teljes portfólió
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </Link>

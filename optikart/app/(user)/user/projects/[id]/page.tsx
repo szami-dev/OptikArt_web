@@ -17,7 +17,7 @@ type Project = {
   type: { name: string | null } | null;
   category: { name: string | null; bulletPoints: { id: number; title: string | null }[] } | null;
   calendarEvents: { id: number; title: string | null; startTime: string | null; endTime: string | null; wholeDay: boolean }[];
-  galleries: { id: number; title: string | null; shareableLink: string | null; expiresAt: string | null; images: { id: number; fileName: string | null; filePath: string | null }[] }[];
+  galleries: { id: number; title: string | null; shareableLink: string | null; expiresAt: string | null; images: { id: number; fileName: string | null; filePath: string | null; thumbnailUrl: string | null; previewUrl: string | null }[] }[];
   messages: { id: number; content: string | null; createdAt: string; sender: { id: number; name: string | null; role: string }; receiver: { id: number; name: string | null; role: string } }[];
 };
 
@@ -41,6 +41,7 @@ const HU_DAYS   = ["vasárnap","hétfő","kedd","szerda","csütörtök","péntek
 function StatusProgress({ status }: { status: ProjectStatus | null }) {
   if (!status || status === "CANCELLED" || status === "ON_HOLD") return null;
   const idx = STATUS_STEPS.indexOf(status);
+  
   return (
     <div className="flex items-center">
       {STATUS_STEPS.map((s, i) => {
@@ -127,6 +128,8 @@ function EventDateHero({ event }: { event: Project["calendarEvents"][0] }) {
 export default function UserProjectDetailPage() {
   const { id }          = useParams<{ id: string }>();
   const { data: session } = useSession();
+  
+  const [lightbox, setLightbox] = useState<number | null>(null); // Ezt add hozzá
 
   const [project, setProject]   = useState<Project | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -137,6 +140,7 @@ export default function UserProjectDetailPage() {
   const [msgError, setMsgError]     = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const myId = parseInt(session?.user?.id as string ?? "0");
+  
 
   const fetchProject = useCallback(async () => {
     try {
@@ -430,45 +434,63 @@ export default function UserProjectDetailPage() {
         )}
 
         {/* ═══ GALLERY ═══════════════════════════════ */}
-        {tab === "gallery" && (
-          <div className="flex flex-col gap-5">
-            {project.galleries.length === 0 ? (
-              <div className="bg-white border border-[#EDE8E0] p-12 text-center">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#EDE8E0" strokeWidth="1.2" className="w-10 h-10 mx-auto mb-4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <p className="text-[13px] text-[#A08060] mb-1">Még nincs galéria</p>
-                <p className="text-[11px] text-[#C8B8A0]">A kész anyagokat ide töltjük majd fel.</p>
-              </div>
-            ) : project.galleries.map(gallery => (
-              <div key={gallery.id} className="bg-white border border-[#EDE8E0] overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#EDE8E0] flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-[13px] font-medium text-[#1A1510]">{gallery.title ?? "Galéria"}</div>
-                    <div className="text-[11px] text-[#A08060] mt-0.5">{gallery.images.length} kép{gallery.expiresAt && ` · Elérhető: ${new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}-ig`}</div>
-                  </div>
-                  {gallery.shareableLink && (
-                    <a href={gallery.shareableLink} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[11px] tracking-[0.08em] uppercase text-[#C8A882] border border-[#C8A882]/30 px-3 py-1.5 hover:bg-[#C8A882]/5 transition-all whitespace-nowrap">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      Megnyitás
-                    </a>
-                  )}
+    {tab === "gallery" && (
+      <div className="flex flex-col gap-6">
+        {project.galleries.length === 0 ? (
+          <div className="bg-white border border-[#EDE8E0] p-16 text-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EDE8E0" strokeWidth="1.2" className="w-12 h-12 mx-auto mb-4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p className="font-['Cormorant_Garamond'] text-[1.5rem] text-[#1A1510] mb-1">Még nincs galéria</p>
+            <p className="text-[12px] text-[#A08060]">A kész anyagokat ide töltjük majd fel.</p>
+          </div>
+        ) : project.galleries.map((gallery, gIdx) => (
+          <div key={gallery.id} className="bg-white border border-[#EDE8E0] overflow-hidden">
+            <div className="px-6 py-5 border-b border-[#EDE8E0] flex items-center justify-between bg-[#FAF8F4]/50">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-4 h-px bg-[#C8A882]" />
+                  <span className="text-[9px] tracking-[0.2em] uppercase text-[#A08060]">Átadott anyag</span>
                 </div>
-                {gallery.images.length > 0 ? (
-                  <div className="p-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {gallery.images.slice(0, 12).map(img => (
-                        <div key={img.id} className="relative bg-[#FAF8F4] overflow-hidden border border-[#EDE8E0]" style={{ aspectRatio: "1/1" }}>
-                          {img.filePath ? <Image src={img.filePath} alt={img.fileName ?? ""} fill className="object-cover" sizes="120px" /> : <div className="w-full h-full flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="#EDE8E0" strokeWidth="1" className="w-5 h-5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>}
-                        </div>
-                      ))}
-                      {gallery.images.length > 12 && <div className="relative bg-[#F5EFE6] border border-[#EDE8E0] flex items-center justify-center" style={{ aspectRatio: "1/1" }}><span className="text-[11px] text-[#A08060]">+{gallery.images.length - 12}</span></div>}
+                <h3 className="font-['Cormorant_Garamond'] text-[1.6rem] text-[#1A1510] leading-none">{gallery.title ?? "Galéria"}</h3>
+              </div>
+              {gallery.shareableLink && (
+                <Link href={`/gallery/${gallery.shareableLink.split('/').pop()}`} target="_blank"
+                  className="flex items-center gap-2 text-[10px] tracking-[0.1em] uppercase text-[#C8A882] border border-[#C8A882]/30 px-4 py-2 hover:bg-[#C8A882] hover:text-white transition-all">
+                  Publikus nézet <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </Link>
+              )}
+            </div>
+
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {gallery.images.map((img, iIdx) => (
+                  <div key={img.id} 
+                      className="group relative aspect-[4/3] bg-[#F0EBE3] overflow-hidden cursor-pointer"
+                      onClick={() => setLightbox(iIdx)}> {/* Figyelem: ha több galéria van, ide gIdx is kellhet */}
+                    
+                    {/* HIBA JAVÍTVA: Csak akkor renderel, ha van URL és nem üres string */}
+                    {(img as any).thumbnailUrl ? (
+                      <img 
+                        src={(img as any).thumbnailUrl} 
+                        alt={img.fileName ?? ""} 
+                        
+                        className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-[10px] text-[#C8B8A0]">Kép betöltése...</div>
+                    )}
+                    
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" className="w-6 h-6"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
                   </div>
-                ) : <div className="px-5 py-8 text-center"><p className="text-[12px] text-[#C8B8A0]">Nincs feltöltött kép.</p></div>}
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        )}
+        ))}
+      </div>
+    )}
 
         {/* ═══ CALENDAR ══════════════════════════════ */}
         {tab === "calendar" && (
@@ -500,6 +522,62 @@ export default function UserProjectDetailPage() {
           </div>
         )}
       </div>
+      {/* ── LIGHTBOX OVERLAY ── */}
+{lightbox !== null && project?.galleries[0]?.images && (
+  <div 
+    className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 select-none" 
+    onClick={() => setLightbox(null)}
+  >
+    {/* Bezárás gomb */}
+    <button 
+      className="absolute top-6 right-6 z-[510] text-white/50 hover:text-white transition-colors p-2" 
+      onClick={() => setLightbox(null)}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
+    {/* Balra gomb - csak ha nem az első képnél vagyunk */}
+    {lightbox > 0 && (
+      <button 
+        className="absolute left-4 z-[510] w-16 h-16 flex items-center justify-center text-white/40 hover:text-white transition-all bg-white/5 hover:bg-white/10 rounded-full"
+        onClick={(e) => { e.stopPropagation(); setLightbox(lightbox - 1); }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+    )}
+
+    {/* Jobbra gomb - csak ha nem az utolsó képnél vagyunk */}
+    {lightbox < project.galleries[0].images.length - 1 && (
+      <button 
+        className="absolute right-4 z-[510] w-16 h-16 flex items-center justify-center text-white/40 hover:text-white transition-all bg-white/5 hover:bg-white/10 rounded-full"
+        onClick={(e) => { e.stopPropagation(); setLightbox(lightbox + 1); }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-10 h-10">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    )}
+
+    {/* Kép konténer */}
+    <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+      <img 
+        key={lightbox} // A key kényszeríti a böngészőt az animáció újrafuttatására váltáskor
+        src={(project.galleries[0].images[lightbox] as any).previewUrl} 
+        alt="Nagyított nézet"
+        className="max-h-[85vh] max-w-full object-contain shadow-2xl animate-in fade-in zoom-in duration-300"
+      />
+      
+      {/* Kép infó (opcionális, de jól néz ki) */}
+      <div className="absolute bottom-[-40px] text-white/60 text-[12px] tracking-widest uppercase">
+        {lightbox + 1} / {project.galleries[0].images.length}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

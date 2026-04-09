@@ -42,7 +42,7 @@ const menuItems = [
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
   },
   {
-    href: "/admin/gallery",
+    href: "/admin/galleries",
     label: "Galériák",
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
   },
@@ -50,8 +50,8 @@ const menuItems = [
 
 const bottomItems = [
   {
-    href: "/admin/settings",
-    label: "Beállítások",
+    href: "/admin/assets",
+    label: "Segédletek",
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   },
 ];
@@ -92,9 +92,10 @@ export default function SidebarDark({
         {/* Header */}
         <div className={`flex items-center border-b border-white/[0.06] min-h-[68px] py-[22px] transition-all duration-[350ms] ${isCollapsed ? "justify-center px-0" : "justify-between px-5"}`}>
           {isCollapsed ? (
-            <Link href="/admin" className="w-8 h-8 border border-[#C8A882]/30 flex items-center justify-center shrink-0">
-              <span className="font-['Cormorant_Garamond'] text-[15px] font-light text-[#C8A882]">O</span>
-            </Link>
+            <Link href="/admin" className="w-8 h-8  flex items-center justify-center shrink-0">
+              <Image src="/assets/14symbol3.png" alt="OptikArt" width={40} height={40} className="object-contain brightness-0 invert opacity-90" />
+
+              </Link>
           ) : (
             <Link href="/admin" className="overflow-hidden">
               <Image src="/assets/10optik2 (1).png" alt="OptikArt" width={110} height={40} className="object-contain brightness-0 invert opacity-90" />

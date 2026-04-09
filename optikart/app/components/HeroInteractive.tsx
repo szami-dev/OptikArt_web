@@ -133,7 +133,7 @@ export default function HeroInteractive() {
                   <span className="hi-cta">Projekt indítása</span>
                 </Button>
               </Link>
-              <Link href="/gallery" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
+              <Link href="/references" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
                 Galéria →
               </Link>
             </div>

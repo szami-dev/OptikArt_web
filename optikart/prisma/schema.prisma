@@ -78,7 +78,21 @@ model Project {
   galleries      Gallery[]
   messages       Message[]
 }
+model imagesGalleryWbp {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+ // gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
 
+model imagesFull {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+  gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
 model Category {
   id       Int       @id @default(autoincrement())
   name     String?
@@ -123,33 +137,40 @@ model CalendarEvent {
 }
 
 model Gallery {
-  id            Int                @id @default(autoincrement())
-  title         String?
-  date          DateTime?
-  password      String?
-  shareableLink String?
-  expiresAt     DateTime?
-  project       Project?           @relation(fields: [projectId], references: [id])
-  projectId     Int?
-  images        imagesGalleryWbp[]
-  imagesFull    imagesFull[]
+id             Int       @id @default(autoincrement())
+createdAt      DateTime  @default(now())
+updatedAt      DateTime  @updatedAt
+title          String?
+description    String?
+coverImageUrl  String?   // Cloudinary URL
+projectId      Int
+project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+shareToken     String    @unique @default(cuid())
+isPublic       Boolean   @default(false)
+password       String?   // bcrypt hash
+expiresAt      DateTime?
+images         GalleryImage[]
+imagesFull     imagesFull[]
 }
 
-model imagesGalleryWbp {
-  id        Int      @id @default(autoincrement())
-  fileName  String?
-  filePath  String?
-  gallery   Gallery? @relation(fields: [galleryId], references: [id])
-  galleryId Int?
+model GalleryImage {
+id             Int      @id @default(autoincrement())
+createdAt      DateTime @default(now())
+galleryId      Int
+gallery        Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+publicId       String   
+originalUrl    String   
+thumbnailUrl   String   
+previewUrl     String  
+fileName       String?  
+width          Int?
+height         Int?
+bytes          Int?     
+sortOrder      Int      @default(0)
 }
 
-model imagesFull {
-  id        Int      @id @default(autoincrement())
-  fileName  String?
-  filePath  String?
-  gallery   Gallery? @relation(fields: [galleryId], references: [id])
-  galleryId Int?
-}
+
 
 model Image {
   id       Int     @id @default(autoincrement())

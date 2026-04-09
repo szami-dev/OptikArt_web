@@ -166,7 +166,7 @@ export default function WeddingsPage() {
               <div className="flex items-center gap-3 mb-5"><div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Referenciák</span></div>
               <h2 className="w-split-title font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510]">Párok,<br /><em className="not-italic text-[#C8A882]">akiknek dolgoztunk</em></h2>
             </div>
-            <Link href="/gallery" className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-[#1A1510] border-b border-[#C8A882]/40 pb-0.5 hover:border-[#C8A882] transition-all">Teljes galéria →</Link>
+            <Link href="/references" className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-[#1A1510] border-b border-[#C8A882]/40 pb-0.5 hover:border-[#C8A882] transition-all">Teljes galéria →</Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ gridAutoRows: "200px" }}>
             {references.map((ref, i) => (
@@ -290,7 +290,7 @@ export default function WeddingsPage() {
           </div>
         </div>
       </section>
-      <Footer />
+      
     </div>
   );
 }

@@ -12,33 +12,15 @@ type PaymentStatus = "PENDING" | "PAID" | "OVERDUE" | "REFUNDED";
 type Tab           = "overview" | "messages" | "gallery" | "calendar";
 
 type Project = {
-  id: number; 
-  name: string | null; 
-  description: string | null;
-  status: ProjectStatus | null; 
-  paymentStatus: PaymentStatus | null;
-  totalPrice: number | null; 
-  createdAt: string; 
-  updatedAt: string | null;
+  id: number; name: string | null; description: string | null;
+  status: ProjectStatus | null; paymentStatus: PaymentStatus | null;
+  totalPrice: number | null; createdAt: string; updatedAt: string | null;
   users: { id: number; name: string | null; email: string; phone: string | null }[];
   type: { id: number; name: string | null } | null;
   category: { id: number; name: string | null; bulletPoints: { id: number; title: string | null }[] } | null;
   calendarEvents: { id: number; title: string | null; startTime: string | null; endTime: string | null; wholeDay: boolean }[];
-  galleries: { 
-    id: number; 
-    title: string | null; 
-    description: string | null;
-    coverImageUrl: string | null;
-    shareToken: string;       // Sémában: shareToken
-    isPublic: boolean;
-    password: string | null;  // Sémában: password
-    hasPassword: boolean;     // Komponensnek kell (származtatott)
-    expiresAt: string | null; 
-    shareableLink: string | null; // Komponensnek kell (származtatott)
-    images: any[]; 
-    imagesFull: any[]; 
-  }[];
-  messages: any[];
+  galleries: { id: number; title: string | null; shareableLink: string | null; expiresAt: string | null; images: { id: number; fileName: string | null; filePath: string | null }[]; imagesFull: { id: number; fileName: string | null; filePath: string | null }[] }[];
+  messages: { id: number; content: string | null; createdAt: string; sender: { id: number; name: string | null; role: string }; receiver: { id: number; name: string | null; role: string } }[];
 };
 
 const STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
@@ -441,23 +423,19 @@ export default function AdminProjectDetailPage() {
 
         {/* ═══ GALLERY ═══════════════════════════════ */}
         {tab === "gallery" && (
-  <div className="flex flex-col gap-5">
-    {project.galleries?.[0] ? (
-      <AdminGalleryManager 
-        projectId={project.id} 
-        initialGallery={{
-          ...project.galleries[0],
-          // Ha van password a sémában, akkor hasPassword true
-          hasPassword: !!project.galleries[0].password,
-          // Ha nincs shareableLink a sémában, generálunk egyet a shareTokenből
-          shareableLink: project.galleries[0].shareToken ? `/gallery/${project.galleries[0].shareToken}` : null
-        } as any} 
-      />
-    ) : (
-      <AdminGalleryManager projectId={project.id} initialGallery={null} />
-    )}
-  </div>
-)}
+          <div className="flex flex-col gap-5">
+            {project.galleries.length===0 ? <div className="bg-[#0E0C0A] border border-white/[0.05] p-10 text-center"><p className="text-[12px] text-[#3A3530]">Még nincs galéria</p></div>
+            : project.galleries.map(gallery=>(
+              <div key={gallery.id} className="bg-[#0E0C0A] border border-white/[0.05] p-5">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div><div className="text-[14px] text-[#D4C4B0]">{gallery.title??"Névtelen galéria"}</div><div className="text-[11px] text-[#3A3530] mt-0.5">{gallery.images.length+gallery.imagesFull.length} kép{gallery.expiresAt&&` · Lejár: ${new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}`}</div></div>
+                  {gallery.shareableLink&&<a href={gallery.shareableLink} target="_blank" rel="noopener noreferrer" className="text-[10px] tracking-[0.1em] uppercase text-[#C8A882]/60 border border-[#C8A882]/20 px-3 py-1.5 hover:text-[#C8A882] hover:border-[#C8A882]/40 transition-all whitespace-nowrap">Link →</a>}
+                </div>
+                {gallery.images.length>0&&<div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1">{gallery.images.slice(0,16).map(img=><div key={img.id} className="relative bg-[#141210] overflow-hidden" style={{aspectRatio:"1/1"}}>{img.filePath?<Image src={img.filePath} alt={img.fileName??""} fill className="object-cover" sizes="80px"/>:<div className="w-full h-full flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-5 h-5 text-[#3A3530]"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>}</div>)}</div>}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ═══ CALENDAR ══════════════════════════════ */}
         {tab === "calendar" && (

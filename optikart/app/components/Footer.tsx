@@ -76,13 +76,7 @@ export default function Footer() {
         {/* ALSÓ COPYRIGHT SÁV */}
         <div className="pt-8 border-t border-[#222222] flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
-             <Image
-                src="/assets/9optik1 (4).png"
-                alt="OptikArt"
-                width={40}
-                height={40}
-                className="opacity-50 grayscale hover:grayscale-0 transition-all"
-              />
+             
             <span className="text-[10px] tracking-[0.2em] text-[#555555] uppercase">
               © {new Date().getFullYear()} OptikArt · Minden jog fenntartva
             </span>
