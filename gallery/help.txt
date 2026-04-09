@@ -1,9 +1,0 @@
-import AdminGalleryManager from "@/components/AdminGalleryManager";
-
-// A gallery tab tartalma:
-{tab === "gallery" && (
-  <AdminGalleryManager
-    projectId={project.id}
-    initialGallery={project.galleries?.[0] ?? null}
-  />
-)}
