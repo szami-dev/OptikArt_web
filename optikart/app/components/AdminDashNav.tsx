@@ -92,12 +92,12 @@ export default function SidebarDark({
         {/* Header */}
         <div className={`flex items-center border-b border-white/[0.06] min-h-[68px] py-[22px] transition-all duration-[350ms] ${isCollapsed ? "justify-center px-0" : "justify-between px-5"}`}>
           {isCollapsed ? (
-            <Link href="/admin" className="w-8 h-8  flex items-center justify-center shrink-0">
+            <Link href="/" className="w-8 h-8  flex items-center justify-center shrink-0">
               <Image src="/assets/14symbol3.png" alt="OptikArt" width={40} height={40} className="object-contain brightness-0 invert opacity-90" />
 
               </Link>
           ) : (
-            <Link href="/admin" className="overflow-hidden">
+            <Link href="/" className="overflow-hidden">
               <Image src="/assets/10optik2 (1).png" alt="OptikArt" width={110} height={40} className="object-contain brightness-0 invert opacity-90" />
             </Link>
           )}

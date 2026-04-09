@@ -85,11 +85,11 @@ export default function SidebarLight({
         {/* Header */}
         <div className={`flex items-center border-b border-black/[0.06] min-h-[68px] py-[22px] transition-all duration-[350ms] ${isCollapsed ? "justify-center px-0" : "justify-between px-5"}`}>
           {isCollapsed ? (
-            <Link href="/user" className="w-8 h-8 flex items-center justify-center shrink-0">
+            <Link href="/" className="w-8 h-8 flex items-center justify-center shrink-0">
               <Image src="/assets/11symbol1.png" alt="OptikArt" width={40} height={40} className="object-contain" />
             </Link>
           ) : (
-            <Link href="/user" className="flex items-center overflow-hidden">
+            <Link href="/" className="flex items-center overflow-hidden">
               <Image src="/assets/11optic3.png" alt="OptikArt" width={110} height={40} className="object-contain" />
             </Link>
           )}
