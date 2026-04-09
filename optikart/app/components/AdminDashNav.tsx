@@ -34,7 +34,7 @@ const menuItems = [
     href: "/admin/analytics",
     label: "Analitika",
     //badge: 3,
-    icon: <SiSalla size={18} className="text-[#C8A882]" />,
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-[18px] h-[18px]"><path d="M3 3v18h18"/><path d="M9 17V9"/><path d="M13 17V5"/><path d="M17 17v-4"/></svg>,
   },
   {
     href: "/admin/calendar",

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import SidebarLight from "../components/UserDashNav";
-import AnalyticsTracker from "../components/ActivityMonitor";
+import { AnalyticsProvider } from "@/lib/analytics";
+import CookieBanner from "../components/CookieBanner";
+
 
 export default function UserLayout({
   children,
@@ -23,8 +25,8 @@ export default function UserLayout({
   return (
     <div className="flex min-h-screen bg-[#FAF8F4]">
       <SidebarLight collapsed={collapsed} onCollapse={setCollapsed} />
-        <AnalyticsTracker />
-      <main
+       <AnalyticsProvider>
+        <main
         className="flex-1 min-h-screen bg-[#FAF8F4] transition-[margin] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
           // Mobilon (overlay sidebar): nincs margin
@@ -36,6 +38,8 @@ export default function UserLayout({
         <div className="lg:hidden h-14" />
         {children}
       </main>
+       </AnalyticsProvider>
+      <CookieBanner />
     </div>
   );
 }

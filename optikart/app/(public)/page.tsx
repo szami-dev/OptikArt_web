@@ -7,6 +7,7 @@ import HorizontalScrollSection from "../components/HorizontalScrollSection";
 import TeamSection from "../components/TeamSection";
 import HeroInteractive from "../components/HeroInteractive";
 import Footer from "../components/Footer";
+import { useAnalytics } from "@/lib/analytics";
 
 const stats = [
   { number: "320+", label: "Lezárt projekt" },
@@ -14,6 +15,7 @@ const stats = [
   { number: "98%", label: "Elégedett ügyfél" },
   { number: "15+", label: "Szakmai díj" },
 ];
+
 
 const galleryItems = [
   { type: "image", src: "/slides/kreativ-12.JPG", alt: "Esküvői fotó", category: "Fotózás", colSpan: "lg:col-span-2 lg:row-span-2" },
@@ -55,6 +57,7 @@ function GalleryCard({ item }: { item: (typeof galleryItems)[0] }) {
 
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const { trackClick } = useAnalytics();
 
   useEffect(() => {
     let ctx: any;
@@ -225,7 +228,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" size="lg">Bővebben rólunk</Button>
+              <Button variant="outline" size="lg" onClick={() => trackClick("rolunk")}>Bővebben rólunk</Button>
             </div>
           </div>
         </div>
@@ -281,7 +284,7 @@ export default function LandingPage() {
                   <textarea rows={4} placeholder="Írja le röviden a projektjét..." required className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2.5 text-[14px] font-light text-[#1A1510] placeholder:text-[#C8B8A0]/60 focus:outline-none focus:border-[#C8A882] transition-colors resize-none" />
                 </div>
                 <div className="cf-field-anim pt-2">
-                  <Button variant="primary" size="lg" fullWidth icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>} iconPosition="right">
+                  <Button onClick={() => trackClick("üzenet_küldés")} variant="primary" size="lg" fullWidth icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>} iconPosition="right">
                     Üzenet küldése
                   </Button>
                 </div>

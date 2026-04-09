@@ -7,6 +7,7 @@ import {
   HUN_CITIES, HunCity, KISKUNFELEGYHAZA,
   KISZALLASI_DIF_FT_PER_KM, INGYENES_KORZET_KM, distanceKm,
 } from "@/lib/hunCities";
+import { useAnalytics } from "@/lib/analytics";
 
 // ── Típusok ───────────────────────────────────────────────────
 type ProjectTypeId = "eskuvo" | "portre" | "rendezvenyek" | "marketing" | "dron" | "egyeb";
@@ -17,7 +18,7 @@ type DbPackage = {
   description: string | null;
   price: number | null;
   categoryId: number | null;
-  subtype: string | null;          // "foto" | "video" | "kombinalt" | "paros" | "csaladi" | "egyeni"
+  subtype: string | null;
   bulletPoints: { id: number; title: string | null }[];
 };
 
@@ -93,9 +94,9 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 function InfoBox({ children, type = "tip" }: { children: React.ReactNode; type?: "info" | "warning" | "tip" }) {
   const s = {
-    info:    { bg: "bg-blue-50",       border: "border-blue-200",   text: "text-blue-700",   icon: "ℹ️" },
-    warning: { bg: "bg-amber-50",      border: "border-amber-200",  text: "text-amber-700",  icon: "⚠️" },
-    tip:     { bg: "bg-[#FAF8F4]",     border: "border-[#EDE8E0]",  text: "text-[#7A6A58]",  icon: "·"  },
+    info:    { bg: "bg-blue-50",   border: "border-blue-200",  text: "text-blue-700",  icon: "ℹ️" },
+    warning: { bg: "bg-amber-50",  border: "border-amber-200", text: "text-amber-700", icon: "⚠️" },
+    tip:     { bg: "bg-[#FAF8F4]", border: "border-[#EDE8E0]", text: "text-[#7A6A58]", icon: "·"  },
   }[type];
   return (
     <div className={`${s.bg} border ${s.border} px-4 py-3 flex items-start gap-2.5 text-[12px] ${s.text} leading-relaxed`}>
@@ -175,7 +176,7 @@ function LocationPicker({ value, onChangeName, onChangeFee }: {
   value: string; onChangeName: (n: string) => void; onChangeFee: (f: number) => void;
 }) {
   const [query, setQuery] = useState(value);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]   = useState(false);
   const [selected, setSelected] = useState<HunCity | null>(HUN_CITIES.find(c => c.name === value) ?? null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -284,10 +285,14 @@ function PackageCard({ pkg, selected, extraPrice, onClick }: {
 // ── Főkomponens ───────────────────────────────────────────────
 export default function ContactPage() {
   const { data: session } = useSession();
-  const [step, setStep] = useState(1);
+
+  // ── Analytics hook ────────────────────────────────────────
+  const { trackWizardStep, trackWizardExit, trackWizardComplete, trackClick } = useAnalytics();
+
+  const [step, setStep]           = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]         = useState("");
 
   const [allPackages, setAllPackages] = useState<DbPackage[]>([]);
   const [pkgLoading, setPkgLoading]   = useState(true);
@@ -317,15 +322,10 @@ export default function ContactPage() {
       .then(d => setBusyDates(d.busyDates ?? []));
   }, []);
 
-  // ── Csomag szűrők ────────────────────────────────────────────
-
-  // Portré: az összes portré csomag (categoryId === 2)
   function getPackagesForType(type: ProjectTypeId): DbPackage[] {
     return allPackages.filter(p => p.categoryId === TYPE_TO_CAT[type]);
   }
 
-  // Esküvő: SUBTYPE alapján szűrünk – "foto" | "video" | "kombinalt"
-  // NEM névkulcsszó alapján, hanem a DB subtype mezőjéből
   function getEskuvoPackages(ag: string): DbPackage[] {
     return allPackages.filter(p => p.categoryId === 1 && p.subtype === ag);
   }
@@ -336,11 +336,72 @@ export default function ContactPage() {
   const szabadteriFelar = typeId === "portre" && szabadteri === true ? SZABADTERI_FELAR : 0;
   const totalPrice = (selectedPkg?.price ?? 0) + szabadteriFelar + travelFee;
 
+  // ── Tracking: típus választás → step 2 ───────────────────
+  function handleTypeSelect(id: ProjectTypeId) {
+    setTypeId(id);
+    setEskuvoAg(null);
+    setPortreKat(null);
+    setSzabadteri(null);
+    setSelectedPkg(null);
+    setStep(2);
+    // Step 1 teljesítve: melyik típust választotta
+    trackWizardStep(1, { typeId: id });
+  }
+
+  // ── Tracking: csomag step tovább → step 3 ────────────────
+  function handlePackageNext() {
+    if (!eskuvoAg || !selectedPkg) return;
+    setStep(3);
+    trackWizardStep(2, {
+      typeId,
+      eskuvoAg,
+      packageId:   selectedPkg.id,
+      packageName: selectedPkg.name,
+      price:       selectedPkg.price,
+    });
+  }
+
+  function handlePortreNext() {
+    if (!portreKat || szabadteri === null || !selectedPkg) return;
+    setStep(3);
+    trackWizardStep(2, {
+      typeId,
+      portreKat,
+      szabadteri,
+      packageId:   selectedPkg.id,
+      packageName: selectedPkg.name,
+      price:       (selectedPkg.price ?? 0) + (szabadteri ? SZABADTERI_FELAR : 0),
+    });
+  }
+
+  // ── Tracking: részletek step tovább → összefoglaló ───────
+  function handleDetailsNext(currentStep: number, nextStep: number) {
+    if (!projectName.trim() || !description.trim()) {
+      setError("A projekt neve és leírása kötelező.");
+      return;
+    }
+    setError("");
+    setStep(nextStep);
+    trackWizardStep(currentStep, {
+      typeId,
+      hasDate:     !!preferredDate,
+      hasLocation: !!location,
+      hasPhone:    !!phone,
+    });
+  }
+
+  // ── Tracking: visszalép = wizard exit ────────────────────
+  function handleBack(fromStep: number, toStep: number) {
+    setStep(toStep);
+    trackWizardExit(fromStep, { typeId, reason: "back_button" });
+  }
+
   async function handleSubmit() {
-    setSubmitting(true); setError("");
+    setSubmitting(true);
+    setError("");
     try {
       const res = await fetch("/api/projects/create", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: projectName,
@@ -361,18 +422,32 @@ export default function ContactPage() {
           szabadteriFelár: szabadteriFelar,
         }),
       });
+
       if (!res.ok) {
         const e = await res.json();
         if (res.status === 409) { setPreferredDate(""); setStep(hasPackages ? 3 : 2); }
         throw new Error(e.error);
       }
+
+      // ── Tracking: sikeres submit ─────────────────────────
+      trackWizardComplete({
+        typeId,
+        packageId:   selectedPkg?.id ?? null,
+        packageName: selectedPkg?.name ?? null,
+        totalPrice,
+        hasDate:     !!preferredDate,
+        hasLocation: !!location,
+      });
+
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message ?? "Szerverhiba");
-    } finally { setSubmitting(false); }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  // ── Success ───────────────────────────────────────────────────
+  // ── Success képernyő ──────────────────────────────────────
   if (submitted) return (
     <div className="fixed inset-0 bg-[#FAF8F4] flex items-center justify-center px-6">
       <div className="max-w-sm w-full text-center">
@@ -396,9 +471,11 @@ export default function ContactPage() {
 
   return (
     <div className="fixed inset-0 bg-[#FAF8F4] flex flex-col overflow-hidden">
+
       {/* Fejléc */}
       <div className="shrink-0 flex items-center justify-between px-5 sm:px-8 lg:px-12 py-4 border-b border-[#EDE8E0] bg-white">
-        <Link href="/" className="flex items-center gap-2 text-[#1A1510] hover:text-[#C8A882] transition-colors">
+        <Link href="/" onClick={() => step > 1 && trackWizardExit(step, { typeId, reason: "header_back" })}
+          className="flex items-center gap-2 text-[#1A1510] hover:text-[#C8A882] transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           <span className="text-[11px] tracking-[0.1em] uppercase hidden sm:block">Vissza</span>
         </Link>
@@ -410,6 +487,7 @@ export default function ContactPage() {
       </div>
 
       <div className="flex-1 overflow-hidden flex">
+
         {/* Bal panel desktop */}
         <div className="hidden lg:flex w-[320px] xl:w-[380px] shrink-0 flex-col justify-between bg-[#F5EFE6] border-r border-[#EDE8E0] px-10 py-10">
           <div>
@@ -489,10 +567,9 @@ export default function ContactPage() {
                       { id: "dron"         as ProjectTypeId, icon: "drone",    name: "Drón",       desc: "Légifotó és videó" },
                       { id: "egyeb"        as ProjectTypeId, icon: "dots",     name: "Egyéb",      desc: "Egyedi igény" },
                     ] as const).map(t => (
-                      <button key={t.id} onClick={() => {
-                        setTypeId(t.id); setEskuvoAg(null); setPortreKat(null);
-                        setSzabadteri(null); setSelectedPkg(null); setStep(2);
-                      }} className="group flex flex-col gap-3 p-4 sm:p-5 border border-[#EDE8E0] bg-white hover:border-[#C8A882]/50 hover:bg-[#FAF8F4] transition-all text-left">
+                      // ← handleTypeSelect tracking-gel
+                      <button key={t.id} onClick={() => handleTypeSelect(t.id)}
+                        className="group flex flex-col gap-3 p-4 sm:p-5 border border-[#EDE8E0] bg-white hover:border-[#C8A882]/50 hover:bg-[#FAF8F4] transition-all text-left">
                         <span className="text-[#C8A882]/70 group-hover:text-[#C8A882] transition-colors">{IC[t.icon]}</span>
                         <div>
                           <div className="text-[13px] text-[#1A1510] font-medium mb-0.5">{t.name}</div>
@@ -514,7 +591,6 @@ export default function ContactPage() {
                     </div>
                     <InfoBox type="tip">A kombinált csomag (fotó + videó) általában kedvezőbb, mintha külön rendelnéd.</InfoBox>
 
-                    {/* Ág választó */}
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { id: "foto",      label: "Csak fotózás", icon: "camera" },
@@ -531,7 +607,6 @@ export default function ContactPage() {
                       ))}
                     </div>
 
-                    {/* Csomagok – subtype alapján szűrve */}
                     {eskuvoAg && (
                       pkgLoading ? (
                         <div className="flex items-center gap-2 py-4">
@@ -539,9 +614,7 @@ export default function ContactPage() {
                           <span className="text-[12px] text-[#A08060]">Csomagok betöltése...</span>
                         </div>
                       ) : getEskuvoPackages(eskuvoAg).length === 0 ? (
-                        <InfoBox type="info">
-                          Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.
-                        </InfoBox>
+                        <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.</InfoBox>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {getEskuvoPackages(eskuvoAg).map(pkg => (
@@ -553,8 +626,11 @@ export default function ContactPage() {
                     )}
 
                     <div className="flex gap-3">
-                      <button onClick={() => setStep(1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
-                      <button onClick={() => { if (eskuvoAg && selectedPkg) setStep(3); }} disabled={!eskuvoAg || !selectedPkg}
+                      {/* ← tracking visszalépésnél */}
+                      <button onClick={() => handleBack(2, 1)}
+                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
+                      {/* ← handlePackageNext tracking-gel */}
+                      <button onClick={handlePackageNext} disabled={!eskuvoAg || !selectedPkg}
                         className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
                         Tovább →
                       </button>
@@ -565,7 +641,6 @@ export default function ContactPage() {
                   <div className="flex flex-col gap-6">
                     <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510]">Portré csomag</h2>
 
-                    {/* Kategória választó */}
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { id: "paros",   label: "Páros / Jegyesfotózás", icon: "people" },
@@ -584,13 +659,12 @@ export default function ContactPage() {
 
                     {portreKat && (
                       <>
-                        {/* Helyszín választó */}
                         <div>
                           <div className="text-[10px] tracking-[0.14em] uppercase text-[#A08060] mb-2">Helyszín típusa</div>
                           <div className="grid grid-cols-2 gap-2">
                             {[
                               { v: false, label: "Stúdió",     desc: "Kontrollált fény, bármilyen időben",  icon: "building" },
-                              { v: true,  label: "Szabadtéri", desc: `+${fmt(SZABADTERI_FELAR)} felár`,     icon: "outdoor" },
+                              { v: true,  label: "Szabadtéri", desc: `+${fmt(SZABADTERI_FELAR)} felár`,     icon: "outdoor"  },
                             ].map(opt => (
                               <button key={String(opt.v)} onClick={() => setSzabadteri(opt.v)}
                                 className={`flex items-start gap-3 p-4 border transition-all text-left ${szabadteri === opt.v ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
@@ -611,7 +685,6 @@ export default function ContactPage() {
                           )}
                         </div>
 
-                        {/* Portré csomagok – az összes categoryId===2, portreKat csak UI szűrő */}
                         {szabadteri !== null && (
                           pkgLoading ? (
                             <div className="flex items-center gap-2 py-4">
@@ -632,9 +705,10 @@ export default function ContactPage() {
                     )}
 
                     <div className="flex gap-3">
-                      <button onClick={() => setStep(1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
-                      <button onClick={() => { if (portreKat && szabadteri !== null && selectedPkg) setStep(3); }}
-                        disabled={!portreKat || szabadteri === null || !selectedPkg}
+                      <button onClick={() => handleBack(2, 1)}
+                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
+                      {/* ← handlePortreNext tracking-gel */}
+                      <button onClick={handlePortreNext} disabled={!portreKat || szabadteri === null || !selectedPkg}
                         className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
                         Tovább →
                       </button>
@@ -642,7 +716,6 @@ export default function ContactPage() {
                   </div>
 
                 ) : (
-                  // Egyedi típusok (rendezvény, marketing, drón, egyéb)
                   <StepReszletek
                     typeId={typeId} projectName={projectName} setProjectName={setProjectName}
                     description={description} setDescription={setDescription}
@@ -651,16 +724,13 @@ export default function ContactPage() {
                     location={location} setLocation={setLocation}
                     travelFee={travelFee} setTravelFee={setTravelFee}
                     busyDates={busyDates} error={error}
-                    onBack={() => setStep(1)}
-                    onNext={() => {
-                      if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; }
-                      setError(""); setStep(3);
-                    }}
+                    onBack={() => handleBack(2, 1)}
+                    onNext={() => handleDetailsNext(2, 3)}
                   />
                 )
               )}
 
-              {/* ═══ STEP 3: Részletek (ha csomagos) ═══ */}
+              {/* ═══ STEP 3: Részletek (csomagos) ═══ */}
               {step === 3 && hasPackages && (
                 <StepReszletek
                   typeId={typeId!} projectName={projectName} setProjectName={setProjectName}
@@ -670,11 +740,8 @@ export default function ContactPage() {
                   location={location} setLocation={setLocation}
                   travelFee={travelFee} setTravelFee={setTravelFee}
                   busyDates={busyDates} error={error}
-                  onBack={() => setStep(2)}
-                  onNext={() => {
-                    if (!projectName.trim() || !description.trim()) { setError("A projekt neve és leírása kötelező."); return; }
-                    setError(""); setStep(4);
-                  }}
+                  onBack={() => handleBack(3, 2)}
+                  onNext={() => handleDetailsNext(3, 4)}
                 />
               )}
 
@@ -728,7 +795,8 @@ export default function ContactPage() {
                   </div>
                   {error && <p className="text-[11px] text-red-500">{error}</p>}
                   <div className="flex gap-3">
-                    <button onClick={() => setStep(hasPackages ? 3 : 2)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Módosítás</button>
+                    <button onClick={() => handleBack(step, hasPackages ? 3 : 2)}
+                      className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Módosítás</button>
                     <button onClick={handleSubmit} disabled={submitting}
                       className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-50">
                       {submitting ? "Küldés..." : "Igénylés elküldése →"}
@@ -773,7 +841,7 @@ function StepReszletek({
   busyDates: string[]; error: string;
   onBack: () => void; onNext: () => void;
 }) {
-  const egyedi = EGYEDI_TIPUSOK[typeId];
+  const egyedi            = EGYEDI_TIPUSOK[typeId];
   const isMarketing       = typeId === "marketing";
   const isSzabadteriTipus = ["eskuvo", "portre", "dron"].includes(typeId);
   const showTelWarning    = preferredDate && isTelHonap(preferredDate) && isSzabadteriTipus;

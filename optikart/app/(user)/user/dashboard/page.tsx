@@ -90,7 +90,7 @@ export default function UserDashboard() {
   // Olvasatlan üzenetek száma
   const unreadCount = recentAdminMsgs.length;
 
-  const userName = session?.user?.name?.split(" ")[0] ?? "Kedves Ügyfelünk";
+  const userName = session?.user?.name?.split(" ")[1] ?? "Kedves Ügyfelünk";
 
   if (loading) return (
     <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center gap-3">
@@ -116,7 +116,7 @@ export default function UserDashboard() {
                   <span className="text-[9px] tracking-[0.22em] uppercase text-[#C8A882]/50">Üdvözlünk</span>
                 </div>
                 <h1 className="font-['Cormorant_Garamond'] text-[2rem] sm:text-[2.8rem] font-light text-white leading-tight mb-2">
-                  Jó napot, <em className="not-italic text-[#C8A882]">{userName}</em>
+                  Szia, <em className="not-italic text-[#C8A882]">{userName}</em>
                 </h1>
                 <p className="text-[13px] text-white/40">
                   {now.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}

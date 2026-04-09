@@ -36,6 +36,7 @@ model User {
   receivedMessages Message[] @relation("ReceivedMessages")
   accounts Account[]
   sessions Session[]
+  analyticsSessions AnalyticsSession[]
 
   
 }
@@ -83,14 +84,7 @@ model Category {
   name     String?
   packages Package[]
 }
-model Analytics {
-  id        Int      @id @default(autoincrement())
-  url       String   // Melyik aloldalon járt
-  referrer  String?  // Honnan jött (pl. google.com vagy instagram)
-  device    String?  // Mobil vagy PC
-  duration  Int?     // Mennyi másodpercet töltött ott
-  createdAt DateTime @default(now())
-}
+
 model Package {
   id           Int           @id @default(autoincrement())
   name         String?
@@ -209,4 +203,47 @@ model VerificationToken {
   expires DateTime
 
   @@unique([email, token])
+}
+
+model AnalyticsSession {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  duration    Int?     // másodpercekben, session végén frissítve
+
+  // Látogató adatok
+  userAgent   String?
+  device      String?  // "mobile" | "tablet" | "desktop"
+  browser     String?  // "chrome" | "firefox" | "safari" | "edge" | "other"
+  os          String?  // "windows" | "macos" | "ios" | "android" | "linux" | "other"
+  country     String?  // IP alapján (opcionális, ha nincs geo lib, null)
+  referrer    String?  // honnan jött
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  // Azonosítás
+  userId      Int?     // ha be van jelentkezve
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  events      AnalyticsEvent[]
+}
+
+model AnalyticsEvent {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+
+  sessionId   String
+  session     AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Esemény típusa
+  // "pageview" | "click" | "wizard_step" | "wizard_complete" | "wizard_exit"
+  // "project_created" | "form_submit" | "gallery_view" | "contact_open"
+  type        String
+
+  // Oldal / útvonal ahol történt
+  page        String?  // pl. "/weddings", "/contact", "/user/projects/3"
+
+  // Extra adat JSON-ban (pl. {"step": 2, "typeId": "eskuvo", "packageId": 5})
+  meta        Json?
 }
