@@ -87,12 +87,13 @@ export default function WeddingHero() {
         <div className="wh-bg-img absolute inset-0 will-change-transform">
           {/* Cseréld ki: src="/weddings/hero.jpg" */}
           <Image
-            src="https://images.unsplash.com/photo-1519741497674-611481863552?w=1800&q=85"
+            src="/gallery/wedding/kreativ-52.JPG"
             alt="Esküvői fotó"
             fill
             className="object-cover object-center"
             priority
             sizes="100vw"
+            quality={90}
           />
         </div>
       </div>

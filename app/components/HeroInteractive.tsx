@@ -78,6 +78,7 @@ export default function HeroInteractive() {
             <Image
               src={img.src}
               alt={img.label}
+             
               fill
               className="object-cover object-center"
               sizes="100vw"
