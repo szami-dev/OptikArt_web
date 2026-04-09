@@ -1,30 +1,56 @@
-import { sendWelcomeEmail } from "@/lib/email";
-import { sendVerificationEmail, sendProjectDeletedEmail, sendAdminCreatedProjectEmail, sendProjectCreatedEmail, sendAdminNotificationEmail } from "@/lib/email";
 import { NextResponse } from "next/server";
+import { 
+  sendWelcomeEmail, 
+  sendVerificationEmail, 
+  sendProjectCreatedEmail, 
+  sendAdminCreatedProjectEmail, 
+  sendProjectDeletedEmail,
+  sendAdminNotificationEmail 
+} from "@/lib/email";
 
 export async function GET() {
-  try {
-    // 1. Teszteld, hogy a környezeti változók léteznek-e
-    if (!process.env.EMAIL_SERVER_USER) {
-      return NextResponse.json({ error: "Hiányzik az EMAIL_SERVER_USER .env változó!" }, { status: 500 });
-    }
+  const testEmail = "szabomate403@gmail.com";
+  const testName = "Szabó Máté";
+  const testProject = "Premium Portré Fotózás";
+  const testToken = "test-verification-token-123";
 
-    const result = await sendWelcomeEmail(
-      "szabomate403@gmail.com", 
-      "Szabó Máté"
-      
+  try {
+    console.log("Teszt e-mailek küldése indul...");
+
+    // 1. Welcome
+    await sendWelcomeEmail(testEmail, testName);
+
+    // 2. Verification (Resend)
+    await sendVerificationEmail(testEmail, testName);
+
+    // 3. Project Created (Client)
+    await sendProjectCreatedEmail(testEmail, testName);
+
+    // 4. Admin Created Project (Client Notification)
+    await sendAdminCreatedProjectEmail(testEmail, testName, testProject);
+
+    // 5. Project Deleted
+    await sendProjectDeletedEmail(testEmail, testName, testProject);
+
+    // 6. Admin Notification
+    await sendAdminNotificationEmail(
+        [testEmail], // Ide is a te címedet raktam, hogy lásd a sötét témát is
+        "ugyfel@pelda.hu",
+        "Kovács János",
+        testProject,
+        "proj_987654"
     );
 
-    if (result.success) {
-      return NextResponse.json({ message: "Email sikeresen elküldve!" });
-    } else {
-      // Itt a result.error-ban látni fogod a konkrét SMTP hibaüzenetet
-      return NextResponse.json({ 
-        message: "A küldés sikertelen volt", 
-        detail: result.error 
-      }, { status: 500 });
-    }
-  } catch (err) {
-    return NextResponse.json({ message: "Váratlan hiba a végponton", error: err }, { status: 500 });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Mind a 6 teszt e-mail kiküldve a szabomate403@gmail.com címre!" 
+    });
+
+  } catch (error) {
+    console.error("Teszt hiba:", error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : "Ismeretlen hiba" 
+    }, { status: 500 });
   }
 }

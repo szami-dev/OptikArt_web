@@ -7,6 +7,7 @@ import HorizontalScrollSection from "../components/HorizontalScrollSection";
 import TeamSection from "../components/TeamSection";
 import HeroInteractive from "../components/HeroInteractive";
 import Footer from "../components/Footer";
+import { useAnalytics } from "@/lib/analytics";
 
 const stats = [
   { number: "320+", label: "Lezárt projekt" },
@@ -15,13 +16,12 @@ const stats = [
   { number: "15+", label: "Szakmai díj" },
 ];
 
+
 const galleryItems = [
-  { type: "image", src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=900&q=75", alt: "Esküvői fotó", category: "Fotózás", colSpan: "lg:col-span-2 lg:row-span-2" },
-  { type: "video", src: "https://images.unsplash.com/photo-1601506521793-dc748fc80b67?w=700&q=75", alt: "Reklámfilm – Márkanév", category: "Videógyártás", duration: "2:34", colSpan: "lg:col-span-1 lg:row-span-1", videoSrc: "/videos/reel1.mp4" },
-  { type: "image", src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&q=75", alt: "Esemény fotózás", category: "Esemény", colSpan: "lg:col-span-1 lg:row-span-1" },
-  { type: "video", src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=700&q=75", alt: "Drón showreel", category: "Drón", duration: "1:12", colSpan: "lg:col-span-1 lg:row-span-2", videoSrc: "/videos/drone.mp4" },
-  { type: "image", src: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=700&q=75", alt: "Termékfotó", category: "Termék", colSpan: "lg:col-span-1 lg:row-span-1" },
-  { type: "image", src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=700&q=75", alt: "Portré sorozat", category: "Portré", colSpan: "lg:col-span-1 lg:row-span-1" },
+  { type: "image", src: "/slides/kreativ-12.JPG", alt: "Esküvői fotó", category: "Fotózás", colSpan: "lg:col-span-2 lg:row-span-2" },
+  { type: "image", src: "/slides/kreativ-52.JPG", alt: "Reklámfilm – Márkanév", category: "Videógyártás", duration: "2:34", colSpan: "lg:col-span-1 lg:row-span-1", videoSrc: "./slides/reel1.mp4" },
+  { type: "image", src: "/slides/marcidorina-59.JPG", alt: "Esemény fotózás", category: "Esemény", colSpan: "lg:col-span-1 lg:row-span-1" },
+  { type: "image", src: "/slides/muzeumokejszakaja-230.jpg", alt: "Drón showreel", category: "Drón", duration: "1:12", colSpan: "lg:col-span-1 lg:row-span-2", videoSrc: "./slides/drone.mp4" },
 ];
 
 function GalleryCard({ item }: { item: (typeof galleryItems)[0] }) {
@@ -57,6 +57,7 @@ function GalleryCard({ item }: { item: (typeof galleryItems)[0] }) {
 
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const { trackClick } = useAnalytics();
 
   useEffect(() => {
     let ctx: any;
@@ -178,7 +179,7 @@ export default function LandingPage() {
               </h2>
             </div>
             <div className="hidden sm:flex flex-col items-end gap-3">
-              <a href="/gallery" className="inline-flex items-center gap-3 text-[11px] tracking-[0.15em] uppercase text-[#1A1510] border-b border-[#C8A882]/40 pb-0.5 hover:border-[#C8A882] transition-all">
+              <a href="/references" className="inline-flex items-center gap-3 text-[11px] tracking-[0.15em] uppercase text-[#1A1510] border-b border-[#C8A882]/40 pb-0.5 hover:border-[#C8A882] transition-all">
                 Teljes galéria <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </a>
             </div>
@@ -227,7 +228,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" size="lg">Bővebben rólunk</Button>
+              <Button variant="outline" size="lg" onClick={() => trackClick("rolunk")}>Bővebben rólunk</Button>
             </div>
           </div>
         </div>
@@ -283,7 +284,7 @@ export default function LandingPage() {
                   <textarea rows={4} placeholder="Írja le röviden a projektjét..." required className="w-full bg-transparent border-0 border-b border-[#EDE8E0] py-2.5 text-[14px] font-light text-[#1A1510] placeholder:text-[#C8B8A0]/60 focus:outline-none focus:border-[#C8A882] transition-colors resize-none" />
                 </div>
                 <div className="cf-field-anim pt-2">
-                  <Button variant="primary" size="lg" fullWidth icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>} iconPosition="right">
+                  <Button onClick={() => trackClick("üzenet_küldés")} variant="primary" size="lg" fullWidth icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>} iconPosition="right">
                     Üzenet küldése
                   </Button>
                 </div>
@@ -293,7 +294,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </div>
   );
 }

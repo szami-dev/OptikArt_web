@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
+import { sendMessageNotificationEmail } from "@/lib/email";
 
 export async function POST(
   req: Request,
@@ -32,6 +33,28 @@ export async function POST(
         receiver: { select: { id: true, name: true, role: true } },
       },
     });
+    const recipient = await prisma.user.findUnique({ where: { id: receiverId }, select: { email: true, name: true } });
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
+    if (recipient && message.sender.role !== "ADMIN") {
+      await sendMessageNotificationEmail(
+        "optikartofficial@gmail.com",
+        recipient.name || "",
+        project?.name || "Projekt",
+        message.content || "",
+        message.projectId + ""
+      );
+    }
+    if(message.sender.role === "ADMIN" && recipient) {
+      await sendMessageNotificationEmail(
+        recipient.email || "",
+        recipient.name || "",
+        project?.name || "Projekt",
+        message.content || "",
+        message.projectId + ""
+      );
+    }
+    
+   
 
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {

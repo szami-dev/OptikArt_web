@@ -30,6 +30,11 @@ export async function GET(req: Request) {
         type: true,
         category: true,
         _count: { select: { messages: true, galleries: true, calendarEvents: true } },
+        // Az admin projekt listán a DateBadge-hez kell
+        calendarEvents: {
+          select: { id: true, startTime: true },
+          orderBy: { startTime: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

@@ -4,15 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/app/components/Button";
+import { useAnalytics } from "@/lib/analytics";
 
 const heroImages = [
-  { src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1400&q=85", label: "Esküvő" },
-  { src: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1400&q=85", label: "Portré" },
-  { src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1400&q=85", label: "Rendezvény" },
-  { src: "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=1400&q=85", label: "Drón" },
+  { src: "/slides/kreativ-12.JPG", alt: "Esküvő", label: "Esküvő" },
+  { src: "/slides/kreativ-52.JPG", alt: "Portré", label: "Portré" },
+  { src: "/slides/marcidorina-59.JPG", alt: "Rendezvény", label: "Rendezvény" },
+  { src: "/slides/muzeumokejszakaja-230.jpg", alt: "Drón", label: "Drón" },
 ];
 
+  
 export default function HeroInteractive() {
+  const { trackClick } = useAnalytics();
   const sectionRef = useRef<HTMLElement>(null);
   const [activeImg, setActiveImg] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
@@ -121,8 +124,8 @@ export default function HeroInteractive() {
 
             <div className="flex flex-wrap items-center gap-4 sm:gap-5">
               <Link href="/contact">
-                <Button
-                  variant="primary"
+                <Button onClick={() => trackClick("hero_projekt_indítása")}
+                  variant="primary" 
                   size="lg"
                   icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>}
                   iconPosition="right"
@@ -130,7 +133,7 @@ export default function HeroInteractive() {
                   <span className="hi-cta">Projekt indítása</span>
                 </Button>
               </Link>
-              <Link href="/gallery" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
+              <Link href="/references" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
                 Galéria →
               </Link>
             </div>

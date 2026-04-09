@@ -36,6 +36,7 @@ model User {
   receivedMessages Message[] @relation("ReceivedMessages")
   accounts Account[]
   sessions Session[]
+  analyticsSessions AnalyticsSession[]
 
   
 }
@@ -77,7 +78,21 @@ model Project {
   galleries      Gallery[]
   messages       Message[]
 }
+model imagesGalleryWbp {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+ // gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
 
+model imagesFull {
+  id        Int      @id @default(autoincrement())
+  fileName  String?
+  filePath  String?
+  gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId Int?
+}
 model Category {
   id       Int       @id @default(autoincrement())
   name     String?
@@ -122,33 +137,40 @@ model CalendarEvent {
 }
 
 model Gallery {
-  id            Int                @id @default(autoincrement())
-  title         String?
-  date          DateTime?
-  password      String?
-  shareableLink String?
-  expiresAt     DateTime?
-  project       Project?           @relation(fields: [projectId], references: [id])
-  projectId     Int?
-  images        imagesGalleryWbp[]
-  imagesFull    imagesFull[]
+id             Int       @id @default(autoincrement())
+createdAt      DateTime  @default(now())
+updatedAt      DateTime  @updatedAt
+title          String?
+description    String?
+coverImageUrl  String?   // Cloudinary URL
+projectId      Int
+project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+shareToken     String    @unique @default(cuid())
+isPublic       Boolean   @default(false)
+password       String?   // bcrypt hash
+expiresAt      DateTime?
+images         GalleryImage[]
+imagesFull     imagesFull[]
 }
 
-model imagesGalleryWbp {
-  id        Int      @id @default(autoincrement())
-  fileName  String?
-  filePath  String?
-  gallery   Gallery? @relation(fields: [galleryId], references: [id])
-  galleryId Int?
+model GalleryImage {
+id             Int      @id @default(autoincrement())
+createdAt      DateTime @default(now())
+galleryId      Int
+gallery        Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+publicId       String   
+originalUrl    String   
+thumbnailUrl   String   
+previewUrl     String  
+fileName       String?  
+width          Int?
+height         Int?
+bytes          Int?     
+sortOrder      Int      @default(0)
 }
 
-model imagesFull {
-  id        Int      @id @default(autoincrement())
-  fileName  String?
-  filePath  String?
-  gallery   Gallery? @relation(fields: [galleryId], references: [id])
-  galleryId Int?
-}
+
 
 model Image {
   id       Int     @id @default(autoincrement())
@@ -202,4 +224,47 @@ model VerificationToken {
   expires DateTime
 
   @@unique([email, token])
+}
+
+model AnalyticsSession {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  duration    Int?     // másodpercekben, session végén frissítve
+
+  // Látogató adatok
+  userAgent   String?
+  device      String?  // "mobile" | "tablet" | "desktop"
+  browser     String?  // "chrome" | "firefox" | "safari" | "edge" | "other"
+  os          String?  // "windows" | "macos" | "ios" | "android" | "linux" | "other"
+  country     String?  // IP alapján (opcionális, ha nincs geo lib, null)
+  referrer    String?  // honnan jött
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  // Azonosítás
+  userId      Int?     // ha be van jelentkezve
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  events      AnalyticsEvent[]
+}
+
+model AnalyticsEvent {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+
+  sessionId   String
+  session     AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Esemény típusa
+  // "pageview" | "click" | "wizard_step" | "wizard_complete" | "wizard_exit"
+  // "project_created" | "form_submit" | "gallery_view" | "contact_open"
+  type        String
+
+  // Oldal / útvonal ahol történt
+  page        String?  // pl. "/weddings", "/contact", "/user/projects/3"
+
+  // Extra adat JSON-ban (pl. {"step": 2, "typeId": "eskuvo", "packageId": 5})
+  meta        Json?
 }
