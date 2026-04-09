@@ -34,11 +34,12 @@ export async function POST(
       },
     });
     const recipient = await prisma.user.findUnique({ where: { id: receiverId }, select: { email: true, name: true } });
+    const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { name: true } });
     const project = await prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
     if (recipient && message.sender.role !== "ADMIN") {
       await sendMessageNotificationEmail(
         "optikartofficial@gmail.com",
-        recipient.name || "",
+        sender?.name || "",
         project?.name || "Projekt",
         message.content || "",
         message.projectId + ""
