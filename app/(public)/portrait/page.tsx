@@ -141,14 +141,14 @@ export default function PortrePage() {
       {/* HERO – változatlan */}
       <section className="relative w-full bg-white overflow-hidden" style={{ minHeight: "100svh" }}>
         <div className="lg:hidden absolute inset-0 z-0">
-          <Image src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80" alt="Portré" fill className="object-cover object-top" sizes="100vw" priority />
+          <Image src="/gallery/portrait/liliMesiFranka-web -50.jpg" alt="Portré" fill className="object-cover object-top" sizes="100vw" priority />
           <div className="absolute inset-0 bg-white/85" />
         </div>
         <div className="hidden lg:grid absolute inset-0 grid-cols-[1fr_38%_24%] grid-rows-2 gap-1.5 p-1.5">
           <div className="row-span-2 bg-white" />
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2"><Image src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80" alt="Egyéni portré" fill className="object-cover object-top hover:scale-105 transition-transform duration-700" sizes="38vw" priority /></div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80" alt="Páros fotó" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" priority /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Páros</span></div></div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80" alt="Família" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Família</span></div></div>
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2"><Image src="/gallery/portrait/liliMesiFranka-web -50.jpg" alt="Egyéni portré" fill className="object-cover object-top hover:scale-105 transition-transform duration-700" sizes="38vw" priority /></div>
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="/gallery/portrait/marcidorina-76 (1).JPG" alt="Páros fotó" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" priority /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Páros</span></div></div>
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="/gallery/portrait/vanda-60.JPG" alt="Família" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Família</span></div></div>
         </div>
         <div className="relative z-10 flex flex-col w-full lg:w-[38%] xl:w-[36%] px-6 sm:px-10 lg:px-14 py-10 lg:py-12" style={{ minHeight: "100svh" }}>
           <div className="flex items-center gap-3 shrink-0"><div className="w-8 h-px bg-[#C8A882]" /><span className="ph-eyebrow opacity-0 text-[9px] tracking-[0.28em] uppercase text-[#A08060]">OptikArt · Portré</span></div>

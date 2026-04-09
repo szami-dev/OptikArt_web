@@ -146,22 +146,22 @@ export default function EventPage() {
 
           {/* Mozaik képek */}
           <div className="ev-mosaic-cell opacity-0 relative overflow-hidden row-span-2 hidden lg:block">
-            <Image src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80" alt="Rendezvény" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="38vw" priority />
+            <Image src="/gallery/event/borfesztUTSO-106.JPG" alt="Rendezvény" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="38vw" priority />
             <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/60 to-transparent" />
             <div className="absolute bottom-4 left-4 z-10"><span className="text-[8px] tracking-[0.15em] uppercase text-white/50 bg-black/40 backdrop-blur-sm px-2 py-1">Céges</span></div>
           </div>
           <div className="ev-mosaic-cell opacity-0 relative overflow-hidden hidden lg:block">
-            <Image src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80" alt="Koncert" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="24vw" priority />
+            <Image src="/gallery/event/borfesztUTSO-140.JPG" alt="Koncert" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="24vw" priority />
             <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/50 to-transparent" />
             <div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.15em] uppercase text-white/50 bg-black/40 backdrop-blur-sm px-2 py-1">Koncert</span></div>
           </div>
           <div className="ev-mosaic-cell opacity-0 relative overflow-hidden hidden lg:block">
-            <Image src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=600&q=80" alt="Party" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="24vw" />
+            <Image src="/gallery/event/borfesztUTSO-155.JPG" alt="Party" fill className="object-cover hover:scale-105 transition-transform duration-700 brightness-75" sizes="24vw" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/50 to-transparent" />
             <div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.15em] uppercase text-white/50 bg-black/40 backdrop-blur-sm px-2 py-1">Party</span></div>
           </div>
           <div className="ev-mosaic-cell opacity-0 relative overflow-hidden row-span-2 lg:hidden">
-            <Image src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80" alt="Rendezvény" fill className="object-cover brightness-60" sizes="50vw" priority />
+            <Image src="/gallery/event/kurultaj-143.JPG" alt="Rendezvény" fill className="object-cover brightness-60" sizes="50vw" priority />
           </div>
         </div>
         <div className="absolute bottom-6 left-[25%] lg:left-[13%] -translate-x-1/2 flex flex-col items-center gap-2 z-20">
