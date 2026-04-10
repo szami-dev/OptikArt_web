@@ -5,9 +5,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 // KONFIGURÁCIÓ
-const INPUT_BASE = 'public/gallery';        // Innen indul az olvasás
-const OUTPUT_BASE = 'public/gallery-optimized'; // Ide menti a struktúrát
-
+const INPUT_BASE = 'public/bts';        // Innen indul az olvasás
+const OUTPUT_BASE = 'public/bts'; // Ide menti a struktúrát
 async function processDirectory(relativeDir = '') {
   const currentInputDir = path.join(INPUT_BASE, relativeDir);
   const currentOutputDir = path.join(OUTPUT_BASE, relativeDir);
