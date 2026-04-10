@@ -23,6 +23,7 @@ type Project = {
     id: number;
     startTime: string | null;
     wholeDay: boolean;
+    
   }[];
 };
 

@@ -4,6 +4,17 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 
 const team = [
+  
+  {
+    name: "Zugi Viktória",
+    role: "Kreatív direktor",
+    focus: "Koncepció & Brand",
+    bio: "A vizuális stratégia és a márkaidentitás szakértője. Ő az, aki a projekt elején meghatározza az irányt, és gondoskodik arról, hogy minden kép és videó egységes történetet meséljen.",
+    skills: ["Brand strategy", "Art direction", "Photoshop", "Figma"],
+    image: "/assets/zugiviki-15.JPG",
+    index: "03",
+    accent: "#8b1a20",
+  },
   {
     name: "Szabó Máté",
     role: "Vezető fotós, webfejlesztő",
@@ -23,16 +34,6 @@ const team = [
     image: "/assets/bippu-10.JPG",
     index: "02",
     accent: "#000000",
-  },
-  {
-    name: "Zugi Viktória",
-    role: "Kreatív direktor",
-    focus: "Koncepció & Brand",
-    bio: "A vizuális stratégia és a márkaidentitás szakértője. Ő az, aki a projekt elején meghatározza az irányt, és gondoskodik arról, hogy minden kép és videó egységes történetet meséljen.",
-    skills: ["Brand strategy", "Art direction", "Photoshop", "Figma"],
-    image: "/assets/zugiviki-15.JPG",
-    index: "03",
-    accent: "#8b1a20",
   },
 ];
 
