@@ -19,9 +19,40 @@ const photographers = [
 ];
 
 const categories = [
-  { id: "paros",   title: "Páros & Jegyesfotózás", subtitle: "Kettőtök világa",     desc: "Helyszíni vagy stúdió fotózás, amely megörökíti a köztetek lévő kémia minden apró jelét.", images: ["https://images.unsplash.com/photo-1519741497674-611481863552?w=700&q=75", "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=700&q=75", "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=700&q=75"] },
-  { id: "csaladi", title: "Családi fotózás",        subtitle: "Együtt az egész csapat", desc: "Természetes, életteli képek a családról — gyerekekkel, nagyszülőkkel, akár háziállattal együtt.", images: ["https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=700&q=75", "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&q=75", "https://images.unsplash.com/photo-1471341971476-ae15ff5dd4ea?w=700&q=75"] },
-  { id: "egyeni",  title: "Egyéni portré",          subtitle: "A te pillanatod",      desc: "Önbizalom-erősítő portré fotózás, brand fotók, színész portfólió vagy egyszerűen csak egy jó kép magadról.", images: ["https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=700&q=75", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&q=75", "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=700&q=75"] },
+  { 
+    id: "paros",   
+    title: "Páros & Jegyesfotózás", 
+    subtitle: "Kettőtök világa",     
+    desc: "Helyszíni vagy stúdió fotózás, amely megörökíti a köztetek lévő kémia minden apró jelét.", 
+    images: [
+      "/gallery/portrait/marcidorina-68.JPG", 
+      "/gallery/portrait/fdElla-29.JPG", 
+      "/gallery/portrait/amiraek-91.jpg",
+    ] 
+  },
+  { 
+    id: "csaladi", 
+    title: "Családi fotózás",        
+    subtitle: "Együtt az egész csapat", 
+    desc: "Természetes, életteli képek a családról — gyerekekkel, nagyszülőkkel, akár háziállattal együtt.", 
+    images: [
+      "/gallery/portrait/olivia-170.JPG", 
+      "/gallery/portrait/vanda-60.JPG", 
+      "/gallery/portrait/olivia-197.JPG",
+    ] 
+  },
+  { 
+    id: "egyeni",  
+    title: "Egyéni portré",         
+    subtitle: "A te pillanatod",     
+    desc: "Önbizalom-erősítő portré fotózás, brand fotók, színész portfólió vagy egyszerűen csak egy jó kép magadról.", 
+    images: [
+      "/gallery/portrait/SzaboReka-7_pp.jpg", 
+      "/gallery/portrait/liliMesiFranka-web -94.jpg", 
+      "/gallery/portrait/napraforgo-27.JPG",
+    ] 
+  
+  },
 ];
 
 function YouTubeEmbed({ videoId, title }: { videoId: string; title: string }) {
@@ -148,7 +179,7 @@ export default function PortrePage() {
           <div className="row-span-2 bg-white" />
           <div className="ph-mosaic-cell opacity-0 relative overflow-hidden row-span-2"><Image src="/gallery/portrait/liliMesiFranka-web -50.jpg" alt="Egyéni portré" fill className="object-cover object-top hover:scale-105 transition-transform duration-700" sizes="38vw" priority /></div>
           <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="/gallery/portrait/marcidorina-76 (1).JPG" alt="Páros fotó" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" priority /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Páros</span></div></div>
-          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="/gallery/portrait/vanda-60.JPG" alt="Família" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Família</span></div></div>
+          <div className="ph-mosaic-cell opacity-0 relative overflow-hidden"><Image src="/gallery/portrait/heniek-46.jpg" alt="Família" fill className="object-cover hover:scale-105 transition-transform duration-700" sizes="24vw" /><div className="absolute bottom-3 left-3 z-10"><span className="text-[8px] tracking-[0.12em] uppercase text-white/70 bg-black/30 backdrop-blur-sm px-2 py-1">Família</span></div></div>
         </div>
         <div className="relative z-10 flex flex-col w-full lg:w-[38%] xl:w-[36%] px-6 sm:px-10 lg:px-14 py-10 lg:py-12" style={{ minHeight: "100svh" }}>
           <div className="flex items-center gap-3 shrink-0"><div className="w-8 h-px bg-[#C8A882]" /><span className="ph-eyebrow opacity-0 text-[9px] tracking-[0.28em] uppercase text-[#A08060]">OptikArt · Portré</span></div>
