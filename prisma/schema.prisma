@@ -6,40 +6,40 @@
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
-  
 }
 
 datasource db {
   provider = "postgresql"
- 
 }
+
 enum role {
   USER
   ADMIN
 }
 
 model User {
-  id               Int       @id @default(autoincrement())
-  name             String?
-  email            String    @unique
-  phone            String?
-  password         String?
-  isVerified       Boolean   @default(false)
-  twoFactorEnabled Boolean   @default(false)
-  twoFactorSecret  String?
-  role             role      @default(USER)
-  emailVerifiedAt  DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime? @updatedAt
-  projects Project[]
-  sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
-  accounts Account[]
-  sessions Session[]
-  analyticsSessions AnalyticsSession[]
-
-  
+  id                   Int                @id @default(autoincrement())
+  name                 String?
+  email                String             @unique
+  phone                String?
+  password             String?
+  isVerified           Boolean            @default(false)
+  twoFactorEnabled     Boolean            @default(false)
+  twoFactorSecret      String?
+  role                 role               @default(USER)
+  emailVerifiedAt      DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime?          @updatedAt
+  projects             Project[]
+  sentMessages         Message[]          @relation("SentMessages")
+  receivedMessages     Message[]          @relation("ReceivedMessages")
+  accounts             Account[]
+  sessions             Session[]
+  analyticsSessions    AnalyticsSession[]
+  sentChatMessages     ChatMessage[]      @relation("SentMessages")
+  receivedChatMessages ChatMessage[]      @relation("ReceivedMessages")
 }
+
 enum ProjectStatus {
   PLANNING
   IN_PROGRESS
@@ -47,24 +47,30 @@ enum ProjectStatus {
   ON_HOLD
   CANCELLED
 }
+
 enum PaymentStatus {
   PENDING
   PAID
   OVERDUE
   REFUNDED
 }
+
 model Cities {
-  id       Int     @id @default(autoincrement())
-  name     String?
-  lat      Float?
-  lng      Float?
+  id   Int     @id @default(autoincrement())
+  name String?
+  lat  Float?
+  lng  Float?
 }
+
 model Project {
-  id             Int             @id @default(autoincrement())
-  name           String?
-  description    String?
-  location       String?
+  id           Int           @id @default(autoincrement())
+  name         String?
+  description  String?
+  location     String?
+  chatMessages ChatMessage[]
+
   totalPrice     Float?
+  eventDate      DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime?       @updatedAt
   status         ProjectStatus?  @default(PLANNING)
@@ -78,11 +84,12 @@ model Project {
   galleries      Gallery[]
   messages       Message[]
 }
+
 model imagesGalleryWbp {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   fileName  String?
   filePath  String?
- // gallery   Gallery? @relation(fields: [galleryId], references: [id])
+  // gallery   Gallery? @relation(fields: [galleryId], references: [id])
   galleryId Int?
 }
 
@@ -93,6 +100,7 @@ model imagesFull {
   gallery   Gallery? @relation(fields: [galleryId], references: [id])
   galleryId Int?
 }
+
 model Category {
   id       Int       @id @default(autoincrement())
   name     String?
@@ -103,7 +111,7 @@ model Package {
   id           Int           @id @default(autoincrement())
   name         String?
   description  String?
-  subtype String? // eskuvo: "foto"|"video"|"kombinalt" | portre: "egyeni"|"paros"|"csaladi"
+  subtype      String? // eskuvo: "foto"|"video"|"kombinalt" | portre: "egyeni"|"paros"|"csaladi"
   price        Float?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime?     @updatedAt
@@ -137,40 +145,38 @@ model CalendarEvent {
 }
 
 model Gallery {
-id             Int       @id @default(autoincrement())
-createdAt      DateTime  @default(now())
-updatedAt      DateTime  @updatedAt
-title          String?
-description    String?
-coverImageUrl  String?   // Cloudinary URL
-projectId      Int
-project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-shareToken     String    @unique @default(cuid())
-isPublic       Boolean   @default(false)
-password       String?   // bcrypt hash
-expiresAt      DateTime?
-images         GalleryImage[]
-imagesFull     imagesFull[]
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  title         String?
+  description   String?
+  coverImageUrl String? // Cloudinary URL
+  projectId     Int
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  shareToken    String         @unique @default(cuid())
+  isPublic      Boolean        @default(false)
+  password      String? // bcrypt hash
+  expiresAt     DateTime?
+  images        GalleryImage[]
+  imagesFull    imagesFull[]
 }
 
 model GalleryImage {
-id             Int      @id @default(autoincrement())
-createdAt      DateTime @default(now())
-galleryId      Int
-gallery        Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  galleryId Int
+  gallery   Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
 
-publicId       String   
-originalUrl    String   
-thumbnailUrl   String   
-previewUrl     String  
-fileName       String?  
-width          Int?
-height         Int?
-bytes          Int?     
-sortOrder      Int      @default(0)
+  publicId     String
+  originalUrl  String
+  thumbnailUrl String
+  previewUrl   String
+  fileName     String?
+  width        Int?
+  height       Int?
+  bytes        Int?
+  sortOrder    Int     @default(0)
 }
-
-
 
 model Image {
   id       Int     @id @default(autoincrement())
@@ -179,17 +185,16 @@ model Image {
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
-  project   Project? @relation(fields: [projectId], references: [id])
-  projectId Int?
-  sender_id  Int
+  id          Int      @id @default(autoincrement())
+  project     Project? @relation(fields: [projectId], references: [id])
+  projectId   Int?
+  sender_id   Int
   receiver_id Int
-  sender   User @relation("SentMessages", fields: [sender_id], references: [id])
-  receiver User @relation("ReceivedMessages", fields: [receiver_id], references: [id])
-  content   String?
-  createdAt DateTime @default(now())
+  sender      User     @relation("SentMessages", fields: [sender_id], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+  content     String?
+  createdAt   DateTime @default(now())
 }
-
 
 model Account {
   id                String  @id @default(cuid())
@@ -227,44 +232,97 @@ model VerificationToken {
 }
 
 model AnalyticsSession {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  lastSeenAt  DateTime @default(now())
-  duration    Int?     // másodpercekben, session végén frissítve
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  duration   Int? // másodpercekben, session végén frissítve
 
   // Látogató adatok
   userAgent   String?
-  device      String?  // "mobile" | "tablet" | "desktop"
-  browser     String?  // "chrome" | "firefox" | "safari" | "edge" | "other"
-  os          String?  // "windows" | "macos" | "ios" | "android" | "linux" | "other"
-  country     String?  // IP alapján (opcionális, ha nincs geo lib, null)
-  referrer    String?  // honnan jött
+  device      String? // "mobile" | "tablet" | "desktop"
+  browser     String? // "chrome" | "firefox" | "safari" | "edge" | "other"
+  os          String? // "windows" | "macos" | "ios" | "android" | "linux" | "other"
+  country     String? // IP alapján (opcionális, ha nincs geo lib, null)
+  referrer    String? // honnan jött
   utmSource   String?
   utmMedium   String?
   utmCampaign String?
 
   // Azonosítás
-  userId      Int?     // ha be van jelentkezve
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId Int? // ha be van jelentkezve
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  events      AnalyticsEvent[]
+  events AnalyticsEvent[]
 }
 
 model AnalyticsEvent {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
 
-  sessionId   String
-  session     AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   // Esemény típusa
   // "pageview" | "click" | "wizard_step" | "wizard_complete" | "wizard_exit"
   // "project_created" | "form_submit" | "gallery_view" | "contact_open"
-  type        String
+  type String
 
   // Oldal / útvonal ahol történt
-  page        String?  // pl. "/weddings", "/contact", "/user/projects/3"
+  page String? // pl. "/weddings", "/contact", "/user/projects/3"
 
   // Extra adat JSON-ban (pl. {"step": 2, "typeId": "eskuvo", "packageId": 5})
-  meta        Json?
+  meta Json?
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ki írta
+  senderId Int
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Kinek (null = adminnak szóló standalone üzenet)
+  recipientId Int?
+  recipient   User? @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  // Tartalom
+  body String
+
+  // Kapcsolat projekttel (opcionális)
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Státusz
+  isRead       Boolean @default(false)
+  isAdminReply Boolean @default(false) // admin válasz-e
+
+  // Thread: válasz egy korábbi üzenetre
+  parentId Int?
+  parent   ChatMessage?  @relation("Thread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies  ChatMessage[] @relation("Thread")
+}
+
+model GuestChatSession {
+  id        String   @id @default(cuid()) // localStorage-ban tárolt token
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name  String
+  email String
+
+  messages GuestChatMessage[]
+}
+
+model GuestChatMessage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  sessionId String
+  session   GuestChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  body         String
+  isAdminReply Boolean @default(false)
+  isRead       Boolean @default(false) // guest olvasta-e az admin választ
 }
