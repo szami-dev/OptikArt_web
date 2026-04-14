@@ -13,8 +13,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, typeId, packageId, status, userId, totalPrice } = body;
-
+    const { name, description, eventDate, typeId, packageId, status, userId, totalPrice } = body;
+    
     if (!name?.trim()) {
       return NextResponse.json({ error: "A projekt neve kötelező" }, { status: 400 });
     }
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
       data: {
         name,
         description:   description ?? null,
+        eventDate:     eventDate ? new Date(`${eventDate}T12:00:00.000Z`) : null,
         status:         (status as ProjectStatus) ?? ProjectStatus.PLANNING,
         paymentStatus: "PENDING",
         totalPrice:    totalPrice ?? null,

@@ -33,7 +33,12 @@ const ESKUVO_AGAK = [
   { id: "kombinalt", label: "Fotó + Videó" },
 ];
 
-const SZABADTERI_FELAR = 10000;
+// ── VÁLTOZÁS: studio kap felárat, szabadtéri az alap ─────────
+const STUDIO_FELAR = 10000;
+
+// Fix stúdió helyszín szöveg
+const STUDIO_HELYSZIN = "Kiskunfélegyháza (Stúdió)";
+const STUDIO_HELYSZIN_LEIRAS = "Kállai u. 5, Kiskunfélegyháza – saját stúdiónkban";
 
 const EGYEDI_TIPUSOK: Record<string, { label: string; ajanlat: string; megjegyzes: string }> = {
   rendezvenyek: { label: "Rendezvény",      ajanlat: "Egyedi árajánlat", megjegyzes: "Az ár a rendezvény hosszától és helyszínétől függ. Egyeztetés alapján küldünk ajánlatot." },
@@ -285,14 +290,12 @@ function PackageCard({ pkg, selected, extraPrice, onClick }: {
 // ── Főkomponens ───────────────────────────────────────────────
 export default function ContactPage() {
   const { data: session } = useSession();
+  const { trackWizardStep, trackWizardExit, trackWizardComplete } = useAnalytics();
 
-  // ── Analytics hook ────────────────────────────────────────
-  const { trackWizardStep, trackWizardExit, trackWizardComplete, trackClick } = useAnalytics();
-
-  const [step, setStep]           = useState(1);
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep]             = useState(1);
+  const [submitted, setSubmitted]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState("");
+  const [error, setError]           = useState("");
 
   const [allPackages, setAllPackages] = useState<DbPackage[]>([]);
   const [pkgLoading, setPkgLoading]   = useState(true);
@@ -300,6 +303,8 @@ export default function ContactPage() {
   const [typeId, setTypeId]           = useState<ProjectTypeId | null>(null);
   const [eskuvoAg, setEskuvoAg]       = useState<string | null>(null);
   const [portreKat, setPortreKat]     = useState<string | null>(null);
+  // VÁLTOZÁS: szabadteri = true → szabadtéri (alap, nincs felár)
+  //           szabadteri = false → stúdió (beltéri, STUDIO_FELAR)
   const [szabadteri, setSzabadteri]   = useState<boolean | null>(null);
   const [selectedPkg, setSelectedPkg] = useState<DbPackage | null>(null);
 
@@ -322,21 +327,45 @@ export default function ContactPage() {
       .then(d => setBusyDates(d.busyDates ?? []));
   }, []);
 
-  function getPackagesForType(type: ProjectTypeId): DbPackage[] {
-    return allPackages.filter(p => p.categoryId === TYPE_TO_CAT[type]);
-  }
-
+  // ── Csomag szűrők ─────────────────────────────────────────
   function getEskuvoPackages(ag: string): DbPackage[] {
     return allPackages.filter(p => p.categoryId === 1 && p.subtype === ag);
+  }
+
+  // VÁLTOZÁS: portré is subtype alapján szűr
+  function getPortrePackages(kat: string): DbPackage[] {
+    return allPackages.filter(p => p.categoryId === 2 && p.subtype === kat);
   }
 
   const hasPackages = typeId === "eskuvo" || typeId === "portre";
   const totalSteps  = hasPackages ? 4 : 3;
 
-  const szabadteriFelar = typeId === "portre" && szabadteri === true ? SZABADTERI_FELAR : 0;
-  const totalPrice = (selectedPkg?.price ?? 0) + szabadteriFelar + travelFee;
+  // VÁLTOZÁS: stúdió (szabadteri===false) kap felárat, szabadtéri nem
+  const studioFelar = typeId === "portre" && szabadteri === false ? STUDIO_FELAR : 0;
 
-  // ── Tracking: típus választás → step 2 ───────────────────
+  // Helyszín logika: stúdiónál fix, szabadtérinél LocationPicker
+  // stúdió esetén auto-beállítjuk a helyszínt és 0 kiszállási díjat
+  const isStudio        = typeId === "portre" && szabadteri === false;
+  const isSzabadtePort  = typeId === "portre" && szabadteri === true;
+
+  // A totalPrice-hoz
+  const totalPrice = (selectedPkg?.price ?? 0) + studioFelar + travelFee;
+
+  // ── Stúdió helyszín auto-beállítás ───────────────────────
+  useEffect(() => {
+    if (isStudio) {
+      setLocation(STUDIO_HELYSZIN);
+      setTravelFee(0);
+    } else if (isSzabadtePort) {
+      // Szabadtérnél töröljük a fix helyszínt ha stúdiót váltott
+      if (location === STUDIO_HELYSZIN) {
+        setLocation("");
+        setTravelFee(0);
+      }
+    }
+  }, [isStudio, isSzabadtePort]);
+
+  // ── Tracking függvények ───────────────────────────────────
   function handleTypeSelect(id: ProjectTypeId) {
     setTypeId(id);
     setEskuvoAg(null);
@@ -344,20 +373,15 @@ export default function ContactPage() {
     setSzabadteri(null);
     setSelectedPkg(null);
     setStep(2);
-    // Step 1 teljesítve: melyik típust választotta
     trackWizardStep(1, { typeId: id });
   }
 
-  // ── Tracking: csomag step tovább → step 3 ────────────────
   function handlePackageNext() {
     if (!eskuvoAg || !selectedPkg) return;
     setStep(3);
     trackWizardStep(2, {
-      typeId,
-      eskuvoAg,
-      packageId:   selectedPkg.id,
-      packageName: selectedPkg.name,
-      price:       selectedPkg.price,
+      typeId, eskuvoAg,
+      packageId: selectedPkg.id, packageName: selectedPkg.name, price: selectedPkg.price,
     });
   }
 
@@ -365,16 +389,12 @@ export default function ContactPage() {
     if (!portreKat || szabadteri === null || !selectedPkg) return;
     setStep(3);
     trackWizardStep(2, {
-      typeId,
-      portreKat,
-      szabadteri,
-      packageId:   selectedPkg.id,
-      packageName: selectedPkg.name,
-      price:       (selectedPkg.price ?? 0) + (szabadteri ? SZABADTERI_FELAR : 0),
+      typeId, portreKat, szabadteri,
+      packageId: selectedPkg.id, packageName: selectedPkg.name,
+      price: (selectedPkg.price ?? 0) + studioFelar,
     });
   }
 
-  // ── Tracking: részletek step tovább → összefoglaló ───────
   function handleDetailsNext(currentStep: number, nextStep: number) {
     if (!projectName.trim() || !description.trim()) {
       setError("A projekt neve és leírása kötelező.");
@@ -383,14 +403,10 @@ export default function ContactPage() {
     setError("");
     setStep(nextStep);
     trackWizardStep(currentStep, {
-      typeId,
-      hasDate:     !!preferredDate,
-      hasLocation: !!location,
-      hasPhone:    !!phone,
+      typeId, hasDate: !!preferredDate, hasLocation: !!location, hasPhone: !!phone,
     });
   }
 
-  // ── Tracking: visszalép = wizard exit ────────────────────
   function handleBack(fromStep: number, toStep: number) {
     setStep(toStep);
     trackWizardExit(fromStep, { typeId, reason: "back_button" });
@@ -400,26 +416,38 @@ export default function ContactPage() {
     setSubmitting(true);
     setError("");
     try {
+      // Helyszín logika: stúdiónál a fix szöveg kerül be
+      const finalLocation = isStudio ? STUDIO_HELYSZIN : location;
+
       const res = await fetch("/api/projects/create", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: projectName,
           description: [
             description,
-            phone     ? `Telefon: ${phone}`    : null,
-            location  ? `Helyszín: ${location}` : null,
-            travelFee > 0 ? `Kiszállási díj: ${fmt(travelFee)}` : null,
-            typeId === "portre" && szabadteri !== null ? `Fotózás: ${szabadteri ? "Szabadtéri" : "Stúdió"}` : null,
-            eskuvoAg  ? `Esküvő típusa: ${ESKUVO_AGAK.find(a => a.id === eskuvoAg)?.label}` : null,
+            phone          ? `Telefon: ${phone}`                      : null,
+            finalLocation  ? `Helyszín: ${finalLocation}`             : null,
+            isStudio       ? STUDIO_HELYSZIN_LEIRAS                   : null,
+            travelFee > 0  ? `Kiszállási díj: ${fmt(travelFee)}`      : null,
+            studioFelar > 0 ? `Stúdió felár: ${fmt(studioFelar)}`     : null,
+            typeId === "portre" && szabadteri !== null
+              ? `Fotózás helyszíne: ${szabadteri ? "Szabadtéri" : "Stúdió (beltéri)"}`
+              : null,
+            portreKat
+              ? `Portré kategória: ${portreKat}`
+              : null,
+            eskuvoAg
+              ? `Esküvő típusa: ${ESKUVO_AGAK.find(a => a.id === eskuvoAg)?.label}`
+              : null,
           ].filter(Boolean).join("\n\n"),
           typeId:          TYPE_TO_CAT[typeId!],
           packageId:       selectedPkg?.id ?? null,
           date:            preferredDate || null,
           phone:           phone || null,
-          location:        location || null,
-          travelFee,
-          szabadteriFelár: szabadteriFelar,
+          location:        finalLocation || null,
+          travelFee:       isStudio ? 0 : travelFee,
+          szabadteriFelár: studioFelar, // most a stúdió felár
         }),
       });
 
@@ -429,14 +457,10 @@ export default function ContactPage() {
         throw new Error(e.error);
       }
 
-      // ── Tracking: sikeres submit ─────────────────────────
       trackWizardComplete({
-        typeId,
-        packageId:   selectedPkg?.id ?? null,
+        typeId, packageId: selectedPkg?.id ?? null,
         packageName: selectedPkg?.name ?? null,
-        totalPrice,
-        hasDate:     !!preferredDate,
-        hasLocation: !!location,
+        totalPrice, hasDate: !!preferredDate, hasLocation: !!finalLocation,
       });
 
       setSubmitted(true);
@@ -516,7 +540,7 @@ export default function ContactPage() {
                 <div className="text-[9px] tracking-[0.14em] uppercase text-[#A08060] mb-2">Becsült összeg</div>
                 {[
                   { l: "Csomag", v: fmt(selectedPkg.price ?? 0) },
-                  ...(szabadteriFelar > 0 ? [{ l: "Szabadtéri felár", v: `+${fmt(szabadteriFelar)}` }] : []),
+                  ...(studioFelar > 0 ? [{ l: "Stúdió felár", v: `+${fmt(studioFelar)}` }] : []),
                   ...(travelFee > 0 ? [{ l: "Kiszállás", v: `+${fmt(travelFee)}` }] : []),
                 ].map(r => (
                   <div key={r.l} className="flex items-center justify-between text-[11px] py-0.5">
@@ -567,7 +591,6 @@ export default function ContactPage() {
                       { id: "dron"         as ProjectTypeId, icon: "drone",    name: "Drón",       desc: "Légifotó és videó" },
                       { id: "egyeb"        as ProjectTypeId, icon: "dots",     name: "Egyéb",      desc: "Egyedi igény" },
                     ] as const).map(t => (
-                      // ← handleTypeSelect tracking-gel
                       <button key={t.id} onClick={() => handleTypeSelect(t.id)}
                         className="group flex flex-col gap-3 p-4 sm:p-5 border border-[#EDE8E0] bg-white hover:border-[#C8A882]/50 hover:bg-[#FAF8F4] transition-all text-left">
                         <span className="text-[#C8A882]/70 group-hover:text-[#C8A882] transition-colors">{IC[t.icon]}</span>
@@ -614,7 +637,7 @@ export default function ContactPage() {
                           <span className="text-[12px] text-[#A08060]">Csomagok betöltése...</span>
                         </div>
                       ) : getEskuvoPackages(eskuvoAg).length === 0 ? (
-                        <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.</InfoBox>
+                        <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva.</InfoBox>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {getEskuvoPackages(eskuvoAg).map(pkg => (
@@ -626,10 +649,7 @@ export default function ContactPage() {
                     )}
 
                     <div className="flex gap-3">
-                      {/* ← tracking visszalépésnél */}
-                      <button onClick={() => handleBack(2, 1)}
-                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
-                      {/* ← handlePackageNext tracking-gel */}
+                      <button onClick={() => handleBack(2, 1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
                       <button onClick={handlePackageNext} disabled={!eskuvoAg || !selectedPkg}
                         className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
                         Tovább →
@@ -641,13 +661,15 @@ export default function ContactPage() {
                   <div className="flex flex-col gap-6">
                     <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510]">Portré csomag</h2>
 
+                    {/* Kategória választó */}
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { id: "paros",   label: "Páros / Jegyesfotózás", icon: "people" },
                         { id: "csaladi", label: "Családi fotózás",        icon: "people" },
                         { id: "egyeni",  label: "Egyéni portré",          icon: "person" },
                       ].map(k => (
-                        <button key={k.id} onClick={() => { setPortreKat(k.id); setSelectedPkg(null); }}
+                        <button key={k.id}
+                          onClick={() => { setPortreKat(k.id); setSelectedPkg(null); }}
                           className={`flex flex-col items-center gap-2 p-4 border transition-all ${portreKat === k.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
                           <span className={`transition-colors ${portreKat === k.id ? "text-[#C8A882]" : "text-[#A08060]"}`}>
                             {IC[k.icon as keyof typeof IC]}
@@ -659,14 +681,28 @@ export default function ContactPage() {
 
                     {portreKat && (
                       <>
+                        {/* Helyszín típus választó */}
                         <div>
                           <div className="text-[10px] tracking-[0.14em] uppercase text-[#A08060] mb-2">Helyszín típusa</div>
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { v: false, label: "Stúdió",     desc: "Kontrollált fény, bármilyen időben",  icon: "building" },
-                              { v: true,  label: "Szabadtéri", desc: `+${fmt(SZABADTERI_FELAR)} felár`,     icon: "outdoor"  },
+                              {
+                                v: true,
+                                label: "Szabadtéri",
+                                // VÁLTOZÁS: szabadtéri az alap, nincs felár
+                                desc:  "Természetes fény, általad választott helyszín",
+                                icon:  "outdoor",
+                              },
+                              {
+                                v: false,
+                                label: "Stúdió (beltéri)",
+                                // VÁLTOZÁS: stúdió kap felárat
+                                desc:  `Kiskunfélegyháza · +${fmt(STUDIO_FELAR)} stúdió felár`,
+                                icon:  "building",
+                              },
                             ].map(opt => (
-                              <button key={String(opt.v)} onClick={() => setSzabadteri(opt.v)}
+                              <button key={String(opt.v)}
+                                onClick={() => { setSzabadteri(opt.v); setSelectedPkg(null); }}
                                 className={`flex items-start gap-3 p-4 border transition-all text-left ${szabadteri === opt.v ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}>
                                 <span className={`shrink-0 mt-0.5 transition-colors ${szabadteri === opt.v ? "text-[#C8A882]" : "text-[#A08060]"}`}>
                                   {IC[opt.icon as keyof typeof IC]}
@@ -678,25 +714,47 @@ export default function ContactPage() {
                               </button>
                             ))}
                           </div>
-                          {szabadteri && (
+
+                          {/* Stúdió info doboz */}
+                          {szabadteri === false && (
                             <div className="mt-2">
-                              <InfoBox type="tip">Szabadtéri fotózásnál az időjárás meghatározó. Esős napon közösen egyeztetünk az átütemezésről.</InfoBox>
+                              <InfoBox type="tip">
+                                <strong>Stúdió helyszín:</strong> {STUDIO_HELYSZIN_LEIRAS}. A stúdió felár a felszerelés és rezsi költségét fedezi.
+                              </InfoBox>
+                            </div>
+                          )}
+
+                          {/* Szabadtéri info doboz */}
+                          {szabadteri === true && (
+                            <div className="mt-2">
+                              <InfoBox type="tip">
+                                Szabadtéri fotózásnál az időjárás meghatározó. Esős napon közösen egyeztetünk az átütemezésről.
+                              </InfoBox>
                             </div>
                           )}
                         </div>
 
+                        {/* VÁLTOZÁS: subtype alapján szűrt csomagok */}
                         {szabadteri !== null && (
                           pkgLoading ? (
                             <div className="flex items-center gap-2 py-4">
                               <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
                             </div>
-                          ) : getPackagesForType("portre").length === 0 ? (
-                            <InfoBox type="info">Ehhez a kategóriához nincs még csomag beállítva.</InfoBox>
+                          ) : getPortrePackages(portreKat).length === 0 ? (
+                            <InfoBox type="info">
+                              Ehhez a kategóriához nincs még csomag beállítva. Vedd fel velünk a kapcsolatot egyedi árajánlatért.
+                            </InfoBox>
                           ) : (
                             <div className="flex flex-col gap-2">
-                              {getPackagesForType("portre").map(pkg => (
-                                <PackageCard key={pkg.id} pkg={pkg} selected={selectedPkg?.id === pkg.id}
-                                  extraPrice={szabadteri ? SZABADTERI_FELAR : 0} onClick={() => setSelectedPkg(pkg)} />
+                              {getPortrePackages(portreKat).map(pkg => (
+                                <PackageCard
+                                  key={pkg.id}
+                                  pkg={pkg}
+                                  selected={selectedPkg?.id === pkg.id}
+                                  // VÁLTOZÁS: stúdió esetén a felár, szabadtérinél 0
+                                  extraPrice={szabadteri === false ? STUDIO_FELAR : 0}
+                                  onClick={() => setSelectedPkg(pkg)}
+                                />
                               ))}
                             </div>
                           )
@@ -705,10 +763,9 @@ export default function ContactPage() {
                     )}
 
                     <div className="flex gap-3">
-                      <button onClick={() => handleBack(2, 1)}
-                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
-                      {/* ← handlePortreNext tracking-gel */}
-                      <button onClick={handlePortreNext} disabled={!portreKat || szabadteri === null || !selectedPkg}
+                      <button onClick={() => handleBack(2, 1)} className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all">← Vissza</button>
+                      <button onClick={handlePortreNext}
+                        disabled={!portreKat || szabadteri === null || !selectedPkg}
                         className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40">
                         Tovább →
                       </button>
@@ -724,6 +781,7 @@ export default function ContactPage() {
                     location={location} setLocation={setLocation}
                     travelFee={travelFee} setTravelFee={setTravelFee}
                     busyDates={busyDates} error={error}
+                    isStudio={false}
                     onBack={() => handleBack(2, 1)}
                     onNext={() => handleDetailsNext(2, 3)}
                   />
@@ -740,6 +798,8 @@ export default function ContactPage() {
                   location={location} setLocation={setLocation}
                   travelFee={travelFee} setTravelFee={setTravelFee}
                   busyDates={busyDates} error={error}
+                  // VÁLTOZÁS: stúdió esetén fix helyszín, nincs LocationPicker
+                  isStudio={isStudio}
                   onBack={() => handleBack(3, 2)}
                   onNext={() => handleDetailsNext(3, 4)}
                 />
@@ -761,7 +821,7 @@ export default function ContactPage() {
                     )}
                     {[
                       { label: "Projekt neve",   value: projectName },
-                      { label: "Helyszín",       value: location || "Nincs megadva" },
+                      { label: "Helyszín",       value: isStudio ? STUDIO_HELYSZIN : (location || "Nincs megadva") },
                       { label: "Kívánt időpont", value: preferredDate ? new Date(preferredDate + "T12:00:00").toLocaleDateString("hu-HU") : "Nincs megadva" },
                       { label: "Telefon",        value: phone || "Nincs megadva" },
                       { label: "Email",          value: session?.user?.email ?? "—" },
@@ -774,13 +834,22 @@ export default function ContactPage() {
                     {totalPrice > 0 && (
                       <div className="bg-white border border-[#EDE8E0] px-4 py-3 flex flex-col gap-1.5">
                         {selectedPkg?.price != null && (
-                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Csomag ára</span><span className="text-[#1A1510]">{fmt(selectedPkg.price)}</span></div>
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-[#A08060]">Csomag ára</span>
+                            <span className="text-[#1A1510]">{fmt(selectedPkg.price)}</span>
+                          </div>
                         )}
-                        {szabadteriFelar > 0 && (
-                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Szabadtéri felár</span><span className="text-[#C8A882]">+{fmt(szabadteriFelar)}</span></div>
+                        {studioFelar > 0 && (
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-[#A08060]">Stúdió felár</span>
+                            <span className="text-[#C8A882]">+{fmt(studioFelar)}</span>
+                          </div>
                         )}
                         {travelFee > 0 && (
-                          <div className="flex items-center justify-between text-[12px]"><span className="text-[#A08060]">Kiszállási díj</span><span className="text-[#C8A882]">+{fmt(travelFee)}</span></div>
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-[#A08060]">Kiszállási díj</span>
+                            <span className="text-[#C8A882]">+{fmt(travelFee)}</span>
+                          </div>
                         )}
                         <div className="flex items-center justify-between text-[13px] font-medium pt-1.5 border-t border-[#EDE8E0]">
                           <span className="text-[#1A1510]">Becsült összesen</span>
@@ -829,7 +898,7 @@ function StepReszletek({
   typeId, projectName, setProjectName, description, setDescription,
   phone, setPhone, preferredDate, setPreferredDate,
   location, setLocation, travelFee, setTravelFee,
-  busyDates, error, onBack, onNext,
+  busyDates, error, isStudio, onBack, onNext,
 }: {
   typeId: ProjectTypeId;
   projectName: string; setProjectName: (v: string) => void;
@@ -839,13 +908,17 @@ function StepReszletek({
   location: string; setLocation: (v: string) => void;
   travelFee: number; setTravelFee: (v: number) => void;
   busyDates: string[]; error: string;
+  // VÁLTOZÁS: isStudio prop
+  isStudio: boolean;
   onBack: () => void; onNext: () => void;
 }) {
   const egyedi            = EGYEDI_TIPUSOK[typeId];
   const isMarketing       = typeId === "marketing";
-  const isSzabadteriTipus = ["eskuvo", "portre", "dron"].includes(typeId);
-  const showTelWarning    = preferredDate && isTelHonap(preferredDate) && isSzabadteriTipus;
-  const showOsziWarning   = preferredDate && isOsziHonap(preferredDate) && isSzabadteriTipus && !showTelWarning;
+  const isSzabadteriTipus = ["eskuvo", "dron"].includes(typeId);
+  // Portré szabadtérinél is mutatjuk a figyelmeztetőt
+  const isSzabadteriPortre = typeId === "portre" && !isStudio;
+  const showTelWarning    = preferredDate && isTelHonap(preferredDate) && (isSzabadteriTipus || isSzabadteriPortre);
+  const showOsziWarning   = preferredDate && isOsziHonap(preferredDate) && (isSzabadteriTipus || isSzabadteriPortre) && !showTelWarning;
 
   return (
     <div className="flex flex-col gap-6">
@@ -859,7 +932,7 @@ function StepReszletek({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Projekt neve" required>
             <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)}
-              placeholder={isMarketing ? "Pl. Kovács Kft. social media" : "Pl. Szabó Esküvő 2025"}
+              placeholder={isMarketing ? "Pl. Kovács Kft. social media" : "Pl. Szabó Anna portré 2025"}
               className={inputCls} />
           </Field>
           <Field label="Telefonszám">
@@ -867,9 +940,27 @@ function StepReszletek({
               placeholder="+36 30 123 4567" className={inputCls} />
           </Field>
         </div>
-        <Field label="Helyszín">
-          <LocationPicker value={location} onChangeName={setLocation} onChangeFee={setTravelFee} />
-        </Field>
+
+        {/* VÁLTOZÁS: stúdiónál fix helyszín megjelenítés, nincs LocationPicker */}
+        {isStudio ? (
+          <Field label="Helyszín">
+            <div className="bg-[#F5EFE6] border border-[#EDE8E0] px-4 py-3 flex items-center gap-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#C8A882" strokeWidth="1.5" className="w-4 h-4 shrink-0">
+                <rect x="2" y="3" width="20" height="18" rx="1"/>
+                <path d="M8 21V9h8v12"/><line x1="12" y1="9" x2="12" y2="21"/>
+              </svg>
+              <div>
+                <div className="text-[13px] text-[#1A1510] font-medium">{STUDIO_HELYSZIN}</div>
+                <div className="text-[11px] text-[#A08060] mt-0.5">{STUDIO_HELYSZIN_LEIRAS}</div>
+              </div>
+            </div>
+          </Field>
+        ) : (
+          <Field label="Helyszín">
+            <LocationPicker value={location} onChangeName={setLocation} onChangeFee={setTravelFee} />
+          </Field>
+        )}
+
         <Field label="Leírás, elképzelések" required>
           <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)}
             placeholder="Mesélj a projektről — hangulat, különleges kérések..."

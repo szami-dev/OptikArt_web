@@ -137,6 +137,7 @@ export async function POST(req: Request) {
     const project = await prisma.project.create({
       data: {
         name,
+        eventDate: date ? new Date(`${date}T12:00:00.000Z`) : null,
         description: [
           description,
           phone        ? `Telefon: ${phone}`                                                   : null,

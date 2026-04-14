@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 export async function GET(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user?.id && session?.user?.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
@@ -29,6 +29,7 @@ export async function GET(req: Request) {
         users: { select: { id: true, name: true, email: true } },
         type: true,
         category: true,
+        
         _count: { select: { messages: true, galleries: true, calendarEvents: true } },
         // Az admin projekt listán a DateBadge-hez kell
         calendarEvents: {

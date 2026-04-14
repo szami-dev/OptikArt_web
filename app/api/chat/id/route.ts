@@ -32,10 +32,18 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Cascade törli a replies-t is (schema: onDelete: SetNull a parentId-n,
-    // de a replies maguk megmaradnak árván – jobb ha kézzel töröljük előbb)
-    await prisma.chatMessage.deleteMany({ where: { parentId: parseInt(id) } });
-    await prisma.chatMessage.delete({ where: { id: parseInt(id) } });
+    // A type query param alapján döntjük el melyik táblából töröljük
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type"); // "chat" | "project_message"
+
+    if (type === "project_message") {
+      // Message tábla törlés
+      await prisma.message.delete({ where: { id: parseInt(id) } });
+    } else {
+      // ChatMessage törlés – előbb a reply-ok, utána a root
+      await prisma.chatMessage.deleteMany({ where: { parentId: parseInt(id) } });
+      await prisma.chatMessage.delete({ where: { id: parseInt(id) } });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

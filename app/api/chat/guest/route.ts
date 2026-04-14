@@ -98,8 +98,8 @@ export async function POST(req: Request) {
     // Admin email értesítés
     try {
       await mailer().sendMail({
-        from:    `"OptikArt Chat" <${process.env.EMAIL_FROM}>`,
-        to:      process.env.EMAIL_FROM,
+        from:    `"OptikArt Chat" <${process.env.EMAIL_SERVER_USER}>`,
+        to:      "optikartofficial@gmail.com",
         replyTo: guestSession.email,
         subject: `💬 Új chat üzenet – ${guestSession.name}`,
         html: `

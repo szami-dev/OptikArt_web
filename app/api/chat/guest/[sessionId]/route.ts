@@ -57,7 +57,7 @@ export async function POST(
       const chatUrl = `${process.env.NEXT_PUBLIC_APP_URL}/?chat=open&token=${sessionId}`;
 
       await transporter.sendMail({
-        from:    `"OptikArt" <${process.env.EMAIL_FROM}>`,
+        from:    `"OptikArt" <${process.env.EMAIL_SERVER_USER}>`,
         to:      guestSession.email,
         subject: `💬 Válasz érkezett az üzenetedre – OptikArt`,
         html: `
