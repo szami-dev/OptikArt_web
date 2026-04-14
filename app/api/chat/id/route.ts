@@ -4,7 +4,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+type Params = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: Request, { params }: Params) {
   try {
     const { id } = await params;
     const session = await auth();
@@ -24,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: Params) {
   try {
     const { id } = await params;
     const session = await auth();
@@ -32,15 +34,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // A type query param alapján döntjük el melyik táblából töröljük
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type"); // "chat" | "project_message"
 
     if (type === "project_message") {
-      // Message tábla törlés
       await prisma.message.delete({ where: { id: parseInt(id) } });
     } else {
-      // ChatMessage törlés – előbb a reply-ok, utána a root
       await prisma.chatMessage.deleteMany({ where: { parentId: parseInt(id) } });
       await prisma.chatMessage.delete({ where: { id: parseInt(id) } });
     }
