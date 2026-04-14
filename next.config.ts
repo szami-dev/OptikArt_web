@@ -11,6 +11,7 @@ images: {
         hostname: "images.unsplash.com",
       },
     ],
+    qualities: [75, 50, 25, 80, 85, 90, 95],
   },
 };
 
