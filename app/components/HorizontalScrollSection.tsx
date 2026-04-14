@@ -61,7 +61,7 @@ const slides = [
       { src: "/gallery/event/borfesztUTSO-140.JPG", alt: "Borfesztivál", aspect: "3/2" },
       { src: "/gallery/event/borfesztUTSO-106.JPG", alt: "Tömegrendezvény", aspect: "3/2" },
       { src: "/gallery/event/borfesztUTSO-190.JPG", alt: "Kurultáj", aspect: "3/2" },
-      { src: "/gallery/event/borfesztUTSO-164.JPG", alt: "Rendezvény", aspect: "3/2" },
+      
     ],
     stat: { n: "80+", l: "Rendezvény" },
   },
@@ -81,7 +81,7 @@ const slides = [
       { src: "/gallery/marketing/siriusMarcius-6.JPG", alt: "TikTok forgatás", aspect: "3/2" },
       { src: "/gallery/marketing/bippu-35.JPG", alt: "Brand videó", aspect: "3/2" },
       { src: "/gallery/marketing/pellikanmarcius-4.JPG", alt: "Influencer", aspect: "3/2" },
-      { src: "/gallery/marketing/siriusjanuar-33.JPG", alt: "TikTok", aspect: "3/2" },
+      
     ],
     stat: { n: "500+", l: "Poszt/hó" },
   },

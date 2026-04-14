@@ -1,5 +1,7 @@
 "use client";
 
+// app/components/HeroInteractive.tsx
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,20 +9,22 @@ import Button from "@/app/components/Button";
 import { useAnalytics } from "@/lib/analytics";
 
 const heroImages = [
-  { src: "/slides/napraforgo-132.JPG", alt: "Portré", label: "Portré" },
-  { src: "/slides/kreativ-12.JPG", alt: "Esküvő", label: "Esküvő" },
-  { src: "/slides/reka&adam-75.JPG", alt: "Páros", label: "Páros" },
-  { src: "/slides/marcidorina-59.JPG", alt: "Jegyes", label: "Jegyes" },
+  { src: "/slides/napraforgo-132.JPG",  alt: "Portré",     label: "Portré"     },
+  { src: "/slides/kreativ-12.JPG",      alt: "Esküvő",     label: "Esküvő"     },
+  { src: "/slides/reka&adam-75.JPG",    alt: "Páros",      label: "Páros"      },
+  { src: "/slides/marcidorina-59.JPG",  alt: "Jegyes",     label: "Jegyes"     },
   { src: "/gallery/event/kurultaj-169.JPG", alt: "Rendezvény", label: "Rendezvény" },
-  
 ];
-  
+
 export default function HeroInteractive() {
   const { trackClick } = useAnalytics();
-  const sectionRef = useRef<HTMLElement>(null);
-  const [activeImg, setActiveImg] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
+  const sectionRef     = useRef<HTMLElement>(null);
+  const [activeImg, setActiveImg]           = useState(0);
+  const [transitioning, setTransitioning]   = useState(false);
+  // ── FIX: animReady flag – elemek csak akkor látszanak ha GSAP már fut ──
+  const [animReady, setAnimReady] = useState(false);
 
+  // ── Képváltó timer ────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
       setTransitioning(true);
@@ -38,26 +42,41 @@ export default function HeroInteractive() {
     setTimeout(() => { setActiveImg(idx); setTransitioning(false); }, 300);
   }
 
+  // ── GSAP animáció ─────────────────────────────────────────
   useEffect(() => {
     let ctx: any;
     let mounted = true;
 
     async function init() {
       const { gsap } = await import("gsap");
-      if (!mounted) return;
+      if (!mounted || !sectionRef.current) return;
+
+      // Elemek kezdőállapota GSAP set-tel – NEM CSS-sel, hogy ne villanjon
+      gsap.set([
+        ".hi-eyebrow", ".hi-desc", ".hi-img-panel",
+        ".hi-tag-btn", ".hi-cta-primary", ".hi-cta-secondary",
+      ], { autoAlpha: 0 });
+      gsap.set(".hi-title-word", { yPercent: 110 });
+
+      // Most megjelenítjük a konténert (addig hidden volt)
+      setAnimReady(true);
+
       ctx = gsap.context(() => {
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
         tl
-          .fromTo(".hi-eyebrow", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6 })
-          .fromTo(".hi-title > span", { opacity: 0, y: 50 }, { opacity: 1, y: 0, stagger: 0.12, duration: 1 }, 0.2)
-          .fromTo(".hi-desc", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.6)
-          .fromTo(".hi-cta", { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.08, duration: 0.6 }, 0.8)
-          .fromTo(".hi-stat", { opacity: 0, y: 10 }, { opacity: 1, y: 0, stagger: 0.06, duration: 0.5 }, 1.0)
-          .fromTo(".hi-img-panel", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1, ease: "power2.out" }, 0.3);
+          .to(".hi-eyebrow",       { autoAlpha: 1, y: 0,        duration: 0.6 }, 0.1)
+          .to(".hi-title-word",    { yPercent: 0,  stagger: 0.1, duration: 0.9, ease: "power4.out" }, 0.25)
+          .to(".hi-desc",          { autoAlpha: 1, y: 0,        duration: 0.7 }, 0.7)
+          .to(".hi-cta-primary",   { autoAlpha: 1, y: 0,        duration: 0.5 }, 0.85)
+          .to(".hi-cta-secondary", { autoAlpha: 1, y: 0,        duration: 0.5 }, 0.95)
+          .to(".hi-tag-btn",       { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.4 }, 1.0)
+          .to(".hi-img-panel",     { autoAlpha: 1, x: 0,        duration: 1,   ease: "power2.out" }, 0.3);
       }, sectionRef);
     }
 
-    init();
+    // requestAnimationFrame: DOM teljesen renderelt mielőtt GSAP fut
+    requestAnimationFrame(() => init());
     return () => { mounted = false; ctx?.revert(); };
   }, []);
 
@@ -65,10 +84,9 @@ export default function HeroInteractive() {
     <section
       ref={sectionRef}
       className="relative w-full bg-white overflow-hidden"
-      // ── Fix: explicit min-height, nem 100svh amit a böngésző rosszul számol mobilon ──
       style={{ minHeight: "100svh" }}
     >
-      {/* ── MOBIL háttérkép – teljes szekció mögött ── */}
+      {/* ── Mobil háttérkép ── */}
       <div className="lg:hidden absolute inset-0 z-0">
         {heroImages.map((img, i) => (
           <div
@@ -80,44 +98,52 @@ export default function HeroInteractive() {
               src={img.src}
               alt={img.label}
               fill
-              className="object-cover object-center"
+              // ── FIX: quality 85 + object-position top a fekvő képeknél ──
+              quality={85}
+              className="object-cover object-top"
               sizes="100vw"
-              
               priority={i === 0}
-              
             />
           </div>
         ))}
-        {/* Erős fehér overlay mobilon hogy a szöveg olvasható legyen */}
-        <div className="absolute inset-0 bg-white/88" />
+        <div className="absolute inset-0 bg-white/85" />
       </div>
 
-      {/* ── Desktop: kétoszlopos layout ── */}
+      {/* ── Kétoszlopos layout ── */}
       <div
         className="relative z-10 flex flex-col lg:grid lg:grid-cols-[52%_48%]"
-        style={{ minHeight: "100svh" }}
+        style={{
+          minHeight: "100svh",
+          // ── FIX: elemek invisible amíg GSAP nem inicializál ──
+          visibility: animReady ? "visible" : "hidden",
+        }}
       >
-        {/* BAL / MOBIL: teljes szöveg panel */}
-        <div className="flex flex-col justify-between px-6 sm:px-10 lg:px-16 pt-10 pb-8 lg:py-14 min-h-0">
+        {/* BAL panel */}
+        <div className="flex flex-col justify-between px-6 sm:px-10 lg:px-16 pt-10 pb-8 lg:py-14">
 
-          {/* Fejléc */}
-          <div className="flex items-center gap-3 mb-0">
+          {/* Eyebrow */}
+          <div className="flex items-center gap-3">
             <div className="w-8 h-px bg-[#C8A882]" />
             <span className="hi-eyebrow text-[9px] tracking-[0.3em] uppercase text-[#A08060]">
-              OptikArt · Fotó & Videó 
+              OptikArt · Fotó & Videó
             </span>
           </div>
 
-          {/* Cím + leírás + CTA – vertikálisan középre */}
+          {/* Cím + desc + CTA */}
           <div className="flex flex-col gap-6 py-8 flex-1 justify-center">
             <h1
-              className="hi-title font-['Cormorant_Garamond'] font-thin text-[#1A1510] leading-[0.88] tracking-[-0.03em]"
+              className="font-['Cormorant_Garamond'] font-thin text-[#1A1510] leading-[0.88] tracking-[-0.03em]"
               style={{ fontSize: "clamp(2.8rem, 8vw, 7.5rem)" }}
             >
-              <span className="block overflow-hidden"><span className="block">Képek</span></span>
-              <span className="block overflow-hidden"><span className="block">& pillanatok,</span></span>
+              {/* Overflow hidden per sor → szavak slide-in alulról */}
               <span className="block overflow-hidden">
-                <em className="block not-italic text-[#C8A882]">örökre.</em>
+                <span className="hi-title-word block">Képek</span>
+              </span>
+              <span className="block overflow-hidden">
+                <span className="hi-title-word block">& pillanatok,</span>
+              </span>
+              <span className="block overflow-hidden">
+                <em className="hi-title-word block not-italic text-[#C8A882]">örökre.</em>
               </span>
             </h1>
 
@@ -127,50 +153,41 @@ export default function HeroInteractive() {
 
             <div className="flex flex-wrap items-center gap-4 sm:gap-5">
               <Link href="/contact">
-                <Button onClick={() => trackClick("hero_projekt_indítása")}
-                  variant="primary" 
+                <Button
+                  onClick={() => trackClick("hero_projekt_indítása")}
+                  variant="primary"
                   size="lg"
                   icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>}
                   iconPosition="right"
+                  className="hi-cta-primary"
                 >
-                  <span className="hi-cta">Projekt indítása</span>
+                  Projekt indítása
                 </Button>
               </Link>
-              <Link href="/references" className="hi-cta text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap">
+              <Link
+                href="/references"
+                className="hi-cta-secondary text-[11px] tracking-[0.14em] uppercase text-[#7A6A58] border-b border-[#C8A882]/40 pb-0.5 hover:text-[#1A1510] hover:border-[#C8A882] transition-all whitespace-nowrap"
+              >
                 Galéria →
               </Link>
             </div>
 
-            {/* Mobil: platform tagek */}
+            {/* Mobil kategória tagek */}
             <div className="flex flex-wrap gap-2 lg:hidden">
               {heroImages.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => switchImage(i)}
-                  className={`text-[9px] tracking-[0.1em] uppercase px-2.5 py-1 border transition-all ${i === activeImg ? "bg-[#C8A882] border-[#C8A882] text-white" : "border-[#EDE8E0] text-[#A08060]"}`}
+                  className={`hi-tag-btn text-[9px] tracking-[0.1em] uppercase px-2.5 py-1 border transition-all ${i === activeImg ? "bg-[#C8A882] border-[#C8A882] text-white" : "border-[#EDE8E0] text-[#A08060]"}`}
                 >
                   {img.label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Stat sor 
-          <div className="flex flex-wrap gap-6 sm:gap-8 pt-5 border-t border-[#EDE8E0]">
-            {[
-              { n: "320+", l: "Projekt" },
-              { n: "8 év", l: "Tapasztalat" },
-              { n: "98%", l: "Elégedett ügyfél" },
-            ].map((s) => (
-              <div key={s.l} className="hi-stat">
-                <div className="font-['Cormorant_Garamond'] text-[1.6rem] sm:text-[1.8rem] font-light text-[#C8A882] leading-none">{s.n}</div>
-                <div className="text-[8px] tracking-[0.15em] uppercase text-[#A08060] mt-1">{s.l}</div>
-              </div>
-            ))}
-          </div>*/}
         </div>
 
-        {/* JOBB: képváltós panel – csak desktop */}
+        {/* JOBB képpanel – csak desktop */}
         <div className="hi-img-panel relative hidden lg:block overflow-hidden">
           {heroImages.map((img, i) => (
             <div
@@ -178,7 +195,16 @@ export default function HeroInteractive() {
               className="absolute inset-0 transition-opacity duration-700"
               style={{ opacity: i === activeImg && !transitioning ? 1 : i === activeImg ? 0.3 : 0 }}
             >
-              <Image src={img.src} alt={img.label} fill className="object-cover" sizes="48vw" priority={i === 0} />
+              <Image
+                src={img.src}
+                alt={img.label}
+                fill
+                quality={90}
+                // ── FIX: fekvő képeknél object-top, hogy az arc látsszon ──
+                className="object-cover object-top"
+                sizes="48vw"
+                priority={i === 0}
+              />
             </div>
           ))}
           <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-transparent z-10" />
@@ -196,11 +222,13 @@ export default function HeroInteractive() {
             ))}
           </div>
 
-          {/* Label + számláló */}
+          {/* Label */}
           <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2">
             <div className="w-4 h-px bg-[#C8A882]" />
             <span className="text-[9px] tracking-[0.2em] uppercase text-white/60">{heroImages[activeImg].label}</span>
           </div>
+
+          {/* Számláló */}
           <div className="absolute top-8 right-16 z-20 font-['Cormorant_Garamond'] text-white/30 text-[1rem] font-light tabular-nums">
             {String(activeImg + 1).padStart(2, "0")} / {String(heroImages.length).padStart(2, "0")}
           </div>
@@ -215,9 +243,9 @@ export default function HeroInteractive() {
 
       <style jsx>{`
         @keyframes scrollPulse {
-          0% { transform: scaleY(0); opacity: 1; transform-origin: top; }
-          50% { transform: scaleY(1); opacity: 1; transform-origin: top; }
-          51% { transform-origin: bottom; }
+          0%   { transform: scaleY(0); opacity: 1; transform-origin: top; }
+          50%  { transform: scaleY(1); opacity: 1; transform-origin: top; }
+          51%  { transform-origin: bottom; }
           100% { transform: scaleY(0); opacity: 0; transform-origin: bottom; }
         }
       `}</style>
