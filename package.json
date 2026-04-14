@@ -12,7 +12,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "^7.7.0",
     "@tailwindcss/vite": "^4.2.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
@@ -22,9 +22,8 @@
     "imagemin-pngquant": "^10.0.0",
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
-    "next-auth": "^5.0.0-beta.30",
-    "node": "^25.9.0",
-    "nodemailer": "^7.0.13",
+    "next-auth": "5.0.0-beta.30",
+    "nodemailer": "6.10.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
@@ -45,7 +44,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "postcss": "^8.5.9",
-    "prisma": "^7.6.0",
+    "prisma": "^7.7.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"
   }
