@@ -247,4 +247,82 @@ export async function sendMessageNotificationEmail(recipientEmail: string, sende
   `);
   return sendMailWrapper(recipientEmail, `💬 Új üzenet érkezett: ${projectName}`, html);
 }
-
+export async function sendPasswordResetEmail(
+  email: string,
+  name: string,
+  resetUrl: string,
+) {
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Szia ${name}!</h2>
+    <p style="text-align: center; color: #555555;">
+      Kaptunk egy jelszó-visszaállítási kérést a fiókoddal kapcsolatban.<br/>
+      Kattints az alábbi gombra az új jelszó beállításához.
+    </p>
+ 
+    <div style="text-align: center; margin: 40px 0;">
+      <a href="${resetUrl}"
+        style="background-color: #1A1510; color: #ffffff; padding: 18px 40px;
+               text-decoration: none; border-radius: 4px; display: inline-block;
+               text-transform: uppercase; font-size: 12px; font-weight: 600;
+               letter-spacing: 1px;">
+        Jelszó visszaállítása →
+      </a>
+    </div>
+ 
+    <p style="text-align: center; color: #888888; font-size: 12px;">
+      A link <strong>1 óráig</strong> érvényes. Ha nem te kérted,
+      egyszerűen hagyd figyelmen kívül — a fiókod biztonságban van.
+    </p>
+ 
+    <div style="margin: 30px 0; padding: 16px 20px;
+                background-color: #fafafa; border: 1px solid #eeeeee;
+                border-radius: 4px;">
+      <p style="margin: 0; font-size: 11px; color: #aaaaaa; word-break: break-all;">
+        Vagy másold be ezt a linket a böngésződbe:<br/>
+        <a href="${resetUrl}" style="color: #A08060;">${resetUrl}</a>
+      </p>
+    </div>
+  `);
+ 
+  return sendMailWrapper(email, "Jelszó visszaállítás | OptikArt", html);
+}
+ 
+// ── Sikeres jelszóváltoztatás értesítő ───────────────────────
+export async function sendPasswordChangedEmail(
+  email: string,
+  name: string,
+) {
+  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`;
+ 
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Jelszó megváltoztatva</h2>
+    <p style="text-align: center; color: #555555;">
+      Szia ${name}, a fiókodhoz tartozó jelszó sikeresen megváltozott.
+    </p>
+ 
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; padding: 12px 28px;
+                  background-color: #27ae60; color: #ffffff;
+                  border-radius: 4px; font-size: 13px; font-weight: 600;
+                  text-transform: uppercase; letter-spacing: 1px;">
+        ✓ Jelszó frissítve
+      </div>
+    </div>
+ 
+    <p style="text-align: center; color: #888888; font-size: 13px;">
+      Ha nem te változtattad meg, azonnal vedd fel velünk a kapcsolatot:<br/>
+      <a href="mailto:business@optikart.hu" style="color: #A08060;">business@optikart.hu</a>
+    </p>
+ 
+    <div style="text-align: center; margin: 35px 0;">
+      <a href="${loginUrl}"
+        style="background-color: #1A1510; color: #ffffff; padding: 15px 35px;
+               text-decoration: none; border-radius: 4px; display: inline-block;
+               text-transform: uppercase; font-size: 12px; font-weight: 600;">
+        Bejelentkezés
+      </a>
+    </div>
+  `);
+ 
+  return sendMailWrapper(email, "Jelszavad megváltozott | OptikArt", html);
+}
