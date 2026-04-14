@@ -4,11 +4,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
 
-type Params = { params: Promise<{ id: string }> };
-
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: Request, context: any) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -26,9 +24,9 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(req: Request, { params }: Params) {
+export async function DELETE(req: Request, context: any) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     if (!session?.user?.id || (session.user as any).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -2,7 +2,7 @@
 
 // app/(admin)/admin/messages/page.tsx
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -43,7 +43,8 @@ function timeAgo(iso: string) {
   if (h < 24) return `${h}ó`; return `${Math.floor(h / 24)}n`;
 }
 
-export default function AdminMessagesPage() {
+// ── Belső komponens amely useSearchParams-t használ ──────────
+function AdminMessagesInner() {
   const searchParams = useSearchParams();
 
   const [userMsgs,        setUserMsgs]        = useState<UserMsg[]>([]);
@@ -54,7 +55,6 @@ export default function AdminMessagesPage() {
   const [activeUser,  setActiveUser]  = useState<UserMsg | null>(null);
   const [activeGuest, setActiveGuest] = useState<GuestSession | null>(null);
 
-  // ── Stale closure fix: ref-ben tároljuk az aktív ID-ket ──
   const activeUserIdRef  = useRef<number | null>(null);
   const activeGuestIdRef = useRef<string | null>(null);
 
@@ -86,7 +86,6 @@ export default function AdminMessagesPage() {
     setGuestUnanswered(guestData.unanswered ?? 0);
     setLoading(false);
 
-    // Aktív thread frissítése ref alapján (stale closure elkerülése)
     if (activeUserIdRef.current !== null) {
       const updated = umsgs.find(m => m.id === activeUserIdRef.current);
       if (updated) setActiveUser(updated);
@@ -101,11 +100,9 @@ export default function AdminMessagesPage() {
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
-  // Ref szinkronizálás
   useEffect(() => { activeUserIdRef.current  = activeUser?.id  ?? null; }, [activeUser]);
   useEffect(() => { activeGuestIdRef.current = activeGuest?.id ?? null; }, [activeGuest]);
 
-  // URL param: ?guest=sessionId (email linkből)
   useEffect(() => {
     const guestId = searchParams?.get("guest");
     if (guestId && guestSessions.length > 0) {
@@ -124,18 +121,12 @@ export default function AdminMessagesPage() {
   }
 
   async function handleUserDelete(id: number, type?: string) {
-  if (!confirm("Törlöd ezt az üzenetet?")) return;
- 
-  // _type query param-ként adjuk át hogy a szerver tudja melyik táblából töröljön
-  const typeParam = type === "project_message" ? "?type=project_message" : "?type=chat";
- 
-  await fetch(`/api/chat/${id}${typeParam}`, { method: "DELETE" });
-  setUserMsgs(prev => prev.filter(m => m.id !== id));
-  if (activeUserIdRef.current === id) {
-    setActiveUser(null);
-    activeUserIdRef.current = null;
+    if (!confirm("Törlöd ezt az üzenetet?")) return;
+    const typeParam = type === "project_message" ? "?type=project_message" : "?type=chat";
+    await fetch(`/api/chat/${id}${typeParam}`, { method: "DELETE" });
+    setUserMsgs(prev => prev.filter(m => m.id !== id));
+    if (activeUserIdRef.current === id) { setActiveUser(null); activeUserIdRef.current = null; }
   }
-}
 
   async function handleUserReply() {
     if (!reply.trim() || !activeUser) return;
@@ -152,7 +143,6 @@ export default function AdminMessagesPage() {
       });
       if (!res.ok) throw new Error();
       setReply("");
-      // Olvasottnak jelöl + újratölt – a ref-es load() frissíti az activeUser-t
       await markUserRead(activeUser.id);
       await load();
     } catch {}
@@ -174,7 +164,6 @@ export default function AdminMessagesPage() {
     finally { setSending(false); }
   }
 
-  // ── Unified lista ─────────────────────────────────────────
   const listItems: ListItem[] = [];
   if (filter === "guest") {
     guestSessions.forEach(g => listItems.push({ kind: "guest", data: g }));
@@ -273,9 +262,9 @@ export default function AdminMessagesPage() {
               );
             }
 
-            const msg      = item.data;
-            const isUnread = !msg.isRead && !msg.isAdminReply;
-            const isActive = activeUser?.id === msg.id;
+            const msg       = item.data;
+            const isUnread  = !msg.isRead && !msg.isAdminReply;
+            const isActive  = activeUser?.id === msg.id;
             const isProjMsg = msg._type === "project_message";
             return (
               <div key={`${msg._type ?? "chat"}-${msg.id}`}
@@ -290,23 +279,17 @@ export default function AdminMessagesPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <div className="text-[12px] text-[#D4C4B0] font-medium truncate">{msg.sender.name ?? "—"}</div>
-                        {isProjMsg && (
-                          <span className="text-[8px] border border-[#60A5FA]/20 text-[#60A5FA]/60 px-1 shrink-0">projekt</span>
-                        )}
+                        {isProjMsg && <span className="text-[8px] border border-[#60A5FA]/20 text-[#60A5FA]/60 px-1 shrink-0">projekt</span>}
                       </div>
                       <div className="text-[10px] text-[#3A3530] truncate">{msg.sender.email}</div>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[10px] text-[#3A3530]">{timeAgo(msg.createdAt)}</div>
-                    {msg._count.replies > 0 && (
-                      <div className="text-[9px] text-[#C8A882]/40 mt-0.5">{msg._count.replies} válasz</div>
-                    )}
+                    {msg._count.replies > 0 && <div className="text-[9px] text-[#C8A882]/40 mt-0.5">{msg._count.replies} válasz</div>}
                   </div>
                 </div>
-                {msg.project && (
-                  <div className="text-[9px] tracking-[0.08em] uppercase text-[#C8A882]/40 mb-1 ml-9">📁 {msg.project.name}</div>
-                )}
+                {msg.project && <div className="text-[9px] tracking-[0.08em] uppercase text-[#C8A882]/40 mb-1 ml-9">📁 {msg.project.name}</div>}
                 <p className="text-[11px] text-[#5A5248] line-clamp-1 ml-9">{msg.body}</p>
               </div>
             );
@@ -318,20 +301,16 @@ export default function AdminMessagesPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="px-5 py-3.5 border-b border-white/[0.05] flex items-start justify-between gap-4 shrink-0">
               <div>
-                <button onClick={() => setActiveUser(null)}
-                  className="lg:hidden text-[10px] text-[#3A3530] hover:text-[#C8A882] flex items-center gap-1 mb-1.5">
+                <button onClick={() => setActiveUser(null)} className="lg:hidden text-[10px] text-[#3A3530] hover:text-[#C8A882] flex items-center gap-1 mb-1.5">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><polyline points="15 18 9 12 15 6"/></svg>Vissza
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="text-[13px] text-[#D4C4B0] font-medium">{activeUser.sender.name ?? activeUser.sender.email}</div>
-                  {activeUser._type === "project_message" && (
-                    <span className="text-[8px] border border-[#60A5FA]/20 text-[#60A5FA]/60 px-1.5 py-0.5">projekt üzenet</span>
-                  )}
+                  {activeUser._type === "project_message" && <span className="text-[8px] border border-[#60A5FA]/20 text-[#60A5FA]/60 px-1.5 py-0.5">projekt üzenet</span>}
                 </div>
                 <div className="text-[10px] text-[#3A3530]">{activeUser.sender.email}</div>
                 {activeUser.project && (
-                  <Link href={`/admin/projects/${activeUser.project.id}`}
-                    className="text-[10px] text-[#C8A882]/50 hover:text-[#C8A882] flex items-center gap-1 mt-0.5">
+                  <Link href={`/admin/projects/${activeUser.project.id}`} className="text-[10px] text-[#C8A882]/50 hover:text-[#C8A882] flex items-center gap-1 mt-0.5">
                     📁 {activeUser.project.name} →
                   </Link>
                 )}
@@ -345,7 +324,6 @@ export default function AdminMessagesPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
-              {/* Eredeti üzenet */}
               <div className="flex gap-3">
                 <div className="w-7 h-7 border border-[#C8A882]/20 flex items-center justify-center font-['Cormorant_Garamond'] text-[11px] text-[#C8A882] shrink-0 mt-0.5">
                   {activeUser.sender.name?.charAt(0).toUpperCase() ?? "?"}
@@ -353,29 +331,19 @@ export default function AdminMessagesPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[11px] text-[#5A5248]">{activeUser.sender.name}</span>
-                    <span className="text-[10px] text-[#3A3530]">
-                      {new Date(activeUser.createdAt).toLocaleString("hu-HU", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </span>
+                    <span className="text-[10px] text-[#3A3530]">{new Date(activeUser.createdAt).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
                   </div>
-                  <div className="bg-[#141210] border border-white/[0.05] px-4 py-3 text-[13px] text-[#D4C4B0] leading-relaxed">
-                    {activeUser.body}
-                  </div>
+                  <div className="bg-[#141210] border border-white/[0.05] px-4 py-3 text-[13px] text-[#D4C4B0] leading-relaxed">{activeUser.body}</div>
                 </div>
               </div>
 
-              {/* Projekt üzenet esetén nincs reply rendszer */}
               {activeUser._type === "project_message" && (
                 <div className="text-[11px] text-[#3A3530] text-center py-2 border border-white/[0.04] px-4">
                   Ez egy projekt üzenet — válaszolni a projekt részletei oldalról lehet.
-                  {activeUser.project && (
-                    <Link href={`/admin/projects/${activeUser.project.id}`} className="text-[#C8A882]/60 hover:text-[#C8A882] ml-2">
-                      Projekt megnyitása →
-                    </Link>
-                  )}
+                  {activeUser.project && <Link href={`/admin/projects/${activeUser.project.id}`} className="text-[#C8A882]/60 hover:text-[#C8A882] ml-2">Projekt megnyitása →</Link>}
                 </div>
               )}
 
-              {/* Chat válaszok */}
               {activeUser._type !== "project_message" && activeUser.replies.map(r => (
                 <div key={r.id} className={`flex gap-3 ${r.sender.role === "ADMIN" ? "flex-row-reverse" : ""}`}>
                   <div className={`w-7 h-7 border flex items-center justify-center font-['Cormorant_Garamond'] text-[11px] shrink-0 mt-0.5 ${r.sender.role === "ADMIN" ? "border-[#C8A882]/40 text-[#C8A882] bg-[#C8A882]/8" : "border-white/[0.1] text-[#5A5248]"}`}>
@@ -394,7 +362,6 @@ export default function AdminMessagesPage() {
               ))}
             </div>
 
-            {/* Input – csak chat üzeneteknél */}
             {activeUser._type !== "project_message" && (
               <div className="shrink-0 border-t border-white/[0.05] p-4 flex gap-3">
                 <textarea value={reply} onChange={e => setReply(e.target.value)}
@@ -415,17 +382,14 @@ export default function AdminMessagesPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="px-5 py-3.5 border-b border-white/[0.05] flex items-start justify-between gap-4 shrink-0">
               <div>
-                <button onClick={() => setActiveGuest(null)}
-                  className="lg:hidden text-[10px] text-[#3A3530] hover:text-[#C8A882] flex items-center gap-1 mb-1.5">
+                <button onClick={() => setActiveGuest(null)} className="lg:hidden text-[10px] text-[#3A3530] hover:text-[#C8A882] flex items-center gap-1 mb-1.5">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><polyline points="15 18 9 12 15 6"/></svg>Vissza
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="text-[13px] text-[#D4C4B0] font-medium">{activeGuest.name}</div>
                   <span className="text-[8px] border border-[#FBBF24]/20 text-[#FBBF24]/60 px-1.5 py-0.5">vendég</span>
                 </div>
-                <a href={`mailto:${activeGuest.email}`} className="text-[10px] text-[#C8A882]/50 hover:text-[#C8A882] transition-colors">
-                  {activeGuest.email}
-                </a>
+                <a href={`mailto:${activeGuest.email}`} className="text-[10px] text-[#C8A882]/50 hover:text-[#C8A882] transition-colors">{activeGuest.email}</a>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
@@ -471,5 +435,19 @@ export default function AdminMessagesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Külső komponens Suspense boundary-val ─────────────────────
+export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-[#0C0A08] flex items-center justify-center gap-3">
+        <div className="w-5 h-5 border border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+        <span className="text-[12px] text-[#3A3530]">Betöltés...</span>
+      </div>
+    }>
+      <AdminMessagesInner />
+    </Suspense>
   );
 }
