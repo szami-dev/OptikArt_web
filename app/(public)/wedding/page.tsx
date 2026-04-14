@@ -17,12 +17,16 @@ type Package = {
 };
 
 const references = [
-  { src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=75", alt: "Réka & Péter", location: "Budapest", year: "2024", span: "col-span-2 row-span-2" },
-  { src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=75", alt: "Anna & Márk", location: "Visegrád", year: "2024", span: "col-span-1 row-span-1" },
-  { src: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&q=75", alt: "Virág & Bence", location: "Eger", year: "2023", span: "col-span-1 row-span-1" },
-  { src: "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800&q=75", alt: "Kata & Dávid", location: "Győr", year: "2024", span: "col-span-1 row-span-2" },
-  { src: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800&q=75", alt: "Nóri & Ádám", location: "Pécs", year: "2023", span: "col-span-1 row-span-1" },
-  { src: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=75", alt: "Zsófi & Gábor", location: "Debrecen", year: "2023", span: "col-span-1 row-span-1" },
+  { src: "/slides/kreativ-52.JPG", alt: "Vivi & Bence", location: "Kecskemét", year: "2025", span: "col-span-2 row-span-2" },
+  { src: "/gallery/wedding/arankatibor-15.JPG", alt: "Aranka & Tibor", location: "Csongrád", year: "2026", span: "col-span-1 row-span-1" },
+  { src: "/gallery/wedding/vanizoli-210.jpg", alt: "Vani & Zoli", location: "Csongrád", year: "2025", span: "col-span-1 row-span-1" },
+  { src: "/slides/kreativ-12.JPG", alt: "Vivi & Bence", location: "Győr", year: "2024", span: "col-span-1 row-span-2" },
+  { src: "/gallery/wedding/keszulodes-90.JPG", alt: "Vivi & Bence", location: "Kecskemét", year: "2025", span: "col-span-1 row-span-1" },
+  { src: "/gallery/wedding/agigyula-230.JPG", alt: "Ági & Gyula", location: "Kiskunfélegyháza", year: "2026", span: "col-span-1 row-span-1" },
+  { src: "/gallery/wedding/sps-23.JPG", alt: "Vani & Zoli", location: "Győr", year: "2024", span: "col-span-1 row-span-1" },
+  { src: "/gallery/wedding/sps-15.JPG", alt: "Vani & Zoli", location: "Csongrád", year: "2025", span: "col-span-1 row-span-1" },
+
+
 ];
 
 const faqs = [

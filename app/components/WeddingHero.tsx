@@ -93,7 +93,7 @@ export default function WeddingHero() {
             className="object-cover object-center"
             priority
             sizes="100vw"
-            quality={90}
+            
           />
         </div>
       </div>

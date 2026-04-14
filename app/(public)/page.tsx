@@ -10,12 +10,13 @@ import Footer from "../components/Footer";
 import { useAnalytics } from "@/lib/analytics";
 import BTSGallery from "../components/bts";
 import BTSSection from "../components/bts";
+import Link from "next/dist/client/link";
 
 const stats = [
   { number: "320+", label: "Lezárt projekt" },
   { number: "7 év", label: "Szakmai tapasztalat" },
   { number: "98%", label: "Elégedett ügyfél" },
-  { number: "15 tb+", label: "Átadott tartalom" },
+  { number: "15 TB+", label: "Átadott tartalom" },
 ];
 
 
@@ -151,7 +152,7 @@ export default function LandingPage() {
     <div ref={rootRef} className="bg-[#FAF8F4] overflow-x-hidden">
       <HeroInteractive />
       <HorizontalScrollSection />
-      <BTSSection />
+      
       <TeamSection />
 
       {/* STATS */}
@@ -232,7 +233,11 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
+
+                <Link href="/about" onClick={() => trackClick("rolunk")}>
+                
               <Button variant="outline" size="lg" onClick={() => trackClick("rolunk")}>Bővebben rólunk</Button>
+              </Link>
             </div>
           </div>
         </div>

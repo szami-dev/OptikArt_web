@@ -7,12 +7,13 @@ import Button from "@/app/components/Button";
 import { useAnalytics } from "@/lib/analytics";
 
 const heroImages = [
+  { src: "/slides/napraforgo-132.JPG", alt: "Portré", label: "Portré" },
   { src: "/slides/kreativ-12.JPG", alt: "Esküvő", label: "Esküvő" },
-  { src: "/slides/kreativ-52.JPG", alt: "Portré", label: "Portré" },
-  { src: "/slides/marcidorina-59.JPG", alt: "Rendezvény", label: "Rendezvény" },
-  { src: "/slides/muzeumokejszakaja-230.jpg", alt: "Drón", label: "Drón" },
+  { src: "/slides/reka&adam-75.JPG", alt: "Páros", label: "Páros" },
+  { src: "/slides/marcidorina-59.JPG", alt: "Jegyes", label: "Jegyes" },
+  { src: "/gallery/event/kurultaj-169.JPG", alt: "Rendezvény", label: "Rendezvény" },
+  
 ];
-
   
 export default function HeroInteractive() {
   const { trackClick } = useAnalytics();
@@ -78,11 +79,12 @@ export default function HeroInteractive() {
             <Image
               src={img.src}
               alt={img.label}
-             
               fill
               className="object-cover object-center"
               sizes="100vw"
+              
               priority={i === 0}
+              
             />
           </div>
         ))}
