@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 import { 
   sendPaymentStatusEmail, 
   sendProjectStatusEmail, 
-  sendProjectDeletedEmail 
+  sendProjectDeletedEmail, 
+  sendEventDateChangedEmail
 } from "@/lib/email";
 
 export async function GET(
@@ -45,105 +46,81 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+
+ 
+export async function PATCH(req: Request, context: any) {
+  const { id } = await context.params;
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { id: rawId } = await params;
-    const id = parseInt(rawId);
-    if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
-
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ 
     const body = await req.json();
-    const { name, description, status, typeId, packageId, paymentStatus, totalPrice } = body;
-
-    // --- MAGYARÍTÁS ÉS SZÍNEK (A beküldött képek alapján) ---
-    
-    const projectStatusConfig: Record<string, { label: string; color: string }> = {
-      PLANNING:    { label: "TERVEZÉS",     color: "#A08060" }, // Aranybarna/Szürke
-      IN_PROGRESS: { label: "FOLYAMATBAN", color: "#3498db" }, // Kék
-      COMPLETED:   { label: "KÉSZ",        color: "#27ae60" }, // Zöld
-      ON_HOLD:     { label: "FELFÜGGESZTVE", color: "#f1c40f" }, // Sárga/Narancs
-      CANCELLED:   { label: "TÖRÖLVE",      color: "#e74c3c" }  // Piros
-    };
-
-    const paymentStatusConfig: Record<string, { label: string; color: string }> = {
-      PENDING:  { label: "FÜGGŐBEN",     color: "#f39c12" }, // Sárgás/Narancs
-      PAID:     { label: "FIZETVE",      color: "#2ecc71" }, // Zöld
-      OVERDUE:  { label: "LEJÁRT",       color: "#c0392b" }, // Piros
-      REFUNDED: { label: "VISSZATÉRÍTVE", color: "#9b59b6" }  // Lila/Kék
-    };
-
-    // 1. Lekérjük a régi adatokat és a felhasználókat
-    const oldProject = await prisma.project.findUnique({
-      where: { id },
-      include: { users: true }
+    const {
+      name, description, status, paymentStatus, totalPrice,
+      eventDate,           // ← ÚJ
+      notifyDateChange,    // ← ÚJ: ha true, email küldés
+    } = body;
+ 
+    // A régi eventDate lekérése összehasonlításhoz
+    const existing = await prisma.project.findUnique({
+      where:  { id: parseInt(id) },
+      select: {
+        eventDate: true,
+        name:      true,
+        users:     { select: { email: true, name: true } },
+      },
     });
-
-    if (!oldProject) return NextResponse.json({ error: "Projekt nem található" }, { status: 404 });
-
-    // 2. Frissítendő adatok összeállítása
-    const updateData: Record<string, any> = {};
-    if (name !== undefined)          updateData.name = name;
-    if (description !== undefined)   updateData.description = description;
-    if (status !== undefined)        updateData.status = status;
-    if (typeId !== undefined)        updateData.typeId = typeId;
-    if (packageId !== undefined)     updateData.packageId = packageId;
-    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
-    if (totalPrice !== undefined)    updateData.totalPrice = totalPrice;
-
-    // 3. Mentés az adatbázisba
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: updateData,
+    if (!existing) return NextResponse.json({ error: "Nem található" }, { status: 404 });
+ 
+    // Frissítés
+    const updated = await prisma.project.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(name         !== undefined && { name }),
+        ...(description  !== undefined && { description }),
+        ...(status       !== undefined && { status }),
+        ...(paymentStatus!== undefined && { paymentStatus }),
+        ...(totalPrice   !== undefined && { totalPrice }),
+        // eventDate kezelés: null = törlés, string = beállítás
+        ...(eventDate !== undefined && {
+          eventDate: eventDate ? new Date(`${eventDate}T12:00:00.000Z`) : null,
+        }),
+      },
+      include: {
+        users:          { select: { id: true, name: true, email: true, phone: true } },
+        type:           true,
+        category:       { include: { bulletPoints: true } },
+        calendarEvents: true,
+        galleries:      {
+          include: {
+            images:     true,
+            imagesFull: true,
+          },
+        },
+        messages: {
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
     });
-
-    // --- EMAIL KÜLDÉSI LOGIKA ---
-    const emailPromises = [];
-
-    // PROJEKT STÁTUSZ VÁLTOZÁS
-    if (status && status !== oldProject.status) {
-      const config = projectStatusConfig[status] || { label: status, color: "#1a1a1a" };
-      for (const user of oldProject.users) {
-        emailPromises.push(
-          sendProjectStatusEmail(
-            user.email, 
-            user.name || "Ügyfelünk", 
-            updatedProject.name || "Projekt", 
-            config.label, 
-            config.color
-          )
-        );
-      }
+ 
+    // ── Email küldés ha a dátum megváltozott és van ügyfél ──
+    if (notifyDateChange && eventDate && existing.users.length > 0) {
+      const newDate = new Date(`${eventDate}T12:00:00.000Z`);
+      const projectName = existing.name ?? "projekt";
+ 
+      // Aszinkron, ne blokkolja a választ
+      Promise.all(
+        existing.users.map(u =>
+          sendEventDateChangedEmail(u.email, u.name ?? "Ügyfelünk", projectName, newDate)
+            .catch(e => console.error("[MAIL] eventDate email hiba:", e))
+        )
+      );
     }
-
-    // FIZETÉSI STÁTUSZ VÁLTOZÁS
-    if (paymentStatus && paymentStatus !== oldProject.paymentStatus) {
-      const config = paymentStatusConfig[paymentStatus] || { label: paymentStatus, color: "#1a1a1a" };
-      for (const user of oldProject.users) {
-        emailPromises.push(
-          sendPaymentStatusEmail(
-            user.email, 
-            user.name || "Ügyfelünk", 
-            updatedProject.name || "Projekt", 
-            config.label, 
-            config.color
-          )
-        );
-      }
-    }
-
-    // Emailek indítása (nem várjuk meg a választ az API válaszhoz, hogy gyors legyen)
-    if (emailPromises.length > 0) {
-      Promise.all(emailPromises).catch(err => console.error("API Email hiba:", err));
-    }
-
-    return NextResponse.json({ project: updatedProject });
+ 
+    return NextResponse.json({ project: updated });
   } catch (err) {
-    console.error("[PATCH /api/projects/[id]]", err);
+    console.error(`[PATCH /api/projects/${id}]`, err);
     return NextResponse.json({ error: "Szerverhiba" }, { status: 500 });
   }
 }
