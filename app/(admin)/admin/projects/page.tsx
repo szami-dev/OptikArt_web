@@ -83,6 +83,12 @@ const HU_MONTHS_SH = [
   "dec",
 ];
 
+// ── Segédfüggvények ───────────────────────────────────────────
+function toYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// ── StatusBadge ───────────────────────────────────────────────
 function StatusBadge({ status }: { status: ProjectStatus | null }) {
   if (!status) return <span className="text-[#3A3530] text-[10px]">—</span>;
   const m = STATUS_META[status];
@@ -100,6 +106,7 @@ function StatusBadge({ status }: { status: ProjectStatus | null }) {
   );
 }
 
+// ── Toast ─────────────────────────────────────────────────────
 function Toast({
   msg,
   type,
@@ -151,6 +158,7 @@ function DarkField({
   );
 }
 
+// ── AdminDateBadge ────────────────────────────────────────────
 function AdminDateBadge({
   eventDate,
   events,
@@ -223,6 +231,166 @@ function AdminDateBadge({
   );
 }
 
+// ── AdminMiniCalendar ─────────────────────────────────────────
+function AdminMiniCalendar({
+  selectedDate,
+  onSelect,
+  busyDates,
+}: {
+  selectedDate: string;
+  onSelect: (d: string) => void;
+  busyDates: string[];
+}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+
+  const y = viewMonth.getFullYear();
+  const m = viewMonth.getMonth();
+  const first = new Date(y, m, 1);
+  const last = new Date(y, m + 1, 0);
+  let off = first.getDay() - 1;
+  if (off < 0) off = 6;
+
+  const days: (Date | null)[] = [];
+  for (let i = 0; i < off; i++) days.push(null);
+  for (let d = 1; d <= last.getDate(); d++) days.push(new Date(y, m, d));
+
+  function prevMonth() {
+    setViewMonth((v) => {
+      const n = new Date(v);
+      n.setDate(1);
+      n.setMonth(n.getMonth() - 1);
+      return n;
+    });
+  }
+  function nextMonth() {
+    setViewMonth((v) => {
+      const n = new Date(v);
+      n.setDate(1);
+      n.setMonth(n.getMonth() + 1);
+      return n;
+    });
+  }
+
+  return (
+    <div className="bg-[#0E0C0A] border border-white/[0.08] p-4">
+      {/* Fejléc */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={prevMonth}
+          className="w-7 h-7 flex items-center justify-center border border-white/[0.08] text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="w-3.5 h-3.5"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span className="text-[11px] text-[#D4C4B0] font-medium">
+          {viewMonth.toLocaleDateString("hu-HU", {
+            year: "numeric",
+            month: "long",
+          })}
+        </span>
+        <button
+          onClick={nextMonth}
+          className="w-7 h-7 flex items-center justify-center border border-white/[0.08] text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="w-3.5 h-3.5"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Napok fejléce */}
+      <div className="grid grid-cols-7 mb-1">
+        {["H", "K", "Sz", "Cs", "P", "Szo", "V"].map((d) => (
+          <div
+            key={d}
+            className="text-center text-[9px] tracking-[0.08em] uppercase text-[#3A3530] py-1"
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Napok */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {days.map((day, i) => {
+          if (!day) return <div key={`e${i}`} />;
+          const ymd = toYMD(day);
+          const isPast = day < today;
+          const isBusy = busyDates.includes(ymd);
+          const isSelected = selectedDate === ymd;
+          const isToday = toYMD(day) === toYMD(today);
+          const disabled = isPast;
+          return (
+            <button
+              key={ymd}
+              disabled={disabled}
+              onClick={() => !disabled && onSelect(isSelected ? "" : ymd)}
+              title={isBusy ? "Foglalt nap" : undefined}
+              className={`relative h-8 w-full text-[11px] transition-all rounded-sm
+                ${disabled ? "cursor-not-allowed opacity-25" : "cursor-pointer"}
+                ${
+                  isSelected
+                    ? "bg-[#C8A882] text-[#0C0A08] font-medium"
+                    : isBusy && !isPast
+                      ? "bg-[#C8A882]/10 text-[#C8A882]/40"
+                      : isToday
+                        ? "border border-[#C8A882]/40 text-[#C8A882]"
+                        : !disabled
+                          ? "text-[#5A5248] hover:bg-white/[0.06] hover:text-[#D4C4B0]"
+                          : "text-[#2A2520]"
+                }`}
+            >
+              <span
+                className={
+                  isBusy && !isPast && !isSelected ? "line-through" : ""
+                }
+              >
+                {day.getDate()}
+              </span>
+              {isBusy && !isPast && !isSelected && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C8A882]/50" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Jelmagyarázat */}
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.05]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 bg-[#C8A882]/15 border border-[#C8A882]/20 rounded-sm" />
+          <span className="text-[9px] text-[#3A3530]">Foglalt</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 bg-[#C8A882] rounded-sm" />
+          <span className="text-[9px] text-[#3A3530]">Kiválasztva</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── NewProjectModal ───────────────────────────────────────────
 function NewProjectModal({
   onClose,
   onCreated,
@@ -237,11 +405,13 @@ function NewProjectModal({
   const [status, setStatus] = useState<ProjectStatus>("PLANNING");
   const [userId, setUserId] = useState<number | null>(null);
   const [totalPrice, setTotalPrice] = useState("");
-  const [eventDate, setEventDate] = useState(""); // ← ÚJ
+  const [eventDate, setEventDate] = useState("");
   const [packages, setPackages] = useState<Package[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [busyDates, setBusyDates] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     fetch("/api/packages")
@@ -250,7 +420,11 @@ function NewProjectModal({
     fetch("/api/user/getusers")
       .then((r) => r.json())
       .then((d) => setUsers(d.users ?? []));
+    fetch("/api/calendar/busy?from=" + new Date().toISOString())
+      .then((r) => r.json())
+      .then((d) => setBusyDates(d.busyDates ?? []));
   }, []);
+
   useEffect(() => {
     setPackageId(null);
   }, [typeId]);
@@ -279,7 +453,7 @@ function NewProjectModal({
           status,
           userId: userId || null,
           totalPrice: totalPrice ? parseFloat(totalPrice) : null,
-          eventDate: eventDate || null, // ← ÚJ
+          eventDate: eventDate || null,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -383,15 +557,69 @@ function NewProjectModal({
             </DarkField>
           </div>
 
-          {/* ── ÚJ: Munka dátuma mező ── */}
-          <DarkField label="Munka dátuma (fotózás / videózás napja)">
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className={inputCls}
-              style={{ colorScheme: "dark" }}
-            />
+          {/* ── Munka dátuma – kattintható gomb + MiniCalendar ── */}
+          <DarkField label="Munka dátuma">
+            <button
+              type="button"
+              onClick={() => setShowCalendar((v) => !v)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 border text-[13px] text-left transition-colors ${
+                showCalendar
+                  ? "border-[#C8A882]/40 bg-[#141210]"
+                  : "border-white/[0.08] bg-[#141210] hover:border-white/[0.14]"
+              }`}
+            >
+              <span className={eventDate ? "text-[#D4C4B0]" : "text-[#3A3530]"}>
+                {eventDate
+                  ? new Date(eventDate + "T12:00:00").toLocaleDateString(
+                      "hu-HU",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        weekday: "long",
+                      },
+                    )
+                  : "Kattints a dátum kiválasztásához..."}
+              </span>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                {eventDate && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEventDate("");
+                    }}
+                    className="text-[#5A5248] hover:text-red-400 transition-colors text-[11px] cursor-pointer"
+                  >
+                    ✕
+                  </span>
+                )}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className={`w-4 h-4 transition-colors ${showCalendar ? "text-[#C8A882]" : "text-[#5A5248]"}`}
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+            </button>
+
+            {showCalendar && (
+              <div className="mt-1">
+                <AdminMiniCalendar
+                  selectedDate={eventDate}
+                  onSelect={(ymd) => {
+                    setEventDate(ymd);
+                    if (ymd) setShowCalendar(false);
+                  }}
+                  busyDates={busyDates}
+                />
+              </div>
+            )}
           </DarkField>
 
           {hasPackages && (
@@ -489,6 +717,7 @@ function NewProjectModal({
   );
 }
 
+// ── AdminProjectsPage ─────────────────────────────────────────
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -584,6 +813,7 @@ export default function AdminProjectsPage() {
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-4">
+        {/* Statisztikák */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {[
             { label: "Összes", value: stats.total, color: "#C8A882" },
@@ -608,6 +838,7 @@ export default function AdminProjectsPage() {
           ))}
         </div>
 
+        {/* Kereső + szűrő */}
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3A3530]">
