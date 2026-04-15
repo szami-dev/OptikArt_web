@@ -1,8 +1,22 @@
-import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
-import { auth } from "@/auth";
-import { ProjectStatus } from "@/app/generated/prisma/enums";
-import { sendAdminNotificationEmail, sendProjectCreatedEmail } from "@/lib/email";
+// app/api/projects/create/route.ts
+
+import { NextResponse }   from "next/server";
+import prisma             from "@/lib/db";
+import { auth }           from "@/auth";
+import { ProjectStatus }  from "@/app/generated/prisma/enums";
+import {
+  sendAdminNotificationEmail,
+  sendAdminCreatedProjectEmail,
+  sendProjectCreatedEmail
+} from "@/lib/email";  // ← lib/mail, nem lib/email
+
+function buildEventTitle(typeId: number | null, projectName: string): string {
+  const labels: Record<number, string> = {
+    1: "Esküvő", 2: "Portré fotózás", 3: "Rendezvény",
+    4: "Marketing forgatás", 5: "Drón felvétel", 6: "Fotózás",
+  };
+  return `${typeId ? (labels[typeId] ?? "Fotózás") : "Fotózás"} — ${projectName}`;
+}
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     const userId = parseInt(session.user.id as string);
-    const body = await req.json();
+    const body   = await req.json();
     const {
       name, description, typeId, packageId,
       date, phone, location, travelFee, szabadteriFelár,
@@ -32,7 +46,7 @@ export async function POST(req: Request) {
       const typeName = typeNames[typeId];
       if (typeName) {
         const type = await prisma.projectType.upsert({
-          where: { id: typeId },
+          where:  { id: typeId },
           update: {},
           create: { id: typeId, name: typeName },
         });
@@ -40,14 +54,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Csomag adatok DB-ből ───────────────────────────────────
+    // ── Csomag adatok ──────────────────────────────────────────
     let resolvedPackageId: number | null = null;
-    let packageBasePrice = 0;
+    let packageBasePrice  = 0;
     let packageSubtype: string | null = null;
 
     if (packageId) {
       const pkg = await prisma.package.findUnique({
-        where: { id: packageId },
+        where:  { id: packageId },
         select: { id: true, price: true, subtype: true },
       });
       if (pkg) {
@@ -57,54 +71,40 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── totalPrice számítás ────────────────────────────────────
+    // ── totalPrice ─────────────────────────────────────────────
     const szabadteriFelar = szabadteriFelár ?? 0;
     const kiszallasiFee   = travelFee ?? 0;
-    const totalPrice = packageBasePrice + szabadteriFelar + kiszallasiFee;
+    const totalPrice      = packageBasePrice + szabadteriFelar + kiszallasiFee;
 
     // ── Foglalt nap ellenőrzés ─────────────────────────────────
-    // Logika:
-    //   - KOMBINÁLT csomag → teljes nap blokkolva, bármi conflict
-    //   - FOTÓ vagy VIDEÓ csomag → conflict csak ha van kombinált
-    //     VAGY ugyanolyan subtype ugyanazon a napon
-    //     (foto + video ugyanarra a napra ENGEDÉLYEZETT)
-    //   - Portré / rendezvény / egyéb → bármi conflict
     if (date) {
       const dayStart = new Date(`${date}T00:00:00.000Z`);
       const dayEnd   = new Date(`${date}T23:59:59.999Z`);
 
-      // CalendarEvent-en nincs project reláció – projectId skaláron
-      // keresztül kérjük le a projekt csomag subtype-ját
       const existingEvents = await prisma.calendarEvent.findMany({
-        where: { startTime: { gte: dayStart, lte: dayEnd } },
+        where:  { startTime: { gte: dayStart, lte: dayEnd } },
         select: { id: true, projectId: true },
       });
 
       if (existingEvents.length > 0) {
-        const isEskuvo = typeId === 1;
-
-        // Az aznapi projektek subtype-jainak lekérése
-        const projectIds = existingEvents
+        const isEskuvo    = typeId === 1;
+        const projectIds  = existingEvents
           .map(e => e.projectId)
           .filter((id): id is number => id !== null);
 
         let existingSubtypes: (string | null)[] = [];
         if (projectIds.length > 0) {
           const existingProjects = await prisma.project.findMany({
-            where: { id: { in: projectIds } },
-            select: {
-              category: { select: { subtype: true } },
-            },
+            where:  { id: { in: projectIds } },
+            select: { category: { select: { subtype: true } } },
           });
           existingSubtypes = existingProjects.map(p => (p.category as any)?.subtype ?? null);
         }
 
         if (isEskuvo && (packageSubtype === "foto" || packageSubtype === "video")) {
-          // Fotó/videó: conflict ha van kombinált VAGY ugyanolyan subtype
-          const filtered = existingSubtypes.filter(Boolean) as string[];
+          const filtered       = existingSubtypes.filter(Boolean) as string[];
           const hasCombinalt   = filtered.includes("kombinalt");
           const hasSameSubtype = filtered.includes(packageSubtype);
-
           if (hasCombinalt || hasSameSubtype) {
             const reason = hasCombinalt
               ? "Erre a napra már van kombinált esküvői foglalás."
@@ -114,17 +114,12 @@ export async function POST(req: Request) {
               { status: 409 }
             );
           }
-          // Fotó + videó ugyanarra a napra → ENGEDÉLYEZETT
-
         } else if (isEskuvo && packageSubtype === "kombinalt") {
-          // Kombinált: bármi van aznap → conflict
           return NextResponse.json(
             { error: "Erre a napra már van foglalás. Kombinált csomagnál az egész nap le van foglalva. Kérjük válassz másik időpontot." },
             { status: 409 }
           );
-
         } else {
-          // Nem esküvő → régi logika: bármi conflict
           return NextResponse.json(
             { error: "Ez a nap már foglalt. Kérjük válassz másik időpontot." },
             { status: 409 }
@@ -133,16 +128,16 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Projekt létrehozása ────────────────────────────────────
+    // ── Projekt létrehozása + calendar event ───────────────────
     const project = await prisma.project.create({
       data: {
         name,
         eventDate: date ? new Date(`${date}T12:00:00.000Z`) : null,
         description: [
           description,
-          phone        ? `Telefon: ${phone}`                                                   : null,
-          location     ? `Helyszín: ${location}`                                               : null,
-          kiszallasiFee > 0 ? `Kiszállási díj: ${kiszallasiFee.toLocaleString("hu-HU")} Ft`  : null,
+          phone           ? `Telefon: ${phone}`                                                    : null,
+          location        ? `Helyszín: ${location}`                                                : null,
+          kiszallasiFee > 0 ? `Kiszállási díj: ${kiszallasiFee.toLocaleString("hu-HU")} Ft`      : null,
         ].filter(Boolean).join("\n\n"),
         status:        ProjectStatus.PLANNING,
         paymentStatus: "PENDING",
@@ -151,13 +146,11 @@ export async function POST(req: Request) {
         packageId:     resolvedPackageId,
         users:         { connect: { id: userId } },
 
+        // ── Calendar event létrehozása ha van dátum ───────────
         ...(date ? {
           calendarEvents: {
             create: {
-              title:    buildEventTitle(typeId, name),
-              // wholeDay: true → egész napos esemény
-              // T12:00:00.000Z → déli 12 UTC, soha nem csúszik napot
-              // sem UTC-1 sem UTC+14 időzónában sem
+              title:     buildEventTitle(resolvedTypeId, name.trim()),
               wholeDay:  true,
               startTime: new Date(`${date}T12:00:00.000Z`),
               endTime:   new Date(`${date}T12:00:00.000Z`),
@@ -171,10 +164,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // ── E-mailek küldése ───────────────────────────────────────
+    // ── E-mailek ───────────────────────────────────────────────
     try {
       const user = await prisma.user.findUnique({
-        where: { id: userId },
+        where:  { id: userId },
         select: { email: true, name: true },
       });
 
@@ -183,11 +176,11 @@ export async function POST(req: Request) {
         await Promise.all([
           sendProjectCreatedEmail(user.email, userName),
           sendAdminNotificationEmail(
-            ["szabomate403@gmail.com", "monostorimark05@gmail.com"],
+            ["optikartofficial@gmail.com"],
             user.email,
             userName,
             project.name || "Új projekt",
-            project.id.toString()
+            project.id.toString(),
           ),
         ]);
         console.log(`[MAIL] Értesítések kiküldve: ${user.email}`);
@@ -201,12 +194,4 @@ export async function POST(req: Request) {
     console.error("[POST /api/projects/create]", err);
     return NextResponse.json({ error: "Szerverhiba" }, { status: 500 });
   }
-}
-
-function buildEventTitle(typeId: number | null, projectName: string): string {
-  const labels: Record<number, string> = {
-    1: "Esküvő", 2: "Portré fotózás", 3: "Rendezvény",
-    4: "Marketing forgatás", 5: "Drón felvétel", 6: "Fotózás",
-  };
-  return `${typeId ? (labels[typeId] ?? "Fotózás") : "Fotózás"} — ${projectName}`;
 }

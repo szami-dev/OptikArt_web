@@ -1,12 +1,32 @@
+// app/api/projects/[id]/route.ts
+
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
-import { auth } from "@/auth";
-import { 
-  sendPaymentStatusEmail, 
-  sendProjectStatusEmail, 
-  sendProjectDeletedEmail 
+import prisma           from "@/lib/db";
+import { auth }         from "@/auth";
+import {
+  sendPaymentStatusEmail,
+  sendProjectStatusEmail,
+  sendProjectDeletedEmail,
+  sendEventDateChangedEmail,
 } from "@/lib/email";
 
+// ── Státusz → magyar szöveg + szín ───────────────────────────
+const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  PLANNING:    { label: "Tervezés alatt",  color: "#C8A882" },
+  IN_PROGRESS: { label: "Folyamatban",     color: "#60A5FA" },
+  COMPLETED:   { label: "Elkészült",       color: "#34D399" },
+  ON_HOLD:     { label: "Felfüggesztve",   color: "#FBBF24" },
+  CANCELLED:   { label: "Törölve",         color: "#F87171" },
+};
+
+const PAYMENT_LABEL: Record<string, { label: string; color: string }> = {
+  PENDING:  { label: "Függőben",      color: "#FBBF24" },
+  PAID:     { label: "Fizetve",       color: "#34D399" },
+  OVERDUE:  { label: "Lejárt",        color: "#F87171" },
+  REFUNDED: { label: "Visszatérítve", color: "#A78BFA" },
+};
+
+// ════════════════════════════════════════════════════════════════
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -22,11 +42,11 @@ export async function GET(
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        users: { select: { id: true, name: true, email: true, phone: true } },
-        type: true,
-        category: { include: { bulletPoints: true } },
+        users:          { select: { id: true, name: true, email: true, phone: true } },
+        type:           true,
+        category:       { include: { bulletPoints: true } },
         calendarEvents: { orderBy: { startTime: "asc" } },
-        galleries: { include: { images: true, imagesFull: true } },
+        galleries:      { include: { images: true, imagesFull: true } },
         messages: {
           include: {
             sender:   { select: { id: true, name: true, role: true } },
@@ -45,109 +65,121 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// ════════════════════════════════════════════════════════════════
+export async function PATCH(req: Request, context: any) {
+  const { id } = await context.params;
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { id: rawId } = await params;
-    const id = parseInt(rawId);
-    if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { name, description, status, typeId, packageId, paymentStatus, totalPrice } = body;
+    const {
+      name, description, status, paymentStatus, totalPrice,
+      eventDate,
+      notifyDateChange,
+    } = body;
 
-    // --- MAGYARÍTÁS ÉS SZÍNEK (A beküldött képek alapján) ---
-    
-    const projectStatusConfig: Record<string, { label: string; color: string }> = {
-      PLANNING:    { label: "TERVEZÉS",     color: "#A08060" }, // Aranybarna/Szürke
-      IN_PROGRESS: { label: "FOLYAMATBAN", color: "#3498db" }, // Kék
-      COMPLETED:   { label: "KÉSZ",        color: "#27ae60" }, // Zöld
-      ON_HOLD:     { label: "FELFÜGGESZTVE", color: "#f1c40f" }, // Sárga/Narancs
-      CANCELLED:   { label: "TÖRÖLVE",      color: "#e74c3c" }  // Piros
-    };
+    // Régi adatok lekérése összehasonlításhoz
+    const existing = await prisma.project.findUnique({
+      where:  { id: parseInt(id) },
+      select: {
+        eventDate:     true,
+        name:          true,
+        status:        true,
+        paymentStatus: true,
+        users:         { select: { email: true, name: true } },
+      },
+    });
+    if (!existing) return NextResponse.json({ error: "Nem található" }, { status: 404 });
 
-    const paymentStatusConfig: Record<string, { label: string; color: string }> = {
-      PENDING:  { label: "FÜGGŐBEN",     color: "#f39c12" }, // Sárgás/Narancs
-      PAID:     { label: "FIZETVE",      color: "#2ecc71" }, // Zöld
-      OVERDUE:  { label: "LEJÁRT",       color: "#c0392b" }, // Piros
-      REFUNDED: { label: "VISSZATÉRÍTVE", color: "#9b59b6" }  // Lila/Kék
-    };
-
-    // 1. Lekérjük a régi adatokat és a felhasználókat
-    const oldProject = await prisma.project.findUnique({
-      where: { id },
-      include: { users: true }
+    // Frissítés
+    const updated = await prisma.project.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(name          !== undefined && { name }),
+        ...(description   !== undefined && { description }),
+        ...(status        !== undefined && { status }),
+        ...(paymentStatus !== undefined && { paymentStatus }),
+        ...(totalPrice    !== undefined && { totalPrice }),
+        ...(eventDate !== undefined && {
+          eventDate: eventDate ? new Date(`${eventDate}T12:00:00.000Z`) : null,
+        }),
+      },
+      include: {
+        users:          { select: { id: true, name: true, email: true, phone: true } },
+        type:           true,
+        category:       { include: { bulletPoints: true } },
+        calendarEvents: true,
+        galleries:      { include: { images: true, imagesFull: true } },
+        messages: {
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
     });
 
-    if (!oldProject) return NextResponse.json({ error: "Projekt nem található" }, { status: 404 });
+    const projectName = existing.name ?? "projekt";
+    const users       = existing.users;
 
-    // 2. Frissítendő adatok összeállítása
-    const updateData: Record<string, any> = {};
-    if (name !== undefined)          updateData.name = name;
-    if (description !== undefined)   updateData.description = description;
-    if (status !== undefined)        updateData.status = status;
-    if (typeId !== undefined)        updateData.typeId = typeId;
-    if (packageId !== undefined)     updateData.packageId = packageId;
-    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
-    if (totalPrice !== undefined)    updateData.totalPrice = totalPrice;
+    // ── Emailek – aszinkron, ne blokkolják a választ ──────────
+    if (users.length > 0) {
 
-    // 3. Mentés az adatbázisba
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: updateData,
-    });
-
-    // --- EMAIL KÜLDÉSI LOGIKA ---
-    const emailPromises = [];
-
-    // PROJEKT STÁTUSZ VÁLTOZÁS
-    if (status && status !== oldProject.status) {
-      const config = projectStatusConfig[status] || { label: status, color: "#1a1a1a" };
-      for (const user of oldProject.users) {
-        emailPromises.push(
-          sendProjectStatusEmail(
-            user.email, 
-            user.name || "Ügyfelünk", 
-            updatedProject.name || "Projekt", 
-            config.label, 
-            config.color
+      // 1. Dátum változott
+      if (notifyDateChange && eventDate) {
+        const newDate = new Date(`${eventDate}T12:00:00.000Z`);
+        Promise.all(
+          users.map(u =>
+            sendEventDateChangedEmail(u.email, u.name ?? "Ügyfelünk", projectName, newDate)
+              .catch(e => console.error("[MAIL] eventDate:", e))
           )
         );
       }
-    }
 
-    // FIZETÉSI STÁTUSZ VÁLTOZÁS
-    if (paymentStatus && paymentStatus !== oldProject.paymentStatus) {
-      const config = paymentStatusConfig[paymentStatus] || { label: paymentStatus, color: "#1a1a1a" };
-      for (const user of oldProject.users) {
-        emailPromises.push(
-          sendPaymentStatusEmail(
-            user.email, 
-            user.name || "Ügyfelünk", 
-            updatedProject.name || "Projekt", 
-            config.label, 
-            config.color
-          )
-        );
+      // 2. Projekt státusz változott
+      if (status && status !== existing.status) {
+        const meta = STATUS_LABEL[status];
+        if (meta) {
+          Promise.all(
+            users.map(u =>
+              sendProjectStatusEmail(
+                u.email,
+                u.name ?? "Ügyfelünk",
+                projectName,
+                meta.label,
+                meta.color,
+              ).catch(e => console.error("[MAIL] projectStatus:", e))
+            )
+          );
+        }
+      }
+
+      // 3. Fizetési státusz változott
+      if (paymentStatus && paymentStatus !== existing.paymentStatus) {
+        const meta = PAYMENT_LABEL[paymentStatus];
+        if (meta) {
+          Promise.all(
+            users.map(u =>
+              sendPaymentStatusEmail(
+                u.email,
+                u.name ?? "Ügyfelünk",
+                projectName,
+                meta.label,
+                meta.color,
+              ).catch(e => console.error("[MAIL] paymentStatus:", e))
+            )
+          );
+        }
       }
     }
 
-    // Emailek indítása (nem várjuk meg a választ az API válaszhoz, hogy gyors legyen)
-    if (emailPromises.length > 0) {
-      Promise.all(emailPromises).catch(err => console.error("API Email hiba:", err));
-    }
-
-    return NextResponse.json({ project: updatedProject });
+    return NextResponse.json({ project: updated });
   } catch (err) {
-    console.error("[PATCH /api/projects/[id]]", err);
+    console.error(`[PATCH /api/projects/${id}]`, err);
     return NextResponse.json({ error: "Szerverhiba" }, { status: 500 });
   }
 }
 
+// ════════════════════════════════════════════════════════════════
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -160,23 +192,24 @@ export async function DELETE(
     const id = parseInt(rawId);
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
 
-    // 1. Lekérjük a projektet és a júzereket a törlés előtt, hogy tudjunk emailt küldeni
     const projectToDelete = await prisma.project.findUnique({
-      where: { id },
-      include: { users: true }
+      where:   { id },
+      include: { users: true },
     });
-
     if (!projectToDelete) return NextResponse.json({ error: "Nem található" }, { status: 404 });
 
-    // 2. Email értesítések kiküldése a törlésről
-    const emailPromises = projectToDelete.users.map(user => 
-      sendProjectDeletedEmail(user.email, user.name || "Ügyfelünk", projectToDelete.name || "Projekt")
+    // Email értesítések a törlésről
+    await Promise.all(
+      projectToDelete.users.map(u =>
+        sendProjectDeletedEmail(
+          u.email,
+          u.name ?? "Ügyfelünk",
+          projectToDelete.name ?? "projekt",
+        ).catch(e => console.error("[MAIL] projectDeleted:", e))
+      )
     );
-    
-    // Megvárjuk, amíg az emailek elmennek (vagy legalább a küldés elindul)
-    await Promise.all(emailPromises).catch(err => console.error("Hiba a törlési értesítő küldésekor:", err));
 
-    // 3. Adatbázis takarítás (Prisma cascade delete hiányában manuálisan)
+    // Adatbázis takarítás
     await prisma.message.deleteMany({ where: { projectId: id } });
     await prisma.calendarEvent.deleteMany({ where: { projectId: id } });
 
@@ -186,8 +219,6 @@ export async function DELETE(
       await prisma.imagesFull.deleteMany({ where: { galleryId: g.id } });
     }
     await prisma.gallery.deleteMany({ where: { projectId: id } });
-    
-    // Végül a projekt törlése
     await prisma.project.delete({ where: { id } });
 
     return NextResponse.json({ success: true });

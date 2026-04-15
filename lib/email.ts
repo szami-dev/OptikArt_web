@@ -326,3 +326,110 @@ export async function sendPasswordChangedEmail(
  
   return sendMailWrapper(email, "Jelszavad megváltozott | OptikArt", html);
 }
+
+export async function sendEventDateChangedEmail(
+  email: string,
+  name: string,
+  projectName: string,
+  newDate: Date,
+) {
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+ 
+  const formattedDate = newDate.toLocaleDateString("hu-HU", {
+    year:    "numeric",
+    month:   "long",
+    day:     "numeric",
+    weekday: "long",
+  });
+ 
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Dátumváltozás értesítő</h2>
+    <p style="text-align: center; color: #555555;">
+      Szia ${name}, a <strong>"${projectName}"</strong> projekt munka dátuma megváltozott.
+    </p>
+ 
+    <div style="text-align: center; margin: 35px 0;">
+      <div style="display: inline-block; border: 1px solid #C8A882; padding: 24px 40px; background-color: #faf8f4;">
+        <div style="font-size: 10px; color: #A08060; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+          Új dátum
+        </div>
+        <div style="font-size: 28px; font-weight: 300; color: #1A1510; font-family: Georgia, serif; line-height: 1.2;">
+          ${formattedDate}
+        </div>
+      </div>
+    </div>
+ 
+    <p style="text-align: center; color: #888888; font-size: 13px;">
+      Ha kérdésed van a változással kapcsolatban, vedd fel velünk a kapcsolatot.
+    </p>
+ 
+    <div style="text-align: center; margin: 35px 0;">
+      <a href="${projectLink}"
+        style="background-color: #1A1510; color: #ffffff; padding: 15px 35px;
+               text-decoration: none; border-radius: 4px; display: inline-block;
+               text-transform: uppercase; font-size: 12px; font-weight: 600;">
+        Projekt megtekintése
+      </a>
+    </div>
+  `);
+ 
+  return sendMailWrapper(email, `Dátumváltozás: ${projectName} | OptikArt`, html);
+}
+ 
+// ── Galéria elküldve értesítő ─────────────────────────────────
+// Ez a sendGalleryReadyEmail-t váltja ki amikor az admin
+// manuálisan rákattint a "Galéria küldése" gombra
+export async function sendGallerySharedEmail(
+  email: string,
+  name: string,
+  projectName: string,
+  galleryLink: string,
+  hasPassword: boolean,
+) {
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Elkészültek a felvételeid!</h2>
+    <p style="text-align: center; color: #555555; font-size: 16px;">
+      Kedves ${name}, örömmel értesítünk, hogy a
+      <strong>"${projectName}"</strong> projekt anyagai elkészültek és elérhetők!
+    </p>
+ 
+    <p style="text-align: center; color: #555555;">
+      A válogatott és utómunkázott anyagokat feltöltöttük a személyes galériádba.
+      Bízunk benne, hogy a végeredmény legalább annyira tetszeni fog,
+      mint amennyire mi élveztük a közös alkotást!
+    </p>
+ 
+    ${hasPassword ? `
+    <div style="margin: 25px 0; padding: 16px 20px; background-color: #fafafa;
+                border: 1px solid #eeeeee; border-radius: 4px; text-align: center;">
+      <p style="margin: 0; font-size: 12px; color: #888888;">
+        🔒 A galéria jelszóvédett. A jelszót egy külön üzenetben küldtük el.
+      </p>
+    </div>
+    ` : ""}
+ 
+    <div style="text-align: center; margin: 45px 0;">
+      <a href="${galleryLink}"
+        style="background-color: #A08060; color: #ffffff; padding: 20px 45px;
+               text-decoration: none; border-radius: 4px; display: inline-block;
+               text-transform: uppercase; font-size: 14px; font-weight: 700;
+               letter-spacing: 2px; box-shadow: 0 4px 15px rgba(160,128,96,0.3);">
+        Galéria megnyitása →
+      </a>
+    </div>
+ 
+    <p style="font-size: 13px; color: #888888; text-align: center; font-style: italic;">
+      Tipp: A képeket érdemes asztali gépen, jó minőségű kijelzőn megnézni az igazi élményért.
+    </p>
+ 
+    <div style="margin: 30px 0; padding: 14px 20px; background-color: #fafafa;
+                border: 1px solid #eeeeee; border-radius: 4px;">
+      <p style="margin: 0; font-size: 11px; color: #aaaaaa; word-break: break-all;">
+        Vagy másold be ezt a linket a böngésződbe:<br/>
+        <a href="${galleryLink}" style="color: #A08060;">${galleryLink}</a>
+      </p>
+    </div>
+  `);
+ 
+  return sendMailWrapper(email, `✨ Elkészült a galériád: ${projectName} | OptikArt`, html);
+}
