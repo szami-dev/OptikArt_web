@@ -1,12 +1,9 @@
 "use client";
 
 // app/components/AdminGalleryManager.tsx
-// VÁLTOZÁSOK:
-// 1. Új props: projectName, clientEmail, clientName, onSent
-// 2. "Galéria küldése" gomb + API hívás + megerősítő modal
+// ÚJ: Cover photo kijelölés – hosszan tartott kattintás vagy dedicated cover gomb
 
 import { useState, useCallback, useRef } from "react";
-import Image from "next/image";
 
 type GalleryImage = {
   id: number;
@@ -18,7 +15,15 @@ type GalleryImage = {
   height: number | null;
   bytes: number | null;
 };
-
+type GalleryVideo = {
+  id: number;
+  publicId: string;
+  streamUrl: string;
+  thumbnailUrl: string | null;
+  fileName: string | null;
+  bytes: number | null;
+  duration: number | null;
+};
 type Gallery = {
   id: number;
   title: string | null;
@@ -28,42 +33,53 @@ type Gallery = {
   hasPassword: boolean;
   expiresAt: string | null;
   shareToken: string;
+  googleDriveUrl: string | null;
   images: GalleryImage[];
+  videos: GalleryVideo[];
   _count?: { images: number };
 };
-
-type UploadResult = {
-  public_id: string;
-  secure_url: string;
-  original_filename: string;
-  width: number;
-  height: number;
-  bytes: number;
+type UploadItem = {
+  id: string;
+  file: File;
+  type: "image" | "video";
+  status: "pending" | "uploading" | "done" | "error";
+  progress: number;
+  error?: string;
 };
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatBytes(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
-function getCloudinaryUrl(originalUrl: string, transformation: string) {
-  return originalUrl.replace("/upload/", `/upload/${transformation}/`);
+function formatDuration(s: number) {
+  const m = Math.floor(s / 60),
+    sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, "0")}`;
 }
+function getCloudinaryUrl(url: string, t: string) {
+  return url.replace("/upload/", `/upload/${t}/`);
+}
+
 async function uploadToCloudinary(
   file: File,
+  resourceType: "image" | "video",
   onProgress: (pct: number) => void,
-): Promise<UploadResult> {
+) {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
-  formData.append("folder", "galleries");
-  return new Promise((resolve, reject) => {
+  formData.append(
+    "folder",
+    resourceType === "video" ? "gallery_videos" : "galleries",
+  );
+  return new Promise<any>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(
       "POST",
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     );
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable)
@@ -72,20 +88,11 @@ async function uploadToCloudinary(
     xhr.onload = () =>
       xhr.status === 200
         ? resolve(JSON.parse(xhr.responseText))
-        : reject(new Error(`Upload failed: ${xhr.statusText}`));
+        : reject(new Error(xhr.statusText));
     xhr.onerror = () => reject(new Error("Network error"));
     xhr.send(formData);
   });
 }
-
-type UploadItem = {
-  id: string;
-  file: File;
-  status: "pending" | "uploading" | "done" | "error";
-  progress: number;
-  result?: UploadResult;
-  error?: string;
-};
 
 function Lightbox({
   images,
@@ -112,7 +119,7 @@ function Lightbox({
           e.stopPropagation();
           onPrev();
         }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all z-10"
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all z-10"
       >
         <svg
           viewBox="0 0 24 24"
@@ -129,7 +136,7 @@ function Lightbox({
           e.stopPropagation();
           onNext();
         }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all z-10"
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all z-10"
       >
         <svg
           viewBox="0 0 24 24"
@@ -143,7 +150,7 @@ function Lightbox({
       </button>
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
       >
         <svg
           viewBox="0 0 24 24"
@@ -166,9 +173,7 @@ function Lightbox({
           className="max-h-[85vh] max-w-full object-contain"
         />
         <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-2 flex items-center justify-between">
-          <span className="text-[11px] text-white/60">
-            {img.fileName ?? "kép"}
-          </span>
+          <span className="text-[11px] text-white/60">{img.fileName}</span>
           <span className="text-[11px] text-white/40">
             {index + 1} / {images.length}
           </span>
@@ -180,12 +185,12 @@ function Lightbox({
 
 export default function AdminGalleryManager({
   projectId,
-  projectName, // ← ÚJ
-  clientEmail, // ← ÚJ
-  clientName, // ← ÚJ
+  projectName,
+  clientEmail,
+  clientName,
   initialGallery,
   onGalleryCreated,
-  onSent, // ← ÚJ: callback ha az email elment
+  onSent,
 }: {
   projectId: number;
   projectName?: string;
@@ -201,20 +206,25 @@ export default function AdminGalleryManager({
   const [images, setImages] = useState<GalleryImage[]>(
     initialGallery?.images ?? [],
   );
+  const [videos, setVideos] = useState<GalleryVideo[]>(
+    initialGallery?.videos ?? [],
+  );
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [settingCover, setSettingCover] = useState<number | null>(null);
+  const [deletingImg, setDeletingImg] = useState<number | null>(null);
+  const [deletingVid, setDeletingVid] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-
-  // ── ÚJ: Galéria küldés state ─────────────────────────────
   const [sendModal, setSendModal] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
 
-  const fileRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+  const vidRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState(initialGallery?.title ?? "");
   const [desc, setDesc] = useState(initialGallery?.description ?? "");
@@ -222,7 +232,10 @@ export default function AdminGalleryManager({
   const [password, setPassword] = useState("");
   const [removePass, setRemovePass] = useState(false);
   const [expiresAt, setExpiresAt] = useState(
-    initialGallery?.expiresAt ? initialGallery.expiresAt.slice(0, 10) : "",
+    initialGallery?.expiresAt?.slice(0, 10) ?? "",
+  );
+  const [driveUrl, setDriveUrl] = useState(
+    initialGallery?.googleDriveUrl ?? "",
   );
 
   const showToast = (msg: string) => {
@@ -230,13 +243,39 @@ export default function AdminGalleryManager({
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Galéria küldése az ügyfélnek ─────────────────────────
+  // ── Cover photo beállítása ─────────────────────────────────
+  async function handleSetCover(img: GalleryImage) {
+    if (!gallery) return;
+    const isCurrent = gallery.coverImageUrl === img.previewUrl;
+    setSettingCover(img.id);
+    try {
+      const res = await fetch(`/api/galleries/${gallery.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // Ha már ez a cover, töröljük (toggle)
+          coverImageUrl: isCurrent ? null : img.previewUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setGallery((prev) =>
+        prev ? { ...prev, coverImageUrl: data.gallery.coverImageUrl } : prev,
+      );
+      showToast(isCurrent ? "Cover törölve" : "Cover photo beállítva!");
+    } catch (e: any) {
+      showToast(`Hiba: ${e.message}`);
+    } finally {
+      setSettingCover(null);
+    }
+  }
+
+  // ── Galéria küldése ────────────────────────────────────────
   async function handleSendGallery() {
     if (!gallery || !clientEmail) return;
     setSending(true);
     setSendError("");
     try {
-      const galleryUrl = `${window.location.origin}/gallery/${gallery.shareToken}`;
       const res = await fetch(`/api/galleries/${gallery.id}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -244,14 +283,11 @@ export default function AdminGalleryManager({
           clientEmail,
           clientName: clientName ?? "Ügyfelünk",
           projectName: projectName ?? "projekt",
-          galleryUrl,
+          galleryUrl: `${window.location.origin}/gallery/${gallery.shareToken}`,
           hasPassword: gallery.hasPassword,
         }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "Ismeretlen hiba");
-      }
+      if (!res.ok) throw new Error((await res.json()).error);
       setSendModal(false);
       showToast("Galéria értesítő elküldve!");
       onSent?.();
@@ -262,6 +298,7 @@ export default function AdminGalleryManager({
     }
   }
 
+  // ── Galéria létrehozása ────────────────────────────────────
   async function handleCreate() {
     setCreating(true);
     try {
@@ -281,6 +318,7 @@ export default function AdminGalleryManager({
       if (!res.ok) throw new Error(data.error);
       setGallery(data.gallery);
       setImages([]);
+      setVideos([]);
       onGalleryCreated?.(data.gallery);
       showToast("Galéria létrehozva!");
     } catch (e: any) {
@@ -290,6 +328,7 @@ export default function AdminGalleryManager({
     }
   }
 
+  // ── Galéria mentése ────────────────────────────────────────
   async function handleSave() {
     if (!gallery) return;
     setSaving(true);
@@ -304,6 +343,7 @@ export default function AdminGalleryManager({
           password: password || undefined,
           removePassword: removePass,
           expiresAt: expiresAt || null,
+          googleDriveUrl: driveUrl || null,
         }),
       });
       const data = await res.json();
@@ -319,18 +359,20 @@ export default function AdminGalleryManager({
     }
   }
 
-  const handleFiles = useCallback(
+  // ── Képek feltöltése ───────────────────────────────────────
+  const handleImageFiles = useCallback(
     async (files: FileList | File[]) => {
       if (!gallery) return;
       const arr = Array.from(files);
       const items: UploadItem[] = arr.map((f) => ({
         id: `${f.name}-${Date.now()}-${Math.random()}`,
         file: f,
+        type: "image",
         status: "pending",
         progress: 0,
       }));
       setUploads((prev) => [...prev, ...items]);
-      const results: UploadResult[] = [];
+      const results: any[] = [];
       for (const item of items) {
         setUploads((prev) =>
           prev.map((u) =>
@@ -338,17 +380,15 @@ export default function AdminGalleryManager({
           ),
         );
         try {
-          const result = await uploadToCloudinary(item.file, (pct) => {
+          const r = await uploadToCloudinary(item.file, "image", (pct) =>
             setUploads((prev) =>
               prev.map((u) => (u.id === item.id ? { ...u, progress: pct } : u)),
-            );
-          });
-          results.push(result);
+            ),
+          );
+          results.push(r);
           setUploads((prev) =>
             prev.map((u) =>
-              u.id === item.id
-                ? { ...u, status: "done", progress: 100, result }
-                : u,
+              u.id === item.id ? { ...u, status: "done", progress: 100 } : u,
             ),
           );
         } catch (e: any) {
@@ -361,7 +401,7 @@ export default function AdminGalleryManager({
           );
         }
       }
-      if (results.length === 0) return;
+      if (!results.length) return;
       try {
         const res = await fetch(`/api/galleries/${gallery.id}/images`, {
           method: "POST",
@@ -398,19 +438,96 @@ export default function AdminGalleryManager({
     [gallery],
   );
 
+  // ── Videók feltöltése ──────────────────────────────────────
+  const handleVideoFiles = useCallback(
+    async (files: FileList | File[]) => {
+      if (!gallery) return;
+      const arr = Array.from(files);
+      const items: UploadItem[] = arr.map((f) => ({
+        id: `${f.name}-${Date.now()}-${Math.random()}`,
+        file: f,
+        type: "video",
+        status: "pending",
+        progress: 0,
+      }));
+      setUploads((prev) => [...prev, ...items]);
+      const results: any[] = [];
+      for (const item of items) {
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.id === item.id ? { ...u, status: "uploading" } : u,
+          ),
+        );
+        try {
+          const r = await uploadToCloudinary(item.file, "video", (pct) =>
+            setUploads((prev) =>
+              prev.map((u) => (u.id === item.id ? { ...u, progress: pct } : u)),
+            ),
+          );
+          results.push(r);
+          setUploads((prev) =>
+            prev.map((u) =>
+              u.id === item.id ? { ...u, status: "done", progress: 100 } : u,
+            ),
+          );
+        } catch (e: any) {
+          setUploads((prev) =>
+            prev.map((u) =>
+              u.id === item.id
+                ? { ...u, status: "error", error: e.message }
+                : u,
+            ),
+          );
+        }
+      }
+      if (!results.length) return;
+      try {
+        const res = await fetch(`/api/galleries/${gallery.id}/videos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            videos: results.map((r) => ({
+              publicId: r.public_id,
+              originalUrl: r.secure_url,
+              streamUrl: r.secure_url,
+              thumbnailUrl: r.secure_url.replace(
+                "/upload/",
+                "/upload/so_0,f_jpg,q_auto,w_400/",
+              ),
+              fileName: r.original_filename + "." + r.format,
+              bytes: r.bytes,
+              duration: r.duration ?? null,
+              width: r.width ?? null,
+              height: r.height ?? null,
+              format: r.format ?? null,
+            })),
+          }),
+        });
+        if (!res.ok) throw new Error("Videó DB mentés sikertelen");
+        const gData = await res.json();
+        setVideos(gData.gallery?.videos ?? []);
+        setTimeout(() => setUploads([]), 2000);
+        showToast(`${results.length} videó feltöltve!`);
+      } catch (e: any) {
+        showToast(`DB hiba: ${e.message}`);
+      }
+    },
+    [gallery],
+  );
+
   const [dragOver, setDragOver] = useState(false);
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      handleFiles(e.dataTransfer.files);
+      handleImageFiles(e.dataTransfer.files);
     },
-    [handleFiles],
+    [handleImageFiles],
   );
 
   async function handleDeleteImage(imageId: number) {
     if (!gallery) return;
-    setDeleting(imageId);
+    setDeletingImg(imageId);
     try {
       const res = await fetch(`/api/galleries/${gallery.id}/images`, {
         method: "DELETE",
@@ -418,43 +535,44 @@ export default function AdminGalleryManager({
         body: JSON.stringify({ imageId }),
       });
       if (!res.ok) throw new Error();
+      // Ha a törölt kép volt a cover, töröljük azt is
+      if (
+        gallery.coverImageUrl &&
+        images.find((i) => i.id === imageId)?.previewUrl ===
+          gallery.coverImageUrl
+      ) {
+        await fetch(`/api/galleries/${gallery.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coverImageUrl: null }),
+        });
+        setGallery((prev) => (prev ? { ...prev, coverImageUrl: null } : prev));
+      }
       setImages((prev) => prev.filter((i) => i.id !== imageId));
       showToast("Kép törölve");
-    } catch (e: any) {
-      showToast(`Hiba: ${e.message}`);
+    } catch {
+      showToast("Törlési hiba");
     } finally {
-      setDeleting(null);
+      setDeletingImg(null);
     }
   }
 
-  async function handleDownload(imageId?: number) {
+  async function handleDeleteVideo(videoId: number) {
     if (!gallery) return;
+    setDeletingVid(videoId);
     try {
-      const res = await fetch(`/api/galleries/${gallery.id}/download`, {
-        method: "POST",
+      const res = await fetch(`/api/galleries/${gallery.id}/videos`, {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageId }),
+        body: JSON.stringify({ videoId }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      if (imageId) {
-        const a = document.createElement("a");
-        a.href = data.url;
-        a.download = data.fileName;
-        a.click();
-      } else {
-        for (const item of data.urls) {
-          const a = document.createElement("a");
-          a.href = item.url;
-          a.download = item.fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          await new Promise((r) => setTimeout(r, 200));
-        }
-      }
-    } catch (e: any) {
-      showToast(`Letöltési hiba: ${e.message}`);
+      if (!res.ok) throw new Error();
+      setVideos((prev) => prev.filter((v) => v.id !== videoId));
+      showToast("Videó törölve");
+    } catch {
+      showToast("Törlési hiba");
+    } finally {
+      setDeletingVid(null);
     }
   }
 
@@ -463,7 +581,7 @@ export default function AdminGalleryManager({
     navigator.clipboard.writeText(
       `${window.location.origin}/gallery/${gallery.shareToken}`,
     );
-    showToast("Link vágólapra másolva!");
+    showToast("Link másolva!");
   }
 
   const shareUrl = gallery
@@ -479,6 +597,7 @@ export default function AdminGalleryManager({
           {toast}
         </div>
       )}
+
       {lightbox !== null && (
         <Lightbox
           images={images}
@@ -491,7 +610,7 @@ export default function AdminGalleryManager({
         />
       )}
 
-      {/* ── Galéria küldés megerősítő modal ── */}
+      {/* Küldés modal */}
       {sendModal && (
         <div
           className="fixed inset-0 z-[150] flex items-center justify-center"
@@ -519,9 +638,6 @@ export default function AdminGalleryManager({
                 <div className="text-[13px] text-[#D4C4B0] mb-1">
                   Galéria küldése az ügyfélnek?
                 </div>
-                <div className="text-[11px] text-[#5A5248] mb-1">
-                  Az ügyfél emailes értesítést kap a galéria linkjével.
-                </div>
                 {clientEmail && (
                   <div className="text-[11px] text-[#C8A882]/60">
                     → {clientEmail}
@@ -529,13 +645,12 @@ export default function AdminGalleryManager({
                 )}
                 {!clientEmail && (
                   <div className="text-[11px] text-red-400/70 mt-1">
-                    ⚠ Nincs hozzárendelt ügyfél ehhez a projekthez.
+                    ⚠ Nincs hozzárendelt ügyfél
                   </div>
                 )}
                 {gallery?.hasPassword && (
                   <div className="text-[11px] text-[#FBBF24]/70 mt-1.5">
-                    🔒 A galéria jelszóvédett – a jelszót külön kell közölni az
-                    ügyféllel.
+                    🔒 A galéria jelszóvédett
                   </div>
                 )}
               </div>
@@ -633,6 +748,47 @@ export default function AdminGalleryManager({
       {/* ── Van galéria ── */}
       {gallery && (
         <>
+          {/* ── Cover photo előnézet ── */}
+          {gallery.coverImageUrl && (
+            <div className="relative bg-[#0E0C0A] border border-white/[0.05] overflow-hidden">
+              <div className="relative h-48 sm:h-64">
+                <img
+                  src={gallery.coverImageUrl}
+                  alt="Cover"
+                  className="w-full h-full object-cover opacity-70"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0C0A08] via-transparent to-transparent" />
+                <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                  <span className="text-[9px] tracking-[0.16em] uppercase text-[#C8A882]/70 border border-[#C8A882]/30 bg-[#C8A882]/10 px-2 py-1">
+                    ✦ Cover photo
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    handleSetCover({
+                      id: -1,
+                      previewUrl: gallery.coverImageUrl!,
+                    } as any)
+                  }
+                  className="absolute top-3 right-3 w-7 h-7 bg-black/60 flex items-center justify-center text-white/50 hover:text-red-400 transition-colors"
+                  title="Cover törlése"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="w-3.5 h-3.5"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Fejléc */}
           <div className="bg-[#0E0C0A] border border-white/[0.05] p-5">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
@@ -647,6 +803,12 @@ export default function AdminGalleryManager({
                 </div>
                 <div className="text-[11px] text-[#3A3530] mt-0.5 flex items-center gap-2 flex-wrap">
                   <span>{images.length} kép</span>
+                  {videos.length > 0 && <span>· {videos.length} videó</span>}
+                  {gallery.coverImageUrl && (
+                    <span className="text-[#C8A882]/50">
+                      · ✦ Cover beállítva
+                    </span>
+                  )}
                   {gallery.hasPassword && (
                     <span className="text-[#FBBF24]">🔒 Jelszóvédett</span>
                   )}
@@ -659,14 +821,15 @@ export default function AdminGalleryManager({
                       {new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}
                     </span>
                   )}
+                  {gallery.googleDriveUrl && (
+                    <span className="text-[#60A5FA]">📁 Drive</span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                {/* ── ÚJ: Galéria küldése gomb ── */}
                 <button
                   onClick={() => setSendModal(true)}
                   className="flex items-center gap-2 px-3 py-2 border border-[#C8A882]/30 text-[11px] tracking-[0.08em] uppercase text-[#C8A882]/70 hover:text-[#C8A882] hover:border-[#C8A882]/50 hover:bg-[#C8A882]/5 transition-all"
-                  title={!clientEmail ? "Nincs hozzárendelt ügyfél" : undefined}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -680,7 +843,6 @@ export default function AdminGalleryManager({
                   </svg>
                   Küldés ügyfélnek
                 </button>
-
                 {gallery.isPublic && (
                   <button
                     onClick={copyShareLink}
@@ -702,23 +864,6 @@ export default function AdminGalleryManager({
                     Megosztás
                   </button>
                 )}
-                <button
-                  onClick={() => handleDownload()}
-                  className="flex items-center gap-2 px-3 py-2 border border-white/[0.08] text-[11px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="w-3.5 h-3.5"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Összes letöltés
-                </button>
                 <button
                   onClick={() => setEditing((v) => !v)}
                   className="flex items-center gap-2 px-3 py-2 border border-white/[0.08] text-[11px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
@@ -752,6 +897,7 @@ export default function AdminGalleryManager({
               </div>
             )}
 
+            {/* Szerkesztő */}
             {editing && (
               <div className="mt-4 pt-4 border-t border-white/[0.04] flex flex-col gap-3">
                 <input
@@ -785,6 +931,17 @@ export default function AdminGalleryManager({
                     type="date"
                     className="bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] px-3 py-2.5 focus:outline-none focus:border-[#C8A882]/40"
                     style={{ colorScheme: "dark" }}
+                  />
+                </div>
+                <div>
+                  <div className="text-[9px] tracking-[0.12em] uppercase text-[#3A3530] mb-1.5">
+                    Google Drive archív link (opcionális)
+                  </div>
+                  <input
+                    value={driveUrl}
+                    onChange={(e) => setDriveUrl(e.target.value)}
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    className="w-full bg-[#141210] border border-white/[0.08] text-[13px] text-[#D4C4B0] placeholder:text-[#3A3530] px-3 py-2.5 focus:outline-none focus:border-[#60A5FA]/40"
                   />
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
@@ -834,44 +991,97 @@ export default function AdminGalleryManager({
             )}
           </div>
 
-          {/* Feltöltési zóna */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed p-8 text-center cursor-pointer transition-all ${dragOver ? "border-[#C8A882]/60 bg-[#C8A882]/5" : "border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.02]"}`}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files && handleFiles(e.target.files)}
-            />
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#C8A882"
-              strokeWidth="1.2"
-              className="w-10 h-10 mx-auto mb-3 opacity-50"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <p className="text-[13px] text-[#5A5248] mb-1">
-              Húzd ide a képeket vagy kattints a feltöltéshez
-            </p>
-            <p className="text-[11px] text-[#3A3530]">
-              JPG, PNG, WebP · Max 20 MB / kép · Direkt Cloudinary feltöltés
-            </p>
+          {/* Tab + feltöltés */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex border border-white/[0.06]">
+              <button
+                onClick={() => setActiveTab("photos")}
+                className={`px-4 py-2 text-[10px] tracking-[0.1em] uppercase transition-all border-r border-white/[0.04] ${activeTab === "photos" ? "bg-[#C8A882]/15 text-[#C8A882]" : "text-[#3A3530] hover:text-[#5A5248]"}`}
+              >
+                Fotók ({images.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("videos")}
+                className={`px-4 py-2 text-[10px] tracking-[0.1em] uppercase transition-all ${activeTab === "videos" ? "bg-[#C8A882]/15 text-[#C8A882]" : "text-[#3A3530] hover:text-[#5A5248]"}`}
+              >
+                Videók ({videos.length})
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => imgRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 border border-white/[0.08] text-[11px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-3.5 h-3.5"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Képek
+              </button>
+              <button
+                onClick={() => vidRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 border border-white/[0.08] text-[11px] tracking-[0.08em] uppercase text-[#5A5248] hover:text-[#C8A882] hover:border-[#C8A882]/30 transition-all"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-3.5 h-3.5"
+                >
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" />
+                </svg>
+                Videók
+              </button>
+            </div>
           </div>
+          <input
+            ref={imgRef}
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => e.target.files && handleImageFiles(e.target.files)}
+          />
+          <input
+            ref={vidRef}
+            type="file"
+            multiple
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => e.target.files && handleVideoFiles(e.target.files)}
+          />
 
+          {/* Drag & drop zóna */}
+          {activeTab === "photos" && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => imgRef.current?.click()}
+              className={`border-2 border-dashed p-6 text-center cursor-pointer transition-all ${dragOver ? "border-[#C8A882]/60 bg-[#C8A882]/5" : "border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.02]"}`}
+            >
+              <p className="text-[12px] text-[#5A5248]">
+                Húzd ide a képeket vagy kattints
+              </p>
+              <p className="text-[10px] text-[#3A3530] mt-1">
+                JPG, PNG, WebP · Max 20 MB / kép
+              </p>
+            </div>
+          )}
+
+          {/* Upload progress */}
           {uploads.length > 0 && (
             <div className="bg-[#0E0C0A] border border-white/[0.05] p-4 flex flex-col gap-2">
               <div className="text-[9px] tracking-[0.16em] uppercase text-[#3A3530] mb-1">
@@ -879,6 +1089,9 @@ export default function AdminGalleryManager({
               </div>
               {uploads.map((u) => (
                 <div key={u.id} className="flex items-center gap-3">
+                  <span className="text-[10px] text-[#3A3530] shrink-0">
+                    {u.type === "video" ? "🎬" : "🖼"}
+                  </span>
                   <span className="text-[11px] text-[#5A5248] truncate flex-1">
                     {u.file.name}
                   </span>
@@ -918,88 +1131,192 @@ export default function AdminGalleryManager({
             </div>
           )}
 
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5">
-              {images.map((img, i) => (
-                <div
-                  key={img.id}
-                  className="group relative bg-[#141210] overflow-hidden"
-                  style={{ aspectRatio: "1/1" }}
+          {/* ── Képek grid – cover kijelöléssel ── */}
+          {activeTab === "photos" && images.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 text-[10px] text-[#3A3530]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-3.5 h-3.5 text-[#C8A882]/50"
                 >
-                  <img
-                    src={img.thumbnailUrl}
-                    alt={img.fileName ?? ""}
-                    loading="lazy"
-                    className="w-full h-full object-cover cursor-pointer transition-all group-hover:scale-105 group-hover:opacity-80"
-                    onClick={() => setLightbox(i)}
-                  />
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 bg-black/50">
-                    <button
-                      onClick={() => setLightbox(i)}
-                      className="w-7 h-7 bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+                Hover a képre → cover jelölő gomb jelenik meg
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5">
+                {images.map((img, i) => {
+                  const isCover = gallery.coverImageUrl === img.previewUrl;
+                  return (
+                    <div
+                      key={img.id}
+                      className={`group relative bg-[#141210] overflow-hidden ${isCover ? "ring-2 ring-[#C8A882]" : ""}`}
+                      style={{ aspectRatio: "1/1" }}
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        className="w-4 h-4"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDownload(img.id)}
-                      className="w-7 h-7 bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        className="w-4 h-4"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteImage(img.id)}
-                      disabled={deleting === img.id}
-                      className="w-7 h-7 bg-red-500/20 flex items-center justify-center hover:bg-red-500/40 transition-colors"
-                    >
-                      {deleting === img.id ? (
-                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
+                      <img
+                        src={img.thumbnailUrl}
+                        alt={img.fileName ?? ""}
+                        loading="lazy"
+                        className="w-full h-full object-cover cursor-pointer transition-all group-hover:scale-105 group-hover:opacity-70"
+                        onClick={() => setLightbox(i)}
+                      />
+
+                      {/* Cover badge ha be van állítva */}
+                      {isCover && (
+                        <div className="absolute top-1 left-1 bg-[#C8A882] text-[#0C0A08] text-[7px] tracking-[0.1em] uppercase px-1.5 py-0.5 font-medium">
+                          ✦ Cover
+                        </div>
+                      )}
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 bg-black/50">
+                        {/* Cover toggle gomb */}
+                        <button
+                          onClick={() => handleSetCover(img)}
+                          disabled={settingCover === img.id}
+                          title={
+                            isCover ? "Cover törlése" : "Beállítás covernek"
+                          }
+                          className={`flex items-center gap-1 px-2 py-1 text-[9px] tracking-[0.08em] uppercase transition-all ${
+                            isCover
+                              ? "bg-[#C8A882] text-[#0C0A08]"
+                              : "bg-white/20 text-white hover:bg-[#C8A882] hover:text-[#0C0A08]"
+                          }`}
+                        >
+                          {settingCover === img.id ? (
+                            <div className="w-2.5 h-2.5 border border-current/40 border-t-current rounded-full animate-spin" />
+                          ) : (
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="w-2.5 h-2.5"
+                            >
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                          )}
+                          {isCover ? "Cover" : "Cover"}
+                        </button>
+
+                        {/* Lightbox + törlés */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setLightbox(i)}
+                            className="w-7 h-7 bg-white/10 flex items-center justify-center hover:bg-white/20"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="1.5"
+                              className="w-4 h-4"
+                            >
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteImage(img.id)}
+                            disabled={deletingImg === img.id}
+                            className="w-7 h-7 bg-red-500/20 flex items-center justify-center hover:bg-red-500/40"
+                          >
+                            {deletingImg === img.id ? (
+                              <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="white"
+                                strokeWidth="1.5"
+                                className="w-4 h-4"
+                              >
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {img.bytes && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white/50 px-1.5 py-0.5 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          {formatBytes(img.bytes)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Videók lista */}
+          {activeTab === "videos" && (
+            <div className="flex flex-col gap-2">
+              {videos.length === 0 && uploads.length === 0 && (
+                <div className="text-center py-8 border border-dashed border-white/[0.06]">
+                  <p className="text-[12px] text-[#3A3530]">Még nincs videó</p>
+                  <button
+                    onClick={() => vidRef.current?.click()}
+                    className="mt-3 text-[11px] text-[#C8A882]/60 hover:text-[#C8A882] transition-colors"
+                  >
+                    + Videók hozzáadása
+                  </button>
+                </div>
+              )}
+              {videos.map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center gap-3 bg-[#0E0C0A] border border-white/[0.05] p-3"
+                >
+                  <div className="w-16 h-12 bg-[#141210] shrink-0 overflow-hidden">
+                    {v.thumbnailUrl ? (
+                      <img
+                        src={v.thumbnailUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          className="w-4 h-4"
+                          stroke="#C8A882"
+                          strokeWidth="1"
+                          className="w-6 h-6 opacity-40"
                         >
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          <polygon points="5 3 19 12 5 21 5 3" />
                         </svg>
-                      )}
-                    </button>
+                      </div>
+                    )}
                   </div>
-                  {img.bytes && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white/50 px-1.5 py-0.5 text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {formatBytes(img.bytes)}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] text-[#D4C4B0] truncate">
+                      {v.fileName ?? "videó"}
                     </div>
-                  )}
+                    <div className="text-[10px] text-[#3A3530] flex items-center gap-2 mt-0.5">
+                      {v.bytes && <span>{formatBytes(v.bytes)}</span>}
+                      {v.duration && (
+                        <span>· {formatDuration(v.duration)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteVideo(v.id)}
+                    disabled={deletingVid === v.id}
+                    className="shrink-0 px-3 py-1.5 border border-red-500/20 text-[10px] text-red-400/60 hover:text-red-400 hover:border-red-500/40 transition-all disabled:opacity-50"
+                  >
+                    {deletingVid === v.id ? "..." : "Töröl"}
+                  </button>
                 </div>
               ))}
-            </div>
-          )}
-          {images.length === 0 && uploads.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-[12px] text-[#3A3530]">
-                Még nincs kép ebben a galériában
-              </p>
             </div>
           )}
         </>
