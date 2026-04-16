@@ -145,20 +145,22 @@ model CalendarEvent {
 }
 
 model Gallery {
-  id            Int            @id @default(autoincrement())
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  title         String?
-  description   String?
-  coverImageUrl String? // Cloudinary URL
-  projectId     Int
-  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  shareToken    String         @unique @default(cuid())
-  isPublic      Boolean        @default(false)
-  password      String? // bcrypt hash
-  expiresAt     DateTime?
-  images        GalleryImage[]
-  imagesFull    imagesFull[]
+  id             Int            @id @default(autoincrement())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  title          String?
+  description    String?
+  coverImageUrl  String? // Cloudinary URL
+  projectId      Int
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  shareToken     String         @unique @default(cuid())
+  isPublic       Boolean        @default(false)
+  password       String? // bcrypt hash
+  expiresAt      DateTime?
+  images         GalleryImage[]
+  imagesFull     imagesFull[]
+  googleDriveUrl String? // hosszú távú archív link adminból beállítható
+  videos         GalleryVideo[]
 }
 
 model GalleryImage {
@@ -334,4 +336,26 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model GalleryVideo {
+  id        Int     @id @default(autoincrement())
+  galleryId Int
+  gallery   Gallery @relation(fields: [galleryId], references: [id])
+
+  publicId     String // Cloudinary public_id
+  originalUrl  String // Cloudinary secure_url (stream)
+  streamUrl    String // HLS vagy MP4 stream URL
+  thumbnailUrl String? // Cloudinary video thumbnail
+  fileName     String?
+  bytes        Int?
+  duration     Float? // másodpercben
+  width        Int?
+  height       Int?
+  format       String? // mp4, mov, stb.
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([galleryId])
 }

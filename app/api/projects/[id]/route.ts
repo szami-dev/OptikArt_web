@@ -187,18 +187,18 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+ 
     const { id: rawId } = await params;
     const id = parseInt(rawId);
     if (isNaN(id)) return NextResponse.json({ error: "Érvénytelen ID" }, { status: 400 });
-
+ 
     const projectToDelete = await prisma.project.findUnique({
       where:   { id },
       include: { users: true },
     });
     if (!projectToDelete) return NextResponse.json({ error: "Nem található" }, { status: 404 });
-
-    // Email értesítések a törlésről
+ 
+    // Email értesítések
     await Promise.all(
       projectToDelete.users.map(u =>
         sendProjectDeletedEmail(
@@ -208,19 +208,29 @@ export async function DELETE(
         ).catch(e => console.error("[MAIL] projectDeleted:", e))
       )
     );
-
-    // Adatbázis takarítás
+ 
+    // ── Adatbázis takarítás – sorrend fontos ─────────────────
     await prisma.message.deleteMany({ where: { projectId: id } });
     await prisma.calendarEvent.deleteMany({ where: { projectId: id } });
-
+ 
     const galleries = await prisma.gallery.findMany({ where: { projectId: id } });
+ 
     for (const g of galleries) {
+      // 1. GalleryVideo – FK a Gallery-re
+      await prisma.galleryVideo.deleteMany({ where: { galleryId: g.id } });
+      // 2. GalleryImage
+      await prisma.galleryImage.deleteMany({ where: { galleryId: g.id } });
+      // 3. Régi képtáblák
       await prisma.imagesGalleryWbp.deleteMany({ where: { galleryId: g.id } });
       await prisma.imagesFull.deleteMany({ where: { galleryId: g.id } });
     }
+ 
+    // 4. Galériák
     await prisma.gallery.deleteMany({ where: { projectId: id } });
+ 
+    // 5. Projekt
     await prisma.project.delete({ where: { id } });
-
+ 
     return NextResponse.json({ success: true });
   } catch (err: any) {
     if (err?.code === "P2025") return NextResponse.json({ error: "Nem található" }, { status: 404 });

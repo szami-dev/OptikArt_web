@@ -1,11 +1,12 @@
 "use client";
 
-// app/(public)/gallery/[token]/page.tsx
-// A publikus megosztott galéria – cover hero, videó, letöltés
+// app/(user)/user/gallery/[token]/page.tsx
+// Dedikált galéria oldal – cover photo, letöltés, videó, Google Drive
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 type GalleryImage = {
   id: number;
@@ -36,15 +37,21 @@ type GalleryData = {
   _count: { images: number };
 };
 
+function formatBytes(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
 function formatDuration(s: number) {
   const m = Math.floor(s / 60),
     sec = Math.floor(s % 60);
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export default function PublicGalleryPage() {
+export default function UserGalleryPage() {
   const { token } = useParams<{ token: string }>();
   const { data: session } = useSession();
+  const router = useRouter();
 
   const [state, setState] = useState<
     "loading" | "locked" | "unlocked" | "expired" | "error"
@@ -63,6 +70,7 @@ export default function PublicGalleryPage() {
     total: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
+  const [copied, setCopied] = useState(false);
   const [expiredData, setExpiredData] = useState<{
     driveUrl: string | null;
     projectName: string | null;
@@ -70,54 +78,57 @@ export default function PublicGalleryPage() {
     expiresAt: string | null;
   }>({ driveUrl: null, projectName: null, title: null, expiresAt: null });
 
-  async function load(pw?: string) {
-    const url = `/api/galleries/share/${token}${pw ? `?password=${encodeURIComponent(pw)}` : ""}`;
-    const res = await fetch(url);
-    const data = await res.json();
+  const load = useCallback(
+    async (pw?: string) => {
+      const url = `/api/galleries/share/${token}${pw ? `?password=${encodeURIComponent(pw)}` : ""}`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-    if (res.status === 410) {
-      setExpiredData({
-        driveUrl: data.googleDriveUrl ?? null,
-        projectName: data.projectName ?? null,
-        title: data.title ?? null,
-        expiresAt: data.expiresAt ?? null,
-      });
-      setState("expired");
-      return;
-    }
-    if (res.status === 404 || res.status === 403) {
-      setState("error");
-      return;
-    }
+      if (res.status === 410) {
+        setExpiredData({
+          driveUrl: data.googleDriveUrl ?? null,
+          projectName: data.projectName ?? null,
+          title: data.title ?? null,
+          expiresAt: data.expiresAt ?? null,
+        });
+        setState("expired");
+        return;
+      }
+      if (res.status === 404 || res.status === 403) {
+        setState("error");
+        return;
+      }
 
-    if (data.locked) {
-      setGallery({
-        id: 0,
-        title: data.title,
-        description: null,
-        coverImageUrl: null,
-        expiresAt: null,
-        hasPassword: true,
-        isPublic: true,
-        googleDriveUrl: data.googleDriveUrl ?? null,
-        isExpired: false,
-        project: { name: data.projectName, id: 0 },
-        _count: { images: data.imageCount },
-      });
-      setState("locked");
-      if (pw) setPwError("Helytelen jelszó");
-      return;
-    }
+      if (data.locked) {
+        setGallery({
+          id: 0,
+          title: data.title,
+          description: null,
+          coverImageUrl: null,
+          expiresAt: null,
+          hasPassword: true,
+          isPublic: true,
+          googleDriveUrl: data.googleDriveUrl ?? null,
+          isExpired: false,
+          project: { name: data.projectName, id: 0 },
+          _count: { images: data.imageCount },
+        });
+        setState("locked");
+        if (pw) setPwError("Helytelen jelszó");
+        return;
+      }
 
-    setGallery(data.gallery);
-    setImages(data.images ?? []);
-    setVideos(data.videos ?? []);
-    setState("unlocked");
-  }
+      setGallery(data.gallery);
+      setImages(data.images ?? []);
+      setVideos(data.videos ?? []);
+      setState("unlocked");
+    },
+    [token],
+  );
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
   useEffect(() => {
     if (session && state === "locked") load();
   }, [session]);
@@ -175,7 +186,13 @@ export default function PublicGalleryPage() {
     }
   }
 
-  // ── Loading ─────────────────────────────────────────────────
+  function copyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/gallery/${token}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  // ── Loading ────────────────────────────────────────────────
   if (state === "loading")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center">
@@ -183,7 +200,7 @@ export default function PublicGalleryPage() {
       </div>
     );
 
-  // ── Lejárt ──────────────────────────────────────────────────
+  // ── Lejárt ─────────────────────────────────────────────────
   if (state === "expired")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -303,30 +320,40 @@ export default function PublicGalleryPage() {
               </a>
             </div>
           )}
-          <p className="text-[11px] text-[#C8B8A0]">OptikArt · optikart.hu</p>
+          {gallery?.project?.id ? (
+            <Link
+              href={`/user/projects/${gallery.project.id}`}
+              className="text-[11px] text-[#A08060] hover:text-[#C8A882] transition-colors"
+            >
+              ← Vissza a projekthez
+            </Link>
+          ) : null}
         </div>
       </div>
     );
 
-  // ── Hiba ───────────────────────────────────────────────────
+  // ── Hiba ──────────────────────────────────────────────────
   if (state === "error")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <div className="font-['Cormorant_Garamond'] text-[5rem] text-[#EDE8E0] leading-none mb-4">
-            404
-          </div>
-          <h1 className="font-['Cormorant_Garamond'] text-[1.8rem] font-light text-[#1A1510] mb-2">
+        <div className="text-center">
+          <h1 className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#1A1510] mb-2">
             Galéria nem található
           </h1>
-          <p className="text-[13px] text-[#A08060]">
-            A megadott link érvénytelen vagy a galéria törölve lett.
+          <p className="text-[13px] text-[#A08060] mb-6">
+            A link érvénytelen vagy a galéria törölve lett.
           </p>
+          <Link
+            href="/user/projects"
+            className="text-[11px] tracking-[0.1em] uppercase text-[#C8A882] border-b border-[#C8A882]/30 pb-0.5"
+          >
+            ← Vissza a projektekhez
+          </Link>
         </div>
       </div>
     );
 
-  // ── Jelszó ─────────────────────────────────────────────────
+  // ── Jelszó képernyő ────────────────────────────────────────
   if (state === "locked")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -354,11 +381,6 @@ export default function PublicGalleryPage() {
             <h1 className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#1A1510] mb-1">
               {gallery?.title ?? "Jelszóvédett galéria"}
             </h1>
-            {gallery?._count?.images ? (
-              <p className="text-[12px] text-[#A08060]">
-                {gallery._count.images} fénykép
-              </p>
-            ) : null}
           </div>
           <div className="flex flex-col gap-3">
             <input
@@ -385,7 +407,7 @@ export default function PublicGalleryPage() {
 
   const totalItems = images.length + videos.length;
 
-  // ── Galéria ─────────────────────────────────────────────────
+  // ── Galéria ────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#FAF8F4]">
       {/* Lightbox */}
@@ -550,30 +572,53 @@ export default function PublicGalleryPage() {
             alt="Cover"
             className="w-full h-full object-cover"
           />
+          {/* Gradient overlay */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to bottom, rgba(26,21,16,0.1) 0%, rgba(26,21,16,0.75) 100%)",
+                "linear-gradient(to bottom, rgba(26,21,16,0.1) 0%, rgba(26,21,16,0.7) 100%)",
             }}
           />
+
+          {/* Vissza gomb */}
+          {gallery?.project?.id ? (
+            <Link
+              href={`/user/projects/${gallery.project.id}?tab=gallery`}
+              className="absolute top-5 left-5 flex items-center gap-2 text-white/70 hover:text-white transition-colors text-[11px] tracking-[0.08em] uppercase"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-4 h-4"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Vissza
+            </Link>
+          ) : null}
+
+          {/* Cím a cover alján */}
           <div className="absolute bottom-0 left-0 right-0 px-6 sm:px-10 pb-8">
             <div className="max-w-5xl mx-auto">
               <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
                   <span className="text-[9px] tracking-[0.22em] uppercase text-[#C8A882]/70 mb-2 block">
-                    {gallery.project.name}
+                    {gallery?.project.name}
                   </span>
                   <h1 className="font-['Cormorant_Garamond'] text-[2.2rem] sm:text-[3rem] font-light text-white leading-tight">
-                    {gallery.title ?? "Galéria"}
+                    {gallery?.title ?? "Galéria"}
                   </h1>
-                  {gallery.description && (
+                  {gallery?.description && (
                     <p className="text-[13px] text-white/60 mt-1 max-w-lg">
                       {gallery.description}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
                   {images.length > 0 && (
                     <div className="text-right">
                       <div className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#C8A882] leading-none">
@@ -600,9 +645,27 @@ export default function PublicGalleryPage() {
           </div>
         </div>
       ) : (
-        /* Fejléc cover nélkül */
-        <div className="bg-white border-b border-[#EDE8E0] px-5 sm:px-8 lg:px-12 py-6 sm:py-8">
+        /* ── Fejléc cover nélkül ── */
+        <div className="bg-white border-b border-[#EDE8E0] px-5 sm:px-8 lg:px-12 py-8">
           <div className="max-w-5xl mx-auto">
+            {gallery?.project?.id ? (
+              <Link
+                href={`/user/projects/${gallery.project.id}?tab=gallery`}
+                className="inline-flex items-center gap-2 text-[11px] tracking-[0.08em] text-[#A08060] hover:text-[#1A1510] transition-colors mb-4"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-3.5 h-3.5"
+                >
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+                Vissza a projekthez
+              </Link>
+            ) : null}
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <div className="flex items-center gap-3 mb-2">
@@ -654,75 +717,100 @@ export default function PublicGalleryPage() {
                   )}
                 </div>
               </div>
-              {/* Letöltés gomb fejlécben ha nincs cover */}
-              <button
-                onClick={() => handleDownload()}
-                disabled={downloading === "all"}
-                className="flex items-center gap-2 bg-[#1A1510] text-white text-[11px] uppercase px-5 py-3 hover:bg-[#C8A882] transition-all disabled:opacity-50 whitespace-nowrap self-start"
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Akció sáv ── */}
+      <div
+        className={`sticky top-0 z-20 border-b border-[#EDE8E0] bg-white/95 backdrop-blur-sm ${gallery?.coverImageUrl ? "" : ""}`}
+      >
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            {/* Cover esetén vissza gomb */}
+            {gallery?.coverImageUrl && gallery?.project?.id ? (
+              <Link
+                href={`/user/projects/${gallery.project.id}?tab=gallery`}
+                className="flex items-center gap-1.5 text-[11px] tracking-[0.08em] text-[#A08060] hover:text-[#1A1510] transition-colors mr-2"
               >
-                {downloading === "all" ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-3.5 h-3.5"
+                >
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+                Vissza
+              </Link>
+            ) : null}
+
+            {/* Tab */}
+            {images.length > 0 && videos.length > 0 && (
+              <div className="flex border border-[#EDE8E0]">
+                <button
+                  onClick={() => setActiveTab("photos")}
+                  className={`px-3 py-1.5 text-[10px] tracking-[0.08em] uppercase border-r border-[#EDE8E0] transition-all ${activeTab === "photos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
+                >
+                  Fotók
+                </button>
+                <button
+                  onClick={() => setActiveTab("videos")}
+                  className={`px-3 py-1.5 text-[10px] tracking-[0.08em] uppercase transition-all ${activeTab === "videos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
+                >
+                  Videók
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Link másolás */}
+            <button
+              onClick={copyLink}
+              className={`flex items-center gap-2 px-3 py-2 border text-[11px] uppercase transition-all ${
+                copied
+                  ? "border-green-400/50 text-green-600 bg-green-50"
+                  : "border-[#EDE8E0] text-[#A08060] hover:border-[#C8A882]/50 hover:text-[#1A1510]"
+              }`}
+            >
+              {copied ? (
+                <>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-3.5 h-3.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Másolva!
+                </>
+              ) : (
+                <>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.5"
-                    className="w-4 h-4"
+                    className="w-3.5 h-3.5"
                   >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                   </svg>
-                )}
-                {dlProgress
-                  ? `${dlProgress.done}/${dlProgress.total}`
-                  : "Összes letöltése"}
-              </button>
-            </div>
-            {/* Tab navigáció ha van kép és videó */}
-            {images.length > 0 && videos.length > 0 && (
-              <div className="flex gap-0 mt-6 border-b border-[#EDE8E0]">
-                <button
-                  onClick={() => setActiveTab("photos")}
-                  className={`px-5 py-2.5 text-[11px] uppercase border-b-2 transition-all ${activeTab === "photos" ? "border-[#1A1510] text-[#1A1510]" : "border-transparent text-[#A08060] hover:text-[#1A1510]"}`}
-                >
-                  Fotók ({images.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab("videos")}
-                  className={`px-5 py-2.5 text-[11px] uppercase border-b-2 transition-all ${activeTab === "videos" ? "border-[#1A1510] text-[#1A1510]" : "border-transparent text-[#A08060] hover:text-[#1A1510]"}`}
-                >
-                  Videók ({videos.length})
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Sticky akció sáv (cover esetén) */}
-      {gallery?.coverImageUrl && (
-        <div className="sticky top-0 z-20 border-b border-[#EDE8E0] bg-white/95 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              {images.length > 0 && videos.length > 0 && (
-                <div className="flex border border-[#EDE8E0]">
-                  <button
-                    onClick={() => setActiveTab("photos")}
-                    className={`px-3 py-1.5 text-[10px] uppercase border-r border-[#EDE8E0] transition-all ${activeTab === "photos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
-                  >
-                    Fotók
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("videos")}
-                    className={`px-3 py-1.5 text-[10px] uppercase transition-all ${activeTab === "videos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
-                  >
-                    Videók
-                  </button>
-                </div>
+                  Link
+                </>
               )}
-            </div>
+            </button>
+
+            {/* Összes letöltés */}
             <button
               onClick={() => handleDownload()}
               disabled={downloading === "all"}
@@ -749,9 +837,9 @@ export default function PublicGalleryPage() {
             </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Owner lejárt warning */}
+      {/* ── Owner lejárt figyelmeztetés ── */}
       {gallery?.isExpired && (
         <div className="bg-amber-50 border-b border-amber-200 px-5 sm:px-8 lg:px-12 py-3">
           <div className="max-w-5xl mx-auto text-[12px] text-amber-700 flex items-center gap-2">
@@ -771,7 +859,7 @@ export default function PublicGalleryPage() {
         </div>
       )}
 
-      {/* Tartalom */}
+      {/* ── Tartalom ── */}
       <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-6 sm:py-8">
         {/* Fotók */}
         {(activeTab === "photos" || videos.length === 0) &&
@@ -962,9 +1050,7 @@ export default function PublicGalleryPage() {
         )}
 
         <div className="mt-12 pt-6 border-t border-[#EDE8E0] flex items-center justify-between flex-wrap gap-2">
-          <span className="text-[11px] text-[#C8B8A0]">
-            Készítette: OptikArt
-          </span>
+          <span className="text-[11px] text-[#C8B8A0]">OptikArt</span>
           {gallery?.expiresAt && !gallery.isExpired && (
             <span className="text-[11px] text-[#C8B8A0]">
               Elérhető:{" "}
