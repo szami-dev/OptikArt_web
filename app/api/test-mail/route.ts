@@ -20,27 +20,6 @@ export async function GET() {
     // 1. Welcome
     await sendWelcomeEmail(testEmail, testName);
 
-    // 2. Verification (Resend)
-    await sendVerificationEmail(testEmail, testName);
-
-    // 3. Project Created (Client)
-    await sendProjectCreatedEmail(testEmail, testName);
-
-    // 4. Admin Created Project (Client Notification)
-    await sendAdminCreatedProjectEmail(testEmail, testName, testProject);
-
-    // 5. Project Deleted
-    await sendProjectDeletedEmail(testEmail, testName, testProject);
-
-    // 6. Admin Notification
-    await sendAdminNotificationEmail(
-        [testEmail], // Ide is a te címedet raktam, hogy lásd a sötét témát is
-        "ugyfel@pelda.hu",
-        "Kovács János",
-        testProject,
-        "proj_987654"
-    );
-
     return NextResponse.json({ 
       success: true, 
       message: "Mind a 6 teszt e-mail kiküldve a szabomate403@gmail.com címre!" 
