@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
+import { sendMessageNotificationEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   try {
@@ -177,6 +178,8 @@ export async function POST(req: Request) {
         project:   { select: { id: true, name: true } },
       },
     });
+
+    
 
     // Admin válasznál a root üzenetet olvasottnak jelöljük
     if (isAdmin && rootParentId) {
