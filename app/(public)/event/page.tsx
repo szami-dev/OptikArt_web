@@ -20,7 +20,7 @@ const eventTypes = [
     title: "Céges rendezvény",
     sub: "Konferencia · Csapatépítő · Évzáró",
     desc: "Professzionális dokumentáció vállalati eseményekről. Diszkrét, de mindig ott vagyunk ahol a legjobb pillanat keletkezik.",
-    img: "/gallery/event/borfesztUTSO-106.JPG",
+    img: "/gallery/event/gepesznap-62.JPG",
     n: "01",
   },
   {
@@ -34,13 +34,13 @@ const eventTypes = [
     title: "Magánrendezvény",
     sub: "Születésnap · Évforduló · Party",
     desc: "Intim összejövetelektől nagyobb bulikig — megörökítjük az örömöt, a nevetést és minden emlékezetes pillanatot.",
-    img: "/gallery/event/borfesztUTSO-155.JPG",
+    img: "/gallery/event/szecsidavid-14.JPG",
     n: "03",
   },
   {
-    title: "Sport & Konferencia",
-    sub: "Akció · Tudás · Élmény",
-    desc: "Sporteseményektől szakmai konferenciákig — gyors reflexek és precíz kompozíció. Minden pillanatot megőrzünk.",
+    title: "Iskolai rendezvények & Konferencia",
+    sub: "Ballagás · Szalagavató",
+    desc: "Fontos mérföldkövek az életben. Iskolai események dokumentálása, ahol a legfontosabb pillanatok örökre megmaradnak.",
     img: "/gallery/event/ballagaspg-192.JPG",
     n: "04",
   },
@@ -83,13 +83,50 @@ const gallery = [
     tag: "Party",
     w: "col-span-1 row-span-1",
   },
+  {
+    src: "/gallery/event/bjgszalagozo-259.JPG",
+    alt: "Szalagavató",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/bjgszalagozo-591.JPG",
+    alt: "Szalagavató",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/ballagaspg-203.JPG",
+    alt: "Ballagás",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/ballagaspg-39.JPG",
+    alt: "Ballagás",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/hmgszalagozo-449.JPG",
+    alt: "Szalagavató",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/pgszalagozo-490.JPG",
+    alt: "Szalagavató",
+    tag: "Magán",
+    w: "col-span-1 row-span-1",
+  }
+
 ];
 
 const stats = [
-  { val: 80, suf: "+", label: "Rendezvény" },
-  { val: 7, suf: " év", label: "Tapasztalat" },
+  { val: 40, suf: "+", label: "Rendezvény" },
+  { val: 6, suf: " év", label: "Tapasztalat" },
   { val: 500, suf: "+", label: "Óra forgatás" },
-  { val: 24, suf: "ó", label: "Átadás" },
+  { val: 6000, suf: "+", label: "Átadott fotó" },
 ];
 
 const faqs = [

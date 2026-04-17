@@ -232,7 +232,7 @@ function ShowreelModal({ videoId }: { videoId: string }) {
               </svg>
             </div>
             <span className="text-[11px] tracking-[0.2em] uppercase text-white/70 group-hover:text-white transition-colors">
-              Showreel megtekintése
+              Videó megtekintése
             </span>
           </div>
         </div>
@@ -595,7 +595,6 @@ export default function LandingPage() {
                 {[
                   { num: "320+", lbl: "Projekt" },
                   { num: "120+", lbl: "Ügyfél" },
-                  { num: "15+", lbl: "Díj" },
                 ].map((s) => (
                   <div key={s.lbl}>
                     <div className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2rem] font-light text-[#C8A882] leading-none">

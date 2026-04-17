@@ -8,57 +8,57 @@ import Link from "next/link";
 
 const reels = [
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "IvfHIlNRmMg",
     thumb:
-      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80",
-    brand: "@luxebrand.hu",
-    type: "Brand Reel",
-    views: "124K",
+      "/gallery/marketing/siriusjanuar-33.JPG",
+    brand: "@siriusclub",
+    type: "Food Reel",
+    views: "100K",
     duration: "0:28",
   },
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "N2j5upS8ka0",
     thumb:
-      "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=500&q=80",
-    brand: "@techstore.hu",
-    type: "Termék",
-    views: "89K",
+      "/gallery/marketing/werk-6.JPG",
+    brand: "@akvariumauto",
+    type: "Car Reel",
+    views: "60K",
     duration: "0:15",
   },
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "yg86CmSiWOY",
     thumb:
-      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500&q=80",
-    brand: "@wellness.hu",
+      "/gallery/marketing/siriusjanuar-28.JPG",
+    brand: "@siriusclub",
     type: "Story",
-    views: "211K",
+    views: "50K",
     duration: "0:32",
   },
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "gcYvTwkkdfA",
     thumb:
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&q=80",
-    brand: "@fashionhun",
-    type: "Kampány",
+      "/gallery/marketing/siriusdec-64.JPG",
+    brand: "@siriusclub",
+    type: "Food Reel",
     views: "76K",
     duration: "0:20",
   },
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "fkkjgAv3YRs",
     thumb:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80",
-    brand: "@foodbrand.hu",
+      "/gallery/marketing/siriusaprilis-16.JPG",
+    brand: "@siriusclub",
     type: "Event",
-    views: "163K",
+    views: "30K",
     duration: "0:45",
   },
   {
-    youtubeId: "dQw4w9WgXcQ",
+    youtubeId: "yH1-oXAMWUI",
     thumb:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&q=80",
-    brand: "@retail.hu",
+      "/gallery/marketing/pellikan_aprilis-7.JPG",
+    brand: "@pellikanbirtok",
     type: "TikTok Ad",
-    views: "302K",
+    views: "100K",
     duration: "0:18",
   },
 ];
@@ -68,28 +68,28 @@ const platforms = [
     name: "TikTok",
     bg: "#111",
     accent: "#fff",
-    stat: "302K",
+    stat: "15K",
     statLabel: "avg. elérés",
   },
   {
     name: "Instagram",
     bg: "#E1306C22",
     accent: "#E1306C",
-    stat: "211K",
+    stat: "10K",
     statLabel: "avg. elérés",
   },
   {
     name: "YouTube",
     bg: "#FF000022",
     accent: "#FF0000",
-    stat: "89K",
+    stat: "5K",
     statLabel: "avg. nézés",
   },
   {
     name: "Facebook",
     bg: "#1877F222",
     accent: "#1877F2",
-    stat: "76K",
+    stat: "20K",
     statLabel: "avg. elérés",
   },
 ];
@@ -219,7 +219,7 @@ function FeaturedVideo() {
       {!playing ? (
         <>
           <Image
-            src="https://images.unsplash.com/photo-1601506521793-dc748fc80b67?w=1200&q=80"
+            src="/gallery/marketing/pellikan_aprilis-9.JPG"
             alt="Forgatás"
             fill
             className="object-cover"
@@ -252,7 +252,7 @@ function FeaturedVideo() {
         </>
       ) : (
         <iframe
-          src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0"
+          src="https://www.youtube.com/embed/EnHDwBumuqY?autoplay=1&rel=0"
           title="Forgatás"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

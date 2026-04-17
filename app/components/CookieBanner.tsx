@@ -27,7 +27,7 @@ export default function CookieBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-[380px] w-[calc(100%-2rem)] animate-fade-in-up">
+    <div className="fixed bottom-4 left-4 z-50 max-w-[380px] w-[calc(100%-2rem)] animate-fade-in-up">
       <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-[-10px_10px_30px_rgba(0,0,0,0.08)] border border-[#eeeeee]">
 
         {/* Fejléc */}

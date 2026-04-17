@@ -101,7 +101,7 @@ const faqs = [
   },
   {
     q: "Hogyan zajlik a digitális átadás?",
-    a: "Egy privát online galérián keresztül, ahonnan korlátlan ideig letölthetők a képek. A pendrive-os csomagoknál egyedi díszdobozban postázzuk vagy személyesen adjuk át.",
+    a: "Egy privát online galérián keresztül, ahonnan 2 hónapig letölthetők a képek, ezt követően google driveon keresztül korlátlan ideig. A pendrive-os csomagoknál egyedi díszdobozban postázzuk vagy személyesen adjuk át.",
   },
   {
     q: "Mi az a kidolgozott kép?",
@@ -134,7 +134,7 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
           <span className="text-[10px] tracking-[0.15em] text-[#C8A882] tabular-nums text-[1rem]">
             {String(index + 1).padStart(2, "0")}
           </span>
-          <span className="text-[14px] font-light text-[#1A1510] group-hover:text-[#C8A882] transition-colors duration-200 font-['Cormorant_Garamond'] text-[1.05rem]">
+          <span className="text-[14px] font-light text-[#1A1510] group-hover:text-[#C8A882] transition-colors duration-200 font-['Arial'] text-[1.05rem]">
             {q}
           </span>
         </div>
@@ -244,9 +244,10 @@ function PackageCard({ pkg, featured }: { pkg: Package; featured?: boolean }) {
 
 function PackageSkeleton() {
   return (
-    <div className="border border-[#EDE8E0] bg-white p-8 animate-pulse">
+    // Az aspect-video vagy aspect-square biztosítja a relatív fix magasságot
+    <div className="border border-[#EDE8E0] bg-white p-8 animate-pulse aspect-[4/5] w-full">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-4 bg-[#EDE8E0] rounded mb-3" />
+        <div key={i} className="h-4 bg-[#EDE8E0] rounded mb-4" />
       ))}
     </div>
   );
@@ -599,7 +600,7 @@ export default function WeddingsPage() {
           >
             {/* Cseréld le: src={`https://www.youtube.com/embed/YOUTUBE_ID?autoplay=1`} */}
             <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0"
+              src="https://www.youtube.com/embed/nBQuNA62Ack?autoplay=1&rel=0"
               title="Esküvői showreel"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -629,10 +630,12 @@ export default function WeddingsPage() {
         <div className="max-w-5xl mx-auto px-8 lg:px-16">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#DDD5C8]">
             {[
-              { n: "120", suf: "+", l: "Esküvő" },
-              { n: "8", suf: " év", l: "Tapasztalat" },
-              { n: "98", suf: "%", l: "Elégedett pár" },
-              { n: "24", suf: "ó", l: "Visszajelzés" },
+              { n: "20", suf: "+", l: "Esküvő" },
+              { n: "4", suf: " év", l: "Tapasztalat" },
+              { n: "20", suf: "%", l: "Elégedett pár" },
+              { n: "35", suf: "+", l: "Átadott videó" },
+         
+              
             ].map((s, i) => (
               <div
                 key={i}

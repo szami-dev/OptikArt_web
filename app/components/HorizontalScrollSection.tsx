@@ -22,9 +22,9 @@ const slides = [
     theme: "light" as const, bg: "#FAF8F4", accent: "#C8A882",
     images: [
       { type: "image" as const, src: "/gallery/wedding/arankatibor-15.JPG",  alt: "Pár",         aspect: 3/2 },
-      { type: "image" as const, src: "/gallery/wedding/keszulodes-90.JPG",   alt: "Menyasszony", aspect: 2/3 },
-      { type: "video" as const, src: "/gallery/wedding/kreativ-97.JPG",      alt: "Film",        aspect: 3/2, youtubeId: "3sQo_md2CqI", label: "Highlight film" },
-      { type: "image" as const, src: "/gallery/wedding/vanizoli-210.jpg",    alt: "Gyűrűk",      aspect: 2/3 },
+      { type: "image" as const, src: "/gallery/wedding/keszulodes-90.JPG",   alt: "Menyasszony", aspect: 3/2 },
+      { type: "video" as const, src: "/gallery/wedding/kreativ-97.JPG",      alt: "Film",        aspect: 3/2, youtubeId: "3sQo_md2CqI" },
+      { type: "image" as const, src: "/gallery/wedding/vanizoli-210.jpg",    alt: "Gyűrűk",      aspect: 3/2 },
       
       
     ],
@@ -41,7 +41,7 @@ const slides = [
       { type: "image" as const, src: "/assets/zugiviki-15.JPG",                   alt: "Portré2", aspect: 2/3 },
       { type: "image" as const, src: "/gallery/portrait/marcidorina-76 (1).JPG",  alt: "Páros",   aspect: 3/2 },
       { type: "image" as const, src: "/gallery/portrait/amiraek-91.jpg",          alt: "Família", aspect: 3/2 },
-      { type: "image" as const, src: "/gallery/portrait/napraforgo-27.JPG",       alt: "Port3",   aspect: 2/3 },
+      { type: "image" as const, src: "/gallery/portrait/olivia-131.JPG",       alt: "Családi",   aspect: 2/3 },
       { type: "image" as const, src: "/gallery/portrait/SzaboReka-1_pp_pp.jpg",   alt: "Egyéni",  aspect: 2/3 },
     ],
     stat: { n: "350+", l: "Portré" },
@@ -54,10 +54,10 @@ const slides = [
     theme: "dark" as const, bg: "#1A1410", accent: "#C8A882",
     images: [
       { type: "image" as const, src: "/gallery/event/ballagaspg-192.JPG",   alt: "Ballagás",  aspect: 3/2 },
-      { type: "video" as const, src: "/gallery/event/borfesztUTSO-140.JPG", alt: "Event",     aspect: 3/2, youtubeId: "LbDrYcfLCRE", label: "Event reel" },
+      { type: "video" as const, src: "/gallery/event/borfesztUTSO-140.JPG", alt: "Event",     aspect: 3/2, youtubeId: "LbDrYcfLCRE" },
       { type: "image" as const, src: "/gallery/event/borfesztUTSO-106.JPG", alt: "Tömeg",     aspect: 3/2 },
-      { type: "image" as const, src: "/gallery/event/borfesztUTSO-190.JPG", alt: "Kurultáj",  aspect: 2/3 },
-      { type: "image" as const, src: "/gallery/event/ballagaspg-192.JPG",   alt: "Ballagás2", aspect: 2/3 },
+      { type: "image" as const, src: "/gallery/event/borfesztUTSO-190.JPG", alt: "Kurultáj",  aspect: 3/2 },
+     
     ],
     stat: { n: "80+", l: "Rendezvény" },
   },
@@ -69,15 +69,16 @@ const slides = [
     theme: "light" as const, bg: "#FAF8F4", accent: "#1A1510",
     images: [
       { type: "image" as const, src: "/gallery/marketing/siriusjanuar-28.JPG",   alt: "Termék",     aspect: 3/2  },
-      { type: "video" as const, src: "/gallery/marketing/siriusMarcius-6.JPG",   alt: "Brand",      aspect: 9/16, youtubeId: "EnHDwBumuqY", label: "Brand film" },
+      { type: "image" as const, src: "/gallery/marketing/siriusMarcius-6.JPG",   alt: "Termék",     aspect: 2/3, },
+      { type: "video" as const, src: "/gallery/marketing/siriusMarcius-6.JPG",   alt: "Brand",      aspect: 9/16, youtubeId: "EnHDwBumuqY"  },
       { type: "image" as const, src: "/gallery/marketing/bippu-35.JPG",          alt: "Brand2",     aspect: 3/2  },
       { type: "image" as const, src: "/gallery/marketing/pellikanmarcius-4.JPG", alt: "Influencer", aspect: 2/3  },
-      { type: "video" as const, src: "/gallery/marketing/siriusjanuar-28.JPG",   alt: "Termék2",    aspect: 9/16, youtubeId: "oGcB8-IUlj8", label: "Termékfotó" },
+      { type: "video" as const, src: "/gallery/marketing/siriusjanuar-28.JPG",   alt: "Termék2",    aspect: 9/16, youtubeId: "oGcB8-IUlj8" },
      
     ],
     stat: { n: "500+", l: "Poszt/hó" },
   },
-  {
+  /*{
     id: "dron", number: "05", title: "Drón",
     subtitle: "A világ felülnézetből egészen más.",
     description: "Légifotók és videók — engedéllyel, profi felszereléssel, 6K felbontásban.",
@@ -91,7 +92,7 @@ const slides = [
       { type: "image" as const, src: "/gallery/drone/alfold-65 másolata.JPG", alt: "Táj 4", aspect: 2/3 },
     ],
     stat: { n: "6K", l: "Felbontás" },
-  },
+  },*/
 ];
 
 type SlideImage = (typeof slides)[0]["images"][0];
@@ -209,7 +210,7 @@ function JustifiedGallery({ images, accent, onVideoClick }: {
             <div className="flex items-center justify-between">
               <span style={{ fontSize: rowH * 0.07, letterSpacing: "0.1em" }}
                 className="uppercase text-white/80">
-                {img.label}
+                
               </span>
               <div className="flex items-center bg-red-600 px-1 py-0.5">
                 <svg viewBox="0 0 24 24" fill="white" style={{ width: rowH * 0.07, height: rowH * 0.07 }}>
@@ -342,66 +343,127 @@ function DesktopScroll() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const trackRef   = useRef<HTMLDivElement>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
-
+ 
   useEffect(() => {
     let ctx: any, mounted = true;
+ 
     async function init() {
       const { gsap }          = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
       if (!mounted) return;
+ 
       ScrollTrigger.getAll().forEach(t => t.kill());
-      await new Promise(r => setTimeout(r, 60));
+      await new Promise(r => setTimeout(r, 80));
       if (!mounted) return;
+ 
       ctx = gsap.context(() => {
-        const track = trackRef.current, section = sectionRef.current;
+        const track   = trackRef.current;
+        const section = sectionRef.current;
         if (!track || !section) return;
+ 
+        // GPU layer kényszerítése – translate3d-t használ a GSAP
+        gsap.set(track, { x: 0, force3D: true });
+ 
         const getTotal = () => track.scrollWidth - window.innerWidth;
-        gsap.set(track, { x: 0 });
+ 
         gsap.to(track, {
-          x: () => -getTotal(), ease: "none",
-          scrollTrigger: { trigger: section, start: "top top", end: () => `+=${getTotal()}`, scrub: 1, pin: true, anticipatePin: 1, invalidateOnRefresh: true },
+          x: () => -getTotal(),
+          ease: "none",
+          // scrub: true = azonnal követi a scrollt, nincs lag
+          // scrub: 0.3 = minimális simítás, még természetes
+          scrollTrigger: {
+            trigger:    section,
+            start:      "top top",
+            end:        () => `+=${getTotal()}`,
+            scrub:      0.5,      // ← volt: 1 (túl lassú) → 0.5 simább
+            pin:        true,
+            pinSpacing: true,
+            invalidateOnRefresh: true,
+            // anticipatePin elhagyva – felesleges számítás
+            fastScrollEnd: true,  // ← ÚJ: gyors scroll után azonnal a végre ugrik
+          },
         });
+ 
+        // Progress bar
         gsap.to(".hs-progress-bar", {
-          scaleX: 1, ease: "none",
-          scrollTrigger: { trigger: section, start: "top top", end: () => `+=${getTotal()}`, scrub: true },
+          scaleX: 1,
+          ease:   "none",
+          scrollTrigger: {
+            trigger: section,
+            start:   "top top",
+            end:     () => `+=${getTotal()}`,
+            scrub:   true,
+          },
         });
+ 
+        // Számláló
         ScrollTrigger.create({
-          trigger: section, start: "top top", end: () => `+=${getTotal()}`,
+          trigger: section,
+          start:   "top top",
+          end:     () => `+=${getTotal()}`,
           onUpdate: self => {
             const cur = Math.min(Math.ceil(self.progress * slides.length) || 1, slides.length);
-            const el = document.querySelector(".hs-counter-current");
+            const el  = document.querySelector(".hs-counter-current");
             if (el) el.textContent = String(cur).padStart(2, "0");
           },
         });
       }, sectionRef);
     }
+ 
     init();
     return () => { mounted = false; ctx?.revert(); };
   }, []);
-
+ 
   return (
     <>
-      <section ref={sectionRef} className="relative w-full overflow-hidden h-screen">
+      <section
+        ref={sectionRef}
+        className="relative w-full h-screen"
+        // overflow:hidden helyett clip – jobban teljesít GPU-n
+        style={{ overflow: "hidden" }}
+      >
+        {/* Számláló */}
         <div className="absolute right-[2vw] top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 pointer-events-none mix-blend-difference">
-          <span className="hs-counter-current font-['Cormorant_Garamond'] font-light text-white tabular-nums"
-            style={{ fontSize: "clamp(1.4rem,2vw,2.6rem)" }}>01</span>
+          <span
+            className="hs-counter-current font-['Cormorant_Garamond'] font-light text-white tabular-nums"
+            style={{ fontSize: "clamp(1.4rem,2vw,2.6rem)" }}
+          >01</span>
           <div className="w-px bg-white/30" style={{ height: "5vh" }}/>
-          <span className="font-['Cormorant_Garamond'] font-light text-white/40"
-            style={{ fontSize: "clamp(0.9rem,1.3vw,1.6rem)" }}>
+          <span
+            className="font-['Cormorant_Garamond'] font-light text-white/40"
+            style={{ fontSize: "clamp(0.9rem,1.3vw,1.6rem)" }}
+          >
             {String(slides.length).padStart(2, "0")}
           </span>
         </div>
+ 
+        {/* Progress bar */}
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/5 z-30">
           <div className="hs-progress-bar h-full bg-[#C8A882] origin-left scale-x-0"/>
         </div>
-        <div ref={trackRef} className="flex h-full will-change-transform">
+ 
+        {/* Track – will-change + translateZ GPU hint */}
+        <div
+          ref={trackRef}
+          className="flex h-full"
+          style={{
+            willChange:  "transform",
+            // translate3d kényszerítése → dedikált GPU compositor layer
+            transform:   "translate3d(0,0,0)",
+            backfaceVisibility: "hidden",
+          }}
+        >
           {slides.map((slide, i) => (
             <DesktopSlide key={i} slide={slide} onVideoClick={setActiveVideo}/>
           ))}
         </div>
       </section>
-      {activeVideo && <VideoModal videoId={activeVideo} onClose={() => setActiveVideo(null)}/>}
+ 
+      {/* Modal section KÍVÜL */}
+      {activeVideo && (
+        <VideoModal videoId={activeVideo} onClose={() => setActiveVideo(null)}/>
+      )}
     </>
   );
 }

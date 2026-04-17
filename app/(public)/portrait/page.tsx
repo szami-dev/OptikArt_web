@@ -23,8 +23,8 @@ const photographers = [
     bio: "Máté hisz abban, hogy minden ember arcán ott van egy egyedi történet. 7 éve specializálódott portré és páros fotózásra — munkájában a természetes fény és az őszinte pillanatok a főszereplők.",
     specialties: ["Páros fotózás", "Jegyesfotózás", "Egyéni portré"],
     image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80",
-    youtubeId: "dQw4w9WgXcQ",
+      "/assets/Gemini_Generated_Image_4c39tx4c39tx4c39.png",
+    youtubeId: "hamarosan",
     accent: "#C8A882",
     stats: [
       { n: "200+", l: "Portré" },
@@ -37,8 +37,8 @@ const photographers = [
     bio: "Viki munkái arról szólnak, hogy a pillanat elmúlik, de az emlék megmarad. Specializációja a családi és gyermek fotózás — képein minden kacagás és ölelés örök.",
     specialties: ["Családi fotózás", "Gyermek portré", "Kismama fotózás"],
     image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&q=80",
-    youtubeId: "dQw4w9WgXcQ",
+      "/assets/zugiviki-15.JPG", //"/assets/Gemini_Generated_Image_4c39tx4c39tx4c39.png",
+    youtubeId: "hamarosan",
     accent: "#B89870",
     stats: [
       { n: "150+", l: "Család" },
@@ -186,16 +186,19 @@ function PackageCard({ pkg, featured }: { pkg: Package; featured?: boolean }) {
 
 function PackageSkeleton() {
   return (
-    <div className="border border-[#EDE8E0] bg-white p-6 animate-pulse">
+    <div className="border border-[#EDE8E0] bg-white p-6 animate-pulse h-full min-h-[400px] flex flex-col">
       <div className="h-8 bg-[#EDE8E0] rounded w-1/2 mb-3" />
       <div className="h-6 bg-[#EDE8E0] rounded w-1/3 mb-5" />
       <div className="h-px bg-[#EDE8E0] mb-5" />
+      
       <div className="flex flex-col gap-2 mb-5">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-3.5 bg-[#EDE8E0] rounded" />
         ))}
       </div>
-      <div className="h-10 bg-[#EDE8E0] rounded" />
+
+      {/* Az mt-auto letolja a gombot az aljára */}
+      <div className="h-10 bg-[#EDE8E0] rounded mt-auto" />
     </div>
   );
 }
@@ -464,131 +467,130 @@ export default function PortrePage() {
       </section>
 
       {/* KATEGÓRIÁK + CSOMAGOK */}
-      <section
-        id="kategoriák"
-        className="ph-cat-section py-20 sm:py-28 bg-[#FAFAFA]"
-      >
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-16">
-          <div className="ph-cat-header flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10 sm:mb-14">
-            <div>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-px bg-[#C8A882]" />
-                <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">
-                  Mit kínálunk
-                </span>
-              </div>
-              <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510]">
-                Válaszd ki
-                <br />
-                <em className="not-italic text-[#C8A882]">a te stílusodat</em>
-              </h2>
+      <section id="kategoriák" className="ph-cat-section py-20 sm:py-28 bg-[#FAFAFA]">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-16">
+        
+        {/* Header rész */}
+        <div className="ph-cat-header flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10 sm:mb-14">
+          <div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-px bg-[#C8A882]" />
+              <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">
+                Mit kínálunk
+              </span>
             </div>
+            <h2 className="ph-split font-['Cormorant_Garamond'] text-[clamp(2.2rem,4vw,3.5rem)] font-light leading-[1.1] text-[#1A1510]">
+              Válaszd ki <br />
+              <em className="not-italic text-[#C8A882]">a te stílusodat</em>
+            </h2>
           </div>
+        </div>
 
-          {/* Tab gombok */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-none">
-            {categories.map((cat, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveCategory(i)}
-                className={`text-[11px] tracking-[0.12em] uppercase px-4 sm:px-5 py-2.5 border transition-all duration-200 shrink-0 ${activeCategory === i ? "bg-[#1A1510] text-white border-[#1A1510]" : "text-[#7A6A58] border-[#EDE8E0] hover:border-[#C8A882]/50 hover:text-[#1A1510]"}`}
+        {/* Tab gombok */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-none">
+          {categories.map((cat, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveCategory(i)}
+              className={`text-[11px] tracking-[0.12em] uppercase px-4 sm:px-5 py-2.5 border transition-all duration-200 shrink-0 ${
+                activeCategory === i 
+                ? "bg-[#1A1510] text-white border-[#1A1510]" 
+                : "text-[#7A6A58] border-[#EDE8E0] hover:border-[#C8A882]/50 hover:text-[#1A1510]"
+              }`}
+            >
+              {cat.title}
+            </button>
+          ))}
+        </div>
+
+        {/* Képek + aktuális kategória leírása */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start lg:items-center mb-14">
+          <div className="grid grid-cols-3 gap-2" style={{ height: "280px" }}>
+            {categories[activeCategory].images.map((src, i) => (
+              <div
+                key={`${activeCategory}-${i}`}
+                className={`relative overflow-hidden ${i === 1 ? "mt-6" : ""}`}
               >
-                {cat.title}
-              </button>
+                <Image
+                  src={src}
+                  alt={categories[activeCategory].title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 33vw, 20vw"
+                />
+              </div>
             ))}
           </div>
+          <div className="flex flex-col gap-5">
+            <div>
+              <div className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882] mb-2">
+                {categories[activeCategory].subtitle}
+              </div>
+              <h3 className="font-['Cormorant_Garamond'] text-[clamp(1.6rem,3vw,2.8rem)] font-light text-[#1A1510] leading-[1.1] mb-3">
+                {categories[activeCategory].title}
+              </h3>
+              <p className="text-[14px] font-light text-[#7A6A58] leading-[1.9]">
+                {categories[activeCategory].desc}
+              </p>
+            </div>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-3 bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-7 py-4 hover:bg-[#C8A882] transition-all duration-300 w-fit"
+            >
+              Időpontot kérek
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
+        </div>
 
-          {/* Képek + szöveg */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start lg:items-center mb-14">
-            <div className="grid grid-cols-3 gap-2" style={{ height: "280px" }}>
-              {categories[activeCategory].images.map((src, i) => (
-                <div
-                  key={`${activeCategory}-${i}`}
-                  className={`relative overflow-hidden ${i === 1 ? "mt-6" : ""}`}
-                >
-                  <Image
-                    src={src}
-                    alt={categories[activeCategory].title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 33vw, 20vw"
+        {/* Csomagok szekció - 2 oszlopos grid, azonos magasságú elemekkel */}
+        <div className="ph-packages">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-px bg-[#C8A882]" />
+            <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">
+              {categories[activeCategory].title} – csomagok
+            </span>
+          </div>
+
+          {pkgLoading ? (
+            /* 2 oszlopos Skeleton Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2].map((i) => (
+                <PackageSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredPackages.length === 0 ? (
+            <div className="bg-[#FAF8F4] border border-[#EDE8E0] p-8 text-center">
+              <p className="text-[14px] text-[#A08060] mb-3">
+                Ehhez a kategóriához nincs még csomag beállítva.
+              </p>
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-[#C8A882] border-b border-[#C8A882]/40 pb-0.5"
+              >
+                Kérj egyedi ajánlatot →
+              </Link>
+            </div>
+          ) : (
+            /* 2 oszlopos Csomag Grid - Az items-stretch biztosítja az egyenlő magasságot */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+              {filteredPackages.map((pkg, i) => (
+                <div key={pkg.id} className="ph-pkg-card flex">
+                  {/* A PackageCard-nak is meg kell kapnia a h-full-t belül! */}
+                  <PackageCard
+                    pkg={pkg}
+                    featured={isFeatured(i, filteredPackages.length)}
                   />
                 </div>
               ))}
             </div>
-            <div className="flex flex-col gap-5">
-              <div>
-                <div className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882] mb-2">
-                  {categories[activeCategory].subtitle}
-                </div>
-                <h3 className="font-['Cormorant_Garamond'] text-[clamp(1.6rem,3vw,2.8rem)] font-light text-[#1A1510] leading-[1.1] mb-3">
-                  {categories[activeCategory].title}
-                </h3>
-                <p className="text-[14px] font-light text-[#7A6A58] leading-[1.9]">
-                  {categories[activeCategory].desc}
-                </p>
-              </div>
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-3 bg-[#1A1510] text-white text-[11px] tracking-[0.18em] uppercase px-7 py-4 hover:bg-[#C8A882] transition-all duration-300 w-fit"
-              >
-                Időpontot kérek
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-3.5 h-3.5"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-          {/* Csomagok – subtype alapján */}
-          <div className="ph-packages">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-8 h-px bg-[#C8A882]" />
-              <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">
-                {categories[activeCategory].title} – csomagok
-              </span>
-            </div>
-
-            {pkgLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[1, 2, 3].map((i) => (
-                  <PackageSkeleton key={i} />
-                ))}
-              </div>
-            ) : filteredPackages.length === 0 ? (
-              <div className="bg-[#FAF8F4] border border-[#EDE8E0] p-8 text-center">
-                <p className="text-[14px] text-[#A08060] mb-3">
-                  Ehhez a kategóriához nincs még csomag beállítva.
-                </p>
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-[#C8A882] border-b border-[#C8A882]/40 pb-0.5"
-                >
-                  Kérj egyedi ajánlatot →
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
-                {filteredPackages.map((pkg, i) => (
-                  <div key={pkg.id} className="ph-pkg-card">
-                    <PackageCard
-                      pkg={pkg}
-                      featured={isFeatured(i, filteredPackages.length)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* FOTÓSOK – változatlan */}
       <section className="ph-photographers py-20 sm:py-28 bg-white">
@@ -621,7 +623,7 @@ export default function PortrePage() {
                       src={p.image}
                       alt={p.name}
                       fill
-                      className="object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                      className="object-cover  hover:grayscale-0 transition-all duration-700"
                       sizes="(max-width: 1024px) 100vw, 40vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/20 to-transparent" />
