@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+
 import {
   HUN_CITIES,
   HunCity,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/hunCities";
 import { useAnalytics } from "@/lib/analytics";
 import ContactSection from "@/app/components/ContactSection";
+
 
 // ── Típusok ───────────────────────────────────────────────────
 type ProjectTypeId =
@@ -698,7 +700,7 @@ function PackageCard({
     </button>
   );
 }
-
+ 
 // ── Főkomponens ───────────────────────────────────────────────
 export default function ContactPage() {
   const { data: session } = useSession();
