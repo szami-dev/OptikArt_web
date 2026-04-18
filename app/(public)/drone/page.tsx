@@ -1,5 +1,5 @@
 import { SEO, JSONLD } from "@/lib/seo";
-import DroneClient     from "./DroneClient";
+import DroneClient from "./DroneClient";
 
 export const metadata = SEO.drone;
 
