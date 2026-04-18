@@ -561,7 +561,7 @@ export default function LandingPage() {
               </div>
               <div className="absolute -bottom-4 sm:-bottom-5 -right-4 sm:-right-5 w-24 sm:w-28 h-24 sm:h-28 bg-[#C8A882] rounded-full flex flex-col items-center justify-center gap-0.5 shadow-xl">
                 <span className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2rem] font-light text-white leading-none">
-                  8+
+                  7+
                 </span>
                 <span className="text-[7px] sm:text-[8px] tracking-[0.1em] uppercase text-white/70 text-center leading-tight">
                   év tapasz-
@@ -584,7 +584,7 @@ export default function LandingPage() {
                 történetmesélés
               </h2>
               <p className="text-[13px] sm:text-[14px] font-light text-[#7A6A58] leading-[1.9] mb-4">
-                Az OptikArt csapata több mint 8 éve alkot professzionális fotó-
+                Az OptikArt csapata több mint 7 éve alkot professzionális fotó-
                 és videótartalmakat vállalkozásoknak, magánszemélyeknek és
                 eseményeknek egyaránt.
               </p>
