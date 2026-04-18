@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+
 // ── Galéria méret konstansok ──────────────────────────────────
 // vw-alapú → arányosan skálázódik 1080p, 1440p, 4K-n egyaránt
 //
