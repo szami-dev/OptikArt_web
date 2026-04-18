@@ -193,8 +193,8 @@ export default function WeddingHero() {
               </p>
               <div className="flex gap-6 py-4 border-t border-white/10">
                 {[
-                  { n: "120+", l: "Esküvő" },
-                  { n: "8 év", l: "Tapasztalat" },
+                  { n: "20+", l: "Esküvő" },
+                  { n: "4 év", l: "Tapasztalat" },
                 ].map((s) => (
                   <div key={s.l}>
                     <div className="font-['Cormorant_Garamond'] text-[1.8rem] font-light text-[#C8A882] leading-none">

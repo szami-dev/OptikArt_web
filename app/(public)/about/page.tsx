@@ -8,6 +8,7 @@ import Link from "next/link";
 import ContactSection from "@/app/components/ContactSection";
 import Footer from "@/app/components/Footer";
 
+
 // ── Csapat ────────────────────────────────────────────────────
 const team = [
   {
