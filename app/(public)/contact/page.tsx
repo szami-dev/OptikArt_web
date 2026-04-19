@@ -13,8 +13,6 @@ import {
   distanceKm,
 } from "@/lib/hunCities";
 import { useAnalytics } from "@/lib/analytics";
-import ContactSection from "@/app/components/ContactSection";
-
 
 // ── Típusok ───────────────────────────────────────────────────
 type ProjectTypeId =
@@ -44,16 +42,7 @@ const TYPE_TO_CAT: Record<ProjectTypeId, number> = {
   egyeb: 6,
 };
 
-const ESKUVO_AGAK = [
-  { id: "foto", label: "Csak fotózás" },
-  { id: "video", label: "Csak videó" },
-  { id: "kombinalt", label: "Fotó + Videó" },
-];
-
-// ── VÁLTOZÁS: studio kap felárat, szabadtéri az alap ─────────
 const STUDIO_FELAR = 10000;
-
-// Fix stúdió helyszín szöveg
 const STUDIO_HELYSZIN = "Kiskunfélegyháza (Stúdió)";
 const STUDIO_HELYSZIN_LEIRAS =
   "Kállai u. 5, Kiskunfélegyháza – saját stúdiónkban";
@@ -88,7 +77,6 @@ const EGYEDI_TIPUSOK: Record<
   },
 };
 
-// ── Segédfüggvények ───────────────────────────────────────────
 function isTelHonap(d: string) {
   const m = new Date(d).getMonth();
   return m === 11 || m === 0 || m === 1;
@@ -114,7 +102,6 @@ function calcTravel(city: HunCity) {
   return { km, fee, isFree };
 }
 
-// ── SVG ikonok ────────────────────────────────────────────────
 const IC = {
   ring: (
     <svg
@@ -271,7 +258,7 @@ const IC = {
   ),
 };
 
-// ── UI segéd komponensek ──────────────────────────────────────
+// ── UI komponensek ─────────────────────────────────────────────
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center gap-2">
@@ -468,11 +455,10 @@ function MiniCalendar({
       </div>
       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#EDE8E0]">
         <div className="flex items-center gap-1.5 text-[10px] text-[#A08060]">
-          <div className="w-3 h-3 bg-[#C8A882]/20 rounded-sm" />
-          Foglalt
+          <div className="w-3 h-3 bg-[#C8A882]/20 rounded-sm" /> Foglalt
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-[#A08060]">
-          <div className="w-3 h-3 bg-[#FAF8F4] border border-[#EDE8E0] rounded-sm" />
+          <div className="w-3 h-3 bg-[#FAF8F4] border border-[#EDE8E0] rounded-sm" />{" "}
           Szabad
         </div>
       </div>
@@ -631,7 +617,7 @@ function LocationPicker({
   );
 }
 
-// ── Csomag kártya ─────────────────────────────────────────────
+// ── PackageCard ───────────────────────────────────────────────
 function PackageCard({
   pkg,
   selected,
@@ -700,7 +686,29 @@ function PackageCard({
     </button>
   );
 }
- 
+
+// ── NoPkgBanner – csomag nélküli kapcsolatfelvétel ────────────
+function NoPkgBanner({ onSkip }: { onSkip: () => void }) {
+  return (
+    <div className="border border-dashed border-[#C8A882]/40 bg-[#FAF8F4] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <div className="text-[12px] text-[#1A1510] font-medium mb-0.5">
+          Nem találod a megfelelő csomagot?
+        </div>
+        <div className="text-[11px] text-[#A08060]">
+          Lépj kapcsolatba velünk csomag nélkül — egyedi ajánlatot készítünk.
+        </div>
+      </div>
+      <button
+        onClick={onSkip}
+        className="shrink-0 px-4 py-2 border border-[#C8A882]/50 text-[11px] uppercase tracking-[0.1em] text-[#C8A882] hover:bg-white transition-all whitespace-nowrap"
+      >
+        Csomag nélkül →
+      </button>
+    </div>
+  );
+}
+
 // ── Főkomponens ───────────────────────────────────────────────
 export default function ContactPage() {
   const { data: session } = useSession();
@@ -718,8 +726,6 @@ export default function ContactPage() {
   const [typeId, setTypeId] = useState<ProjectTypeId | null>(null);
   const [eskuvoAg, setEskuvoAg] = useState<string | null>(null);
   const [portreKat, setPortreKat] = useState<string | null>(null);
-  // VÁLTOZÁS: szabadteri = true → szabadtéri (alap, nincs felár)
-  //           szabadteri = false → stúdió (beltéri, STUDIO_FELAR)
   const [szabadteri, setSzabadteri] = useState<boolean | null>(null);
   const [selectedPkg, setSelectedPkg] = useState<DbPackage | null>(null);
 
@@ -736,52 +742,36 @@ export default function ContactPage() {
       .then((r) => r.json())
       .then((d) => setAllPackages(d.packages ?? []))
       .finally(() => setPkgLoading(false));
-
     fetch("/api/calendar/busy?from=" + new Date().toISOString())
       .then((r) => r.json())
       .then((d) => setBusyDates(d.busyDates ?? []));
   }, []);
 
-  // ── Csomag szűrők ─────────────────────────────────────────
   function getEskuvoPackages(ag: string): DbPackage[] {
     return allPackages.filter((p) => p.categoryId === 1 && p.subtype === ag);
   }
-
-  // VÁLTOZÁS: portré is subtype alapján szűr
   function getPortrePackages(kat: string): DbPackage[] {
     return allPackages.filter((p) => p.categoryId === 2 && p.subtype === kat);
   }
 
   const hasPackages = typeId === "eskuvo" || typeId === "portre";
   const totalSteps = hasPackages ? 4 : 3;
-
-  // VÁLTOZÁS: stúdió (szabadteri===false) kap felárat, szabadtéri nem
   const studioFelar =
     typeId === "portre" && szabadteri === false ? STUDIO_FELAR : 0;
-
-  // Helyszín logika: stúdiónál fix, szabadtérinél LocationPicker
-  // stúdió esetén auto-beállítjuk a helyszínt és 0 kiszállási díjat
   const isStudio = typeId === "portre" && szabadteri === false;
   const isSzabadtePort = typeId === "portre" && szabadteri === true;
-
-  // A totalPrice-hoz
   const totalPrice = (selectedPkg?.price ?? 0) + studioFelar + travelFee;
 
-  // ── Stúdió helyszín auto-beállítás ───────────────────────
   useEffect(() => {
     if (isStudio) {
       setLocation(STUDIO_HELYSZIN);
       setTravelFee(0);
-    } else if (isSzabadtePort) {
-      // Szabadtérnél töröljük a fix helyszínt ha stúdiót váltott
-      if (location === STUDIO_HELYSZIN) {
-        setLocation("");
-        setTravelFee(0);
-      }
+    } else if (isSzabadtePort && location === STUDIO_HELYSZIN) {
+      setLocation("");
+      setTravelFee(0);
     }
   }, [isStudio, isSzabadtePort]);
 
-  // ── Tracking függvények ───────────────────────────────────
   function handleTypeSelect(id: ProjectTypeId) {
     setTypeId(id);
     setEskuvoAg(null);
@@ -817,6 +807,13 @@ export default function ContactPage() {
     });
   }
 
+  // ── ÚJ: csomag nélküli továbblépés ───────────────────────
+  function handleSkipPackage() {
+    setSelectedPkg(null);
+    setStep(3);
+    trackWizardStep(2, { typeId, noPackage: true });
+  }
+
   function handleDetailsNext(currentStep: number, nextStep: number) {
     if (!projectName.trim() || !description.trim()) {
       setError("A projekt neve és leírása kötelező.");
@@ -841,9 +838,7 @@ export default function ContactPage() {
     setSubmitting(true);
     setError("");
     try {
-      // Helyszín logika: stúdiónál a fix szöveg kerül be
       const finalLocation = isStudio ? STUDIO_HELYSZIN : location;
-
       const res = await fetch("/api/projects/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -861,7 +856,13 @@ export default function ContactPage() {
               : null,
             portreKat ? `Portré kategória: ${portreKat}` : null,
             eskuvoAg
-              ? `Esküvő típusa: ${ESKUVO_AGAK.find((a) => a.id === eskuvoAg)?.label}`
+              ? `Esküvő típusa: ${
+                  [
+                    { id: "foto", label: "Csak fotózás" },
+                    { id: "video", label: "Csak videó" },
+                    { id: "kombinalt", label: "Fotó + Videó" },
+                  ].find((a) => a.id === eskuvoAg)?.label
+                }`
               : null,
           ]
             .filter(Boolean)
@@ -872,10 +873,9 @@ export default function ContactPage() {
           phone: phone || null,
           location: finalLocation || null,
           travelFee: isStudio ? 0 : travelFee,
-          szabadteriFelár: studioFelar, // most a stúdió felár
+          szabadteriFelár: studioFelar,
         }),
       });
-
       if (!res.ok) {
         const e = await res.json();
         if (res.status === 409) {
@@ -884,7 +884,6 @@ export default function ContactPage() {
         }
         throw new Error(e.error);
       }
-
       trackWizardComplete({
         typeId,
         packageId: selectedPkg?.id ?? null,
@@ -893,7 +892,6 @@ export default function ContactPage() {
         hasDate: !!preferredDate,
         hasLocation: !!finalLocation,
       });
-
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message ?? "Szerverhiba");
@@ -902,7 +900,7 @@ export default function ContactPage() {
     }
   }
 
-  // ── Success képernyő ──────────────────────────────────────
+  // ── Success ───────────────────────────────────────────────
   if (submitted)
     return (
       <div className="fixed inset-0 bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -984,7 +982,7 @@ export default function ContactPage() {
       </div>
 
       <div className="flex-1 overflow-hidden flex">
-        {/* Bal panel desktop */}
+        {/* Bal panel */}
         <div className="hidden lg:flex w-[320px] xl:w-[380px] shrink-0 flex-col justify-between bg-[#F5EFE6] border-r border-[#EDE8E0] px-10 py-10">
           <div>
             <h1 className="font-['Cormorant_Garamond'] text-[2.8rem] font-light text-[#1A1510] leading-[1] mb-6">
@@ -1064,6 +1062,13 @@ export default function ContactPage() {
                 </div>
               </div>
             )}
+            {!selectedPkg && step >= 3 && hasPackages && (
+              <div className="bg-white/60 border border-dashed border-[#C8A882]/30 p-4">
+                <div className="text-[11px] text-[#A08060]">
+                  Csomag nélküli kapcsolatfelvétel — egyedi ajánlatot küldünk.
+                </div>
+              </div>
+            )}
           </div>
           {session?.user && (
             <div className="flex items-center gap-3 pt-6 border-t border-[#EDE8E0]">
@@ -1082,7 +1087,7 @@ export default function ContactPage() {
           )}
         </div>
 
-        {/* Jobb wizard */}
+        {/* Wizard */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-5 sm:px-8 py-6 sm:py-10">
@@ -1160,261 +1165,262 @@ export default function ContactPage() {
                 </div>
               )}
 
-              {/* ═══ STEP 2: Csomag ═══ */}
-              {step === 2 &&
-                typeId &&
-                (typeId === "eskuvo" ? (
-                  <div className="flex flex-col gap-6">
-                    <div>
-                      <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510] mb-1">
-                        Esküvői csomag
-                      </h2>
-                      <p className="text-[12px] text-[#A08060]">
-                        Először válaszd ki a formátumot, majd a csomagot
-                      </p>
-                    </div>
-                    <InfoBox type="tip">
-                      A kombinált csomag (fotó + videó) általában kedvezőbb,
-                      mintha külön rendelnéd.
-                    </InfoBox>
+              {/* ═══ STEP 2: Esküvő csomag ═══ */}
+              {step === 2 && typeId === "eskuvo" && (
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510] mb-1">
+                      Esküvői csomag
+                    </h2>
+                    <p className="text-[12px] text-[#A08060]">
+                      Először válaszd ki a formátumot, majd a csomagot
+                    </p>
+                  </div>
+                  <InfoBox type="tip">
+                    A kombinált csomag (fotó + videó) általában kedvezőbb,
+                    mintha külön rendelnéd.
+                  </InfoBox>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "foto", label: "Csak fotózás", icon: "camera" },
-                        { id: "video", label: "Csak videó", icon: "video" },
-                        {
-                          id: "kombinalt",
-                          label: "Fotó + Videó",
-                          icon: "sparkle",
-                        },
-                      ].map((ag) => (
-                        <button
-                          key={ag.id}
-                          onClick={() => {
-                            setEskuvoAg(ag.id);
-                            setSelectedPkg(null);
-                          }}
-                          className={`flex flex-col items-center gap-2 p-4 border transition-all ${eskuvoAg === ag.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "foto", label: "Csak fotózás", icon: "camera" },
+                      { id: "video", label: "Csak videó", icon: "video" },
+                      {
+                        id: "kombinalt",
+                        label: "Fotó + Videó",
+                        icon: "sparkle",
+                      },
+                    ].map((ag) => (
+                      <button
+                        key={ag.id}
+                        onClick={() => {
+                          setEskuvoAg(ag.id);
+                          setSelectedPkg(null);
+                        }}
+                        className={`flex flex-col items-center gap-2 p-4 border transition-all ${eskuvoAg === ag.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
+                      >
+                        <span
+                          className={`transition-colors ${eskuvoAg === ag.id ? "text-[#C8A882]" : "text-[#A08060]"}`}
                         >
-                          <span
-                            className={`transition-colors ${eskuvoAg === ag.id ? "text-[#C8A882]" : "text-[#A08060]"}`}
-                          >
-                            {IC[ag.icon as keyof typeof IC]}
-                          </span>
-                          <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">
-                            {ag.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                          {IC[ag.icon as keyof typeof IC]}
+                        </span>
+                        <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">
+                          {ag.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-                    {eskuvoAg &&
-                      (pkgLoading ? (
-                        <div className="flex items-center gap-2 py-4">
-                          <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
-                          <span className="text-[12px] text-[#A08060]">
-                            Csomagok betöltése...
-                          </span>
+                  {eskuvoAg &&
+                    (pkgLoading ? (
+                      <div className="flex items-center gap-2 py-4">
+                        <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+                        <span className="text-[12px] text-[#A08060]">
+                          Csomagok betöltése...
+                        </span>
+                      </div>
+                    ) : getEskuvoPackages(eskuvoAg).length === 0 ? (
+                      <InfoBox type="info">
+                        Ehhez a kategóriához nincs még csomag beállítva.
+                      </InfoBox>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {getEskuvoPackages(eskuvoAg).map((pkg) => (
+                          <PackageCard
+                            key={pkg.id}
+                            pkg={pkg}
+                            selected={selectedPkg?.id === pkg.id}
+                            extraPrice={0}
+                            onClick={() => setSelectedPkg(pkg)}
+                          />
+                        ))}
+                      </div>
+                    ))}
+
+                  {/* ── ÚJ: Csomag nélkül banner ── */}
+                  {eskuvoAg && <NoPkgBanner onSkip={handleSkipPackage} />}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleBack(2, 1)}
+                      className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all"
+                    >
+                      ← Vissza
+                    </button>
+                    <button
+                      onClick={handlePackageNext}
+                      disabled={!eskuvoAg || !selectedPkg}
+                      className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40"
+                    >
+                      Tovább →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ STEP 2: Portré csomag ═══ */}
+              {step === 2 && typeId === "portre" && (
+                <div className="flex flex-col gap-6">
+                  <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510]">
+                    Portré csomag
+                  </h2>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      {
+                        id: "paros",
+                        label: "Páros / Jegyesfotózás",
+                        icon: "people",
+                      },
+                      {
+                        id: "csaladi",
+                        label: "Családi fotózás",
+                        icon: "people",
+                      },
+                      { id: "egyeni", label: "Egyéni portré", icon: "person" },
+                    ].map((k) => (
+                      <button
+                        key={k.id}
+                        onClick={() => {
+                          setPortreKat(k.id);
+                          setSelectedPkg(null);
+                        }}
+                        className={`flex flex-col items-center gap-2 p-4 border transition-all ${portreKat === k.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
+                      >
+                        <span
+                          className={`transition-colors ${portreKat === k.id ? "text-[#C8A882]" : "text-[#A08060]"}`}
+                        >
+                          {IC[k.icon as keyof typeof IC]}
+                        </span>
+                        <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">
+                          {k.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {portreKat && (
+                    <>
+                      <div>
+                        <div className="text-[10px] tracking-[0.14em] uppercase text-[#A08060] mb-2">
+                          Helyszín típusa
                         </div>
-                      ) : getEskuvoPackages(eskuvoAg).length === 0 ? (
-                        <InfoBox type="info">
-                          Ehhez a kategóriához nincs még csomag beállítva.
-                        </InfoBox>
-                      ) : (
-                        <div className="flex flex-col gap-2">
-                          {getEskuvoPackages(eskuvoAg).map((pkg) => (
-                            <PackageCard
-                              key={pkg.id}
-                              pkg={pkg}
-                              selected={selectedPkg?.id === pkg.id}
-                              extraPrice={0}
-                              onClick={() => setSelectedPkg(pkg)}
-                            />
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            {
+                              v: true,
+                              label: "Szabadtéri",
+                              desc: "Természetes fény, általad választott helyszín",
+                              icon: "outdoor",
+                            },
+                            {
+                              v: false,
+                              label: "Stúdió (beltéri)",
+                              desc: `Kiskunfélegyháza · +${fmt(STUDIO_FELAR)} stúdió felár`,
+                              icon: "building",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={String(opt.v)}
+                              onClick={() => {
+                                setSzabadteri(opt.v);
+                                setSelectedPkg(null);
+                              }}
+                              className={`flex items-start gap-3 p-4 border transition-all text-left ${szabadteri === opt.v ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
+                            >
+                              <span
+                                className={`shrink-0 mt-0.5 transition-colors ${szabadteri === opt.v ? "text-[#C8A882]" : "text-[#A08060]"}`}
+                              >
+                                {IC[opt.icon as keyof typeof IC]}
+                              </span>
+                              <div>
+                                <div className="text-[12px] text-[#1A1510] font-medium">
+                                  {opt.label}
+                                </div>
+                                <div className="text-[10px] text-[#A08060]">
+                                  {opt.desc}
+                                </div>
+                              </div>
+                            </button>
                           ))}
                         </div>
-                      ))}
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleBack(2, 1)}
-                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all"
-                      >
-                        ← Vissza
-                      </button>
-                      <button
-                        onClick={handlePackageNext}
-                        disabled={!eskuvoAg || !selectedPkg}
-                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40"
-                      >
-                        Tovább →
-                      </button>
-                    </div>
-                  </div>
-                ) : typeId === "portre" ? (
-                  <div className="flex flex-col gap-6">
-                    <h2 className="font-['Cormorant_Garamond'] text-[1.8rem] sm:text-[2.2rem] font-light text-[#1A1510]">
-                      Portré csomag
-                    </h2>
-
-                    {/* Kategória választó */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        {
-                          id: "paros",
-                          label: "Páros / Jegyesfotózás",
-                          icon: "people",
-                        },
-                        {
-                          id: "csaladi",
-                          label: "Családi fotózás",
-                          icon: "people",
-                        },
-                        {
-                          id: "egyeni",
-                          label: "Egyéni portré",
-                          icon: "person",
-                        },
-                      ].map((k) => (
-                        <button
-                          key={k.id}
-                          onClick={() => {
-                            setPortreKat(k.id);
-                            setSelectedPkg(null);
-                          }}
-                          className={`flex flex-col items-center gap-2 p-4 border transition-all ${portreKat === k.id ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
-                        >
-                          <span
-                            className={`transition-colors ${portreKat === k.id ? "text-[#C8A882]" : "text-[#A08060]"}`}
-                          >
-                            {IC[k.icon as keyof typeof IC]}
-                          </span>
-                          <span className="text-[11px] text-[#1A1510] font-medium text-center leading-tight">
-                            {k.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {portreKat && (
-                      <>
-                        {/* Helyszín típus választó */}
-                        <div>
-                          <div className="text-[10px] tracking-[0.14em] uppercase text-[#A08060] mb-2">
-                            Helyszín típusa
+                        {szabadteri === false && (
+                          <div className="mt-2">
+                            <InfoBox type="tip">
+                              <strong>Stúdió helyszín:</strong>{" "}
+                              {STUDIO_HELYSZIN_LEIRAS}. A stúdió felár a
+                              felszerelés és rezsi költségét fedezi.
+                            </InfoBox>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              {
-                                v: true,
-                                label: "Szabadtéri",
-                                // VÁLTOZÁS: szabadtéri az alap, nincs felár
-                                desc: "Természetes fény, általad választott helyszín",
-                                icon: "outdoor",
-                              },
-                              {
-                                v: false,
-                                label: "Stúdió (beltéri)",
-                                // VÁLTOZÁS: stúdió kap felárat
-                                desc: `Kiskunfélegyháza · +${fmt(STUDIO_FELAR)} stúdió felár`,
-                                icon: "building",
-                              },
-                            ].map((opt) => (
-                              <button
-                                key={String(opt.v)}
-                                onClick={() => {
-                                  setSzabadteri(opt.v);
-                                  setSelectedPkg(null);
-                                }}
-                                className={`flex items-start gap-3 p-4 border transition-all text-left ${szabadteri === opt.v ? "bg-[#FAF8F4] border-[#C8A882]" : "border-[#EDE8E0] bg-white hover:border-[#C8A882]/40"}`}
-                              >
-                                <span
-                                  className={`shrink-0 mt-0.5 transition-colors ${szabadteri === opt.v ? "text-[#C8A882]" : "text-[#A08060]"}`}
-                                >
-                                  {IC[opt.icon as keyof typeof IC]}
-                                </span>
-                                <div>
-                                  <div className="text-[12px] text-[#1A1510] font-medium">
-                                    {opt.label}
-                                  </div>
-                                  <div className="text-[10px] text-[#A08060]">
-                                    {opt.desc}
-                                  </div>
-                                </div>
-                              </button>
+                        )}
+                        {szabadteri === true && (
+                          <div className="mt-2">
+                            <InfoBox type="tip">
+                              Szabadtéri fotózásnál az időjárás meghatározó.
+                              Esős napon közösen egyeztetünk az átütemezésről.
+                            </InfoBox>
+                          </div>
+                        )}
+                      </div>
+
+                      {szabadteri !== null &&
+                        (pkgLoading ? (
+                          <div className="flex items-center gap-2 py-4">
+                            <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+                          </div>
+                        ) : getPortrePackages(portreKat).length === 0 ? (
+                          <InfoBox type="info">
+                            Ehhez a kategóriához nincs még csomag beállítva.
+                            Vedd fel velünk a kapcsolatot egyedi árajánlatért.
+                          </InfoBox>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {getPortrePackages(portreKat).map((pkg) => (
+                              <PackageCard
+                                key={pkg.id}
+                                pkg={pkg}
+                                selected={selectedPkg?.id === pkg.id}
+                                extraPrice={
+                                  szabadteri === false ? STUDIO_FELAR : 0
+                                }
+                                onClick={() => setSelectedPkg(pkg)}
+                              />
                             ))}
                           </div>
+                        ))}
 
-                          {/* Stúdió info doboz */}
-                          {szabadteri === false && (
-                            <div className="mt-2">
-                              <InfoBox type="tip">
-                                <strong>Stúdió helyszín:</strong>{" "}
-                                {STUDIO_HELYSZIN_LEIRAS}. A stúdió felár a
-                                felszerelés és rezsi költségét fedezi.
-                              </InfoBox>
-                            </div>
-                          )}
+                      {/* ── ÚJ: Csomag nélkül banner (csak ha van portreKat és szabadteri kiválasztva) ── */}
+                      {szabadteri !== null && (
+                        <NoPkgBanner onSkip={handleSkipPackage} />
+                      )}
+                    </>
+                  )}
 
-                          {/* Szabadtéri info doboz */}
-                          {szabadteri === true && (
-                            <div className="mt-2">
-                              <InfoBox type="tip">
-                                Szabadtéri fotózásnál az időjárás meghatározó.
-                                Esős napon közösen egyeztetünk az átütemezésről.
-                              </InfoBox>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* VÁLTOZÁS: subtype alapján szűrt csomagok */}
-                        {szabadteri !== null &&
-                          (pkgLoading ? (
-                            <div className="flex items-center gap-2 py-4">
-                              <div className="w-4 h-4 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
-                            </div>
-                          ) : getPortrePackages(portreKat).length === 0 ? (
-                            <InfoBox type="info">
-                              Ehhez a kategóriához nincs még csomag beállítva.
-                              Vedd fel velünk a kapcsolatot egyedi árajánlatért.
-                            </InfoBox>
-                          ) : (
-                            <div className="flex flex-col gap-2">
-                              {getPortrePackages(portreKat).map((pkg) => (
-                                <PackageCard
-                                  key={pkg.id}
-                                  pkg={pkg}
-                                  selected={selectedPkg?.id === pkg.id}
-                                  // VÁLTOZÁS: stúdió esetén a felár, szabadtérinél 0
-                                  extraPrice={
-                                    szabadteri === false ? STUDIO_FELAR : 0
-                                  }
-                                  onClick={() => setSelectedPkg(pkg)}
-                                />
-                              ))}
-                            </div>
-                          ))}
-                      </>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleBack(2, 1)}
-                        className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all"
-                      >
-                        ← Vissza
-                      </button>
-                      <button
-                        onClick={handlePortreNext}
-                        disabled={
-                          !portreKat || szabadteri === null || !selectedPkg
-                        }
-                        className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40"
-                      >
-                        Tovább →
-                      </button>
-                    </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleBack(2, 1)}
+                      className="px-5 py-3 border border-[#EDE8E0] text-[11px] uppercase text-[#A08060] hover:text-[#1A1510] transition-all"
+                    >
+                      ← Vissza
+                    </button>
+                    <button
+                      onClick={handlePortreNext}
+                      disabled={
+                        !portreKat || szabadteri === null || !selectedPkg
+                      }
+                      className="flex-1 py-3 bg-[#1A1510] text-[11px] tracking-[0.14em] uppercase text-white hover:bg-[#C8A882] transition-all disabled:opacity-40"
+                    >
+                      Tovább →
+                    </button>
                   </div>
-                ) : (
+                </div>
+              )}
+
+              {/* ═══ STEP 2: Egyéb típusok ═══ */}
+              {step === 2 &&
+                typeId &&
+                typeId !== "eskuvo" &&
+                typeId !== "portre" && (
                   <StepReszletek
                     typeId={typeId}
                     projectName={projectName}
@@ -1435,7 +1441,7 @@ export default function ContactPage() {
                     onBack={() => handleBack(2, 1)}
                     onNext={() => handleDetailsNext(2, 3)}
                   />
-                ))}
+                )}
 
               {/* ═══ STEP 3: Részletek (csomagos) ═══ */}
               {step === 3 && hasPackages && (
@@ -1455,7 +1461,6 @@ export default function ContactPage() {
                   setTravelFee={setTravelFee}
                   busyDates={busyDates}
                   error={error}
-                  // VÁLTOZÁS: stúdió esetén fix helyszín, nincs LocationPicker
                   isStudio={isStudio}
                   onBack={() => handleBack(3, 2)}
                   onNext={() => handleDetailsNext(3, 4)}
@@ -1482,6 +1487,16 @@ export default function ContactPage() {
                         </div>
                         <div className="text-[13px] text-[#1A1510] font-medium">
                           {selectedPkg.name}
+                        </div>
+                      </div>
+                    )}
+                    {!selectedPkg && hasPackages && (
+                      <div className="bg-[#FAF8F4] border border-dashed border-[#C8A882]/40 p-4">
+                        <div className="text-[9px] tracking-[0.14em] uppercase text-[#A08060] mb-1">
+                          Csomag
+                        </div>
+                        <div className="text-[12px] text-[#7A6A58]">
+                          Csomag nélküli igénylés — egyedi ajánlatot küldünk
                         </div>
                       </div>
                     )}
@@ -1606,7 +1621,7 @@ export default function ContactPage() {
   );
 }
 
-// ── Részletek step ────────────────────────────────────────────
+// ── StepReszletek ─────────────────────────────────────────────
 function StepReszletek({
   typeId,
   projectName,
@@ -1642,7 +1657,6 @@ function StepReszletek({
   setTravelFee: (v: number) => void;
   busyDates: string[];
   error: string;
-  // VÁLTOZÁS: isStudio prop
   isStudio: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -1650,7 +1664,6 @@ function StepReszletek({
   const egyedi = EGYEDI_TIPUSOK[typeId];
   const isMarketing = typeId === "marketing";
   const isSzabadteriTipus = ["eskuvo", "dron"].includes(typeId);
-  // Portré szabadtérinél is mutatjuk a figyelmeztetőt
   const isSzabadteriPortre = typeId === "portre" && !isStudio;
   const showTelWarning =
     preferredDate &&
@@ -1702,7 +1715,6 @@ function StepReszletek({
           </Field>
         </div>
 
-        {/* VÁLTOZÁS: stúdiónál fix helyszín megjelenítés, nincs LocationPicker */}
         {isStudio ? (
           <Field label="Helyszín">
             <div className="bg-[#F5EFE6] border border-[#EDE8E0] px-4 py-3 flex items-center gap-3">
