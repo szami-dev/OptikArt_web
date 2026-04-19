@@ -9,7 +9,7 @@ import WeddingTimeline from "@/app/components/WeddingTimeline";
 import Footer from "@/app/components/Footer";
 import WeddingHero from "@/app/components/WeddingHero";
 import ContactSection from "@/app/components/ContactSection";
-
+import WeddingAvailabilityCalendar from "@/app/components/WeddingAvailabilityCalendar";
 
 type BulletPoint = { id: number; title: string | null };
 type Package = {
@@ -256,7 +256,6 @@ function PackageSkeleton() {
 
 // ════════════════════════════════════════════════════════════════
 export default function WeddingClient() {
-  
   const rootRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"foto" | "video">("foto");
@@ -423,7 +422,6 @@ export default function WeddingClient() {
   }, []);
 
   return (
-    
     <div ref={rootRef} className="bg-[#FAF8F4] overflow-x-hidden">
       <WeddingHero />
 
@@ -637,8 +635,6 @@ export default function WeddingClient() {
               { n: "4", suf: " év", l: "Tapasztalat" },
               { n: "20", suf: "%", l: "Elégedett pár" },
               { n: "35", suf: "+", l: "Átadott videó" },
-         
-              
             ].map((s, i) => (
               <div
                 key={i}
@@ -827,6 +823,7 @@ export default function WeddingClient() {
           )}
         </div>
       </section>
+      <WeddingAvailabilityCalendar />
 
       {/* ══ FAQ ══ */}
       <section className="py-28 bg-white">

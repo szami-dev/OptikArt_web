@@ -433,3 +433,85 @@ export async function sendGallerySharedEmail(
  
   return sendMailWrapper(email, `✨ Elkészült a galériád: ${projectName} | OptikArt`, html);
 }
+
+export async function sendGuestChatConfirmationEmail(
+  email: string,
+  name: string,
+  messageContent: string,
+) {
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Köszönjük az üzenetet!</h2>
+    <p style="text-align: center; color: #555555;">
+      Szia ${name}, megkaptuk az üzenetedet és hamarosan válaszolunk.
+    </p>
+ 
+    <div style="background-color: #f4f4f4; border-left: 4px solid #A08060;
+                padding: 20px; margin: 25px 0; font-style: italic; color: #555555;
+                font-size: 13px; line-height: 1.7;">
+      "${messageContent}"
+    </div>
+ 
+    <p style="text-align: center; color: #888888; font-size: 13px;">
+      Általában <strong>1–2 munkanapon belül</strong> visszajelzünk erre az email címre.<br/>
+      Ha sürgős a kérdésed, keress minket közvetlenül:
+    </p>
+ 
+    <p style="text-align: center; margin: 20px 0;">
+      <a href="mailto:business@optikart.hu"
+         style="color: #A08060; font-size: 13px; text-decoration: none;">
+        business@optikart.hu
+      </a>
+    </p>
+  `);
+ 
+  return sendMailWrapper(email, "Megkaptuk az üzenetedet | OptikArt", html);
+}
+ 
+// ── Vendég chat: admin értesítő email ────────────────────────
+// Ez megy az adminnak az új vendég chat üzenetről
+export async function sendGuestChatAdminNotificationEmail(
+  adminEmail: string,
+  guestName: string,
+  guestEmail: string,
+  messageContent: string,
+  sessionId: string,
+) {
+  const adminLink = `${process.env.NEXT_PUBLIC_APP_URL}/admin/messages?guest=${sessionId}`;
+ 
+  const html = getBaseTemplate(`
+    <h2 style="border-bottom: 1px solid #333333; padding-bottom: 15px; font-weight: 400;">
+      Új chat üzenet
+    </h2>
+    <p style="color: #888888; font-size: 12px; margin-top: 0;">Nem bejelentkezett látogatótól</p>
+ 
+    <table style="width: 100%; margin: 20px 0; color: #ffffff; font-size: 14px;">
+      <tr>
+        <td style="padding: 6px 0; color: #888888; width: 120px;">Feladó neve:</td>
+        <td style="padding: 6px 0;">${guestName}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0; color: #888888;">E-mail:</td>
+        <td style="padding: 6px 0; color: #A08060;">
+          <a href="mailto:${guestEmail}" style="color: #A08060;">${guestEmail}</a>
+        </td>
+      </tr>
+    </table>
+ 
+    <div style="border: 1px solid #333333; padding: 16px 20px; margin: 20px 0;
+                font-size: 13px; line-height: 1.7; color: #dddddd; font-style: italic;">
+      "${messageContent}"
+    </div>
+ 
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${adminLink}"
+         style="background-color: #ffffff; color: #111111; padding: 15px 35px;
+                text-decoration: none; display: inline-block; font-weight: 700;
+                text-transform: uppercase; border-radius: 4px; letter-spacing: 1px;
+                font-size: 12px;">
+        Válasz az admin felületen →
+      </a>
+    </div>
+  `, "Admin Értesítés", true);
+ 
+  return sendMailWrapper(adminEmail, `💬 Új chat üzenet – ${guestName}`, html);
+}
