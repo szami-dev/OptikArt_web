@@ -110,7 +110,7 @@ export async function sendVerificationEmail(email: string, name: string) {
 }
 
 export async function sendProjectCreatedEmail(email: string, name: string) {
-  const projectListLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectListLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">Szia ${name}!</h2>
     <p style="text-align: center; color: #555555;">Az új projekttervedet sikeresen rögzítettük. Köszönjük a bizalmadat!</p>
@@ -128,7 +128,7 @@ export async function sendAdminCreatedProjectEmail(email: string, name: string, 
     <p style="text-align: center; color: #555555;">Létrehoztunk számodra egy új munkafelületet a következő projekthez:<br><strong>"${projectName}"</strong></p>
     <p style="text-align: center; color: #555555;">Itt nyomon követheted a munka folyamatát és elérheted a kész anyagokat.</p>
     <div style="text-align: center; margin: 40px 0;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt megnyitása</a>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/projects" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt megnyitása</a>
     </div>
   `);
   return sendMailWrapper(email, "Új projektet indítottunk neked | OptikArt", html);
@@ -140,7 +140,7 @@ export async function sendPaymentStatusEmail(
   status: string, 
   color: string = "#f39c12" // Alapértelmezett narancs, ha nem jönne szín
 ) {
-  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
   
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">Pénzügyi értesítés</h2>
@@ -163,7 +163,7 @@ export async function sendPaymentStatusEmail(
 }
 // Példa a projekt státusz emailre a mail.ts-ben
 export async function sendProjectStatusEmail(email: string, name: string, projectName: string, status: string, color: string = "#A08060") {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
 
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">A projekted szintet lépett</h2>
@@ -234,7 +234,7 @@ export async function sendAdminNotificationEmail(userEmails: string[], userEmail
 }
 
 export async function sendMessageNotificationEmail(recipientEmail: string, senderName: string, projectName: string, messageContent: string, projectId: string) {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects/${projectId}`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects/${projectId}`;
   const html = getBaseTemplate(`
     <p>Szia!</p>
     <p><strong>${senderName}</strong> üzenetet küldött neked a <strong>${projectName}</strong> projekt kapcsán:</p>
@@ -333,7 +333,7 @@ export async function sendEventDateChangedEmail(
   projectName: string,
   newDate: Date,
 ) {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
  
   const formattedDate = newDate.toLocaleDateString("hu-HU", {
     year:    "numeric",
