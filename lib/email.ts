@@ -515,3 +515,27 @@ export async function sendGuestChatAdminNotificationEmail(
  
   return sendMailWrapper(adminEmail, `💬 Új chat üzenet – ${guestName}`, html);
 }
+
+export async function sendMessageNotificationEmailFromAdmin(
+  email: string,
+  name: string,
+  senderName: string,
+  projectName: string,
+  messageContent: string,
+  projectId: string,
+) {
+  const link = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects/${projectId}`;
+  const html = getBaseTemplate(`
+    <h2 style="text-align:center;font-weight:400;">Új üzeneted érkezett</h2>
+    <p style="text-align:center;color:#555;">Szia ${name}, <strong>${senderName}</strong> üzenetet küldött neked a <strong>${projectName}</strong> projekthez:</p>
+    <div style="background:#f4f4f4;border-left:4px solid #A08060;padding:20px;margin:25px 0;font-style:italic;color:#333;">
+      "${messageContent}"
+    </div>
+    <div style="text-align:center;">
+      <a href="${link}" style="background:#1a1a1a;color:#fff;padding:15px 35px;text-decoration:none;border-radius:4px;font-weight:600;display:inline-block;text-transform:uppercase;font-size:12px;">
+        Válasz küldése →
+      </a>
+    </div>
+  `);
+  return sendMailWrapper(email, `💬 Új üzenet: ${projectName}`, html);
+}
