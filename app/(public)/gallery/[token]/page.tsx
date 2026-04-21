@@ -1,9 +1,8 @@
 "use client";
 
 // app/(public)/gallery/[token]/page.tsx
-// A publikus megosztott galéria – cover hero, videó, letöltés
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -13,6 +12,8 @@ type GalleryImage = {
   previewUrl: string;
   fileName: string | null;
   bytes: number | null;
+  width: number | null;
+  height: number | null;
 };
 type GalleryVideo = {
   id: number;
@@ -36,15 +37,342 @@ type GalleryData = {
   _count: { images: number };
 };
 
+type ZipPhase =
+  | { phase: "idle" }
+  | { phase: "fetching-urls" }
+  | { phase: "downloading"; done: number; total: number; currentFile: string }
+  | { phase: "zipping"; done: number; total: number }
+  | { phase: "saving" }
+  | { phase: "done" }
+  | { phase: "error"; message: string };
+
 function formatDuration(s: number) {
   const m = Math.floor(s / 60),
     sec = Math.floor(s % 60);
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
+// ── Cloudinary URL → nagy felbontás ──────────────────────────
+function upgradeToCoverUrl(url: string): string {
+  if (!url) return url;
+  return url.replace(/\/upload\/[^/]+\//, "/upload/w_2400,q_auto,f_auto/");
+}
+
+// ── Kiterjesztés kinyerése URL-ből ────────────────────────────
+function getFileNameWithExt(fileName: string, url: string): string {
+  if (/\.\w{2,5}$/.test(fileName)) return fileName;
+  const urlMatch = url.match(/\.(\w{2,5})(?:\?|$)/);
+  const ext = urlMatch ? `.${urlMatch[1].toLowerCase()}` : ".jpg";
+  return `${fileName}${ext}`;
+}
+
+// ── Hero title parse ──────────────────────────────────────────
+function parseHeroTitle(title: string | null): {
+  names: string;
+  date: string | null;
+} {
+  if (!title) return { names: "", date: null };
+  const parts = title.split("|");
+  if (parts.length === 2)
+    return { names: parts[0].trim(), date: parts[1].trim() };
+  return { names: title, date: null };
+}
+
+function formatHeroDate(d: string): string {
+  const clean = d.replace(/\.$/, "");
+  const parts = clean.split(".");
+  if (parts.length === 3) {
+    const dt = new Date(`${parts[0]}-${parts[1]}-${parts[2]}`);
+    if (!isNaN(dt.getTime())) {
+      return dt
+        .toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })
+        .toUpperCase();
+    }
+  }
+  return d;
+}
+
+// ── ZIP Progress Overlay ──────────────────────────────────────
+function ZipProgressOverlay({
+  state,
+  onClose,
+}: {
+  state: ZipPhase;
+  onClose: () => void;
+}) {
+  if (state.phase === "idle") return null;
+
+  const percent =
+    state.phase === "downloading"
+      ? Math.round((state.done / state.total) * 100)
+      : state.phase === "zipping"
+        ? Math.round((state.done / state.total) * 100)
+        : state.phase === "saving" || state.phase === "done"
+          ? 100
+          : 0;
+
+  const label =
+    state.phase === "fetching-urls"
+      ? "Fájlok előkészítése..."
+      : state.phase === "downloading"
+        ? `Képek letöltése (${state.done}/${state.total})`
+        : state.phase === "zipping"
+          ? `Tömörítés (${state.done}/${state.total})`
+          : state.phase === "saving"
+            ? "ZIP mentése..."
+            : state.phase === "done"
+              ? "Letöltés kész!"
+              : `Hiba: ${(state as any).message}`;
+
+  const isDone = state.phase === "done";
+  const isError = state.phase === "error";
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">
+      <div className="bg-white border border-[#EDE8E0] w-full max-w-md p-8">
+        <div className="flex items-center justify-center mb-6">
+          {isDone ? (
+            <div className="w-14 h-14 border border-[#C8A882]/40 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#C8A882"
+                strokeWidth="1.5"
+                className="w-7 h-7"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+          ) : isError ? (
+            <div className="w-14 h-14 border border-red-200 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="1.5"
+                className="w-7 h-7"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+          ) : (
+            <div className="w-14 h-14 border border-[#EDE8E0] flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="w-5 h-px bg-[#C8A882]/40" />
+            <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]">
+              {isDone ? "Kész" : isError ? "Hiba" : "Folyamatban"}
+            </span>
+            <div className="w-5 h-px bg-[#C8A882]/40" />
+          </div>
+          <h3 className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#1A1510] mb-1">
+            {isDone
+              ? "ZIP letöltve!"
+              : isError
+                ? "Letöltési hiba"
+                : "ZIP összeállítása"}
+          </h3>
+          <p className="text-[12px] text-[#7A6A58]">{label}</p>
+          {state.phase === "downloading" && state.currentFile && (
+            <p className="text-[10px] text-[#A08060] mt-1 truncate max-w-xs mx-auto">
+              {state.currentFile}
+            </p>
+          )}
+        </div>
+        {!isError && (
+          <div className="mb-6">
+            <div className="h-1 bg-[#EDE8E0] w-full">
+              <div
+                className="h-full bg-[#C8A882] transition-all duration-300"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[10px] text-[#A08060]">{percent}%</span>
+              {(state.phase === "downloading" || state.phase === "zipping") && (
+                <span className="text-[10px] text-[#A08060]">
+                  {state.done} / {state.total} fájl
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {(isDone || isError) && (
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-[#1A1510] text-white text-[11px] tracking-[0.14em] uppercase hover:bg-[#C8A882] transition-all"
+          >
+            Bezárás
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Justified Gallery ─────────────────────────────────────────
+const GAP = 4;
+
+function buildJustifiedRows(
+  images: GalleryImage[],
+  containerWidth: number,
+  targetRowHeight: number,
+): GalleryImage[][] {
+  if (containerWidth <= 0) return [];
+  const rows: GalleryImage[][] = [];
+  let current: GalleryImage[] = [];
+  let currentWidth = 0;
+  for (const img of images) {
+    const aspect = img.width && img.height ? img.width / img.height : 3 / 2;
+    const imgW = targetRowHeight * aspect;
+    const gapAdd = current.length > 0 ? GAP : 0;
+    if (current.length > 0 && currentWidth + gapAdd + imgW > containerWidth) {
+      rows.push(current);
+      current = [img];
+      currentWidth = imgW;
+    } else {
+      current.push(img);
+      currentWidth += gapAdd + imgW;
+    }
+  }
+  if (current.length > 0) rows.push(current);
+  return rows;
+}
+
+function JustifiedGallery({
+  images,
+  onImageClick,
+  downloading,
+  onDownload,
+}: {
+  images: GalleryImage[];
+  onImageClick: (i: number) => void;
+  downloading: number | null;
+  onDownload: (id: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const obs = new ResizeObserver((entries) =>
+      setContainerWidth(entries[0].contentRect.width),
+    );
+    obs.observe(containerRef.current);
+    setContainerWidth(containerRef.current.offsetWidth);
+    return () => obs.disconnect();
+  }, []);
+
+  const targetRowHeight =
+    containerWidth > 1400
+      ? 340
+      : containerWidth > 1100
+        ? 300
+        : containerWidth > 800
+          ? 260
+          : containerWidth > 500
+            ? 200
+            : 150;
+
+  const sorted = [...images].sort((a, b) =>
+    (a.fileName ?? "").localeCompare(b.fileName ?? "", undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
+  const rows = buildJustifiedRows(sorted, containerWidth, targetRowHeight);
+
+  return (
+    <div ref={containerRef} className="w-full">
+      {rows.map((row, rowIdx) => {
+        const aspects = row.map((img) =>
+          img.width && img.height ? img.width / img.height : 3 / 2,
+        );
+        const totalNaturalW = aspects.reduce(
+          (s, a) => s + a * targetRowHeight,
+          0,
+        );
+        const isLastRow = rowIdx === rows.length - 1;
+        const scale = isLastRow
+          ? 1
+          : (containerWidth - (row.length - 1) * GAP) / totalNaturalW;
+        const rowH = isLastRow ? targetRowHeight : targetRowHeight * scale;
+
+        return (
+          <div
+            key={rowIdx}
+            className="flex"
+            style={{ gap: GAP, marginBottom: GAP }}
+          >
+            {row.map((img, j) => {
+              const w = isLastRow
+                ? aspects[j] * targetRowHeight
+                : aspects[j] * rowH;
+              const originalIdx = sorted.findIndex((s) => s.id === img.id);
+              return (
+                <div
+                  key={img.id}
+                  className="relative overflow-hidden group cursor-pointer flex-shrink-0 bg-[#222]"
+                  style={{ width: w, height: rowH }}
+                  onClick={() => onImageClick(originalIdx)}
+                >
+                  {/* previewUrl – 1200px limit, sokkal jobb mint thumbnail */}
+                  <img
+                    src={img.previewUrl}
+                    alt={img.fileName ?? ""}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-300" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDownload(img.id);
+                    }}
+                    disabled={downloading === img.id}
+                    className="absolute bottom-2 right-2 w-7 h-7 bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                  >
+                    {downloading === img.id ? (
+                      <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        className="w-3.5 h-3.5"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Főkomponens ───────────────────────────────────────────────
 export default function PublicGalleryPage() {
   const { token } = useParams<{ token: string }>();
   const { data: session } = useSession();
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   const [state, setState] = useState<
     "loading" | "locked" | "unlocked" | "expired" | "error"
@@ -57,12 +385,9 @@ export default function PublicGalleryPage() {
   const [unlocking, setUnlocking] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [videoModal, setVideoModal] = useState<GalleryVideo | null>(null);
-  const [downloading, setDownloading] = useState<number | "all" | null>(null);
-  const [dlProgress, setDlProgress] = useState<{
-    done: number;
-    total: number;
-  } | null>(null);
+  const [downloading, setDownloading] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
+  const [zipState, setZipState] = useState<ZipPhase>({ phase: "idle" });
   const [expiredData, setExpiredData] = useState<{
     driveUrl: string | null;
     projectName: string | null;
@@ -70,11 +395,17 @@ export default function PublicGalleryPage() {
     expiresAt: string | null;
   }>({ driveUrl: null, projectName: null, title: null, expiresAt: null });
 
+  const sortedImages = [...images].sort((a, b) =>
+    (a.fileName ?? "").localeCompare(b.fileName ?? "", undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
+
   async function load(pw?: string) {
     const url = `/api/galleries/share/${token}${pw ? `?password=${encodeURIComponent(pw)}` : ""}`;
     const res = await fetch(url);
     const data = await res.json();
-
     if (res.status === 410) {
       setExpiredData({
         driveUrl: data.googleDriveUrl ?? null,
@@ -89,7 +420,6 @@ export default function PublicGalleryPage() {
       setState("error");
       return;
     }
-
     if (data.locked) {
       setGallery({
         id: 0,
@@ -108,7 +438,6 @@ export default function PublicGalleryPage() {
       if (pw) setPwError("Helytelen jelszó");
       return;
     }
-
     setGallery(data.gallery);
     setImages(data.images ?? []);
     setVideos(data.videos ?? []);
@@ -130,9 +459,11 @@ export default function PublicGalleryPage() {
     setUnlocking(false);
   }
 
+  // ── Egyedi letöltés ───────────────────────────────────────
   async function handleDownload(imageId?: number, videoId?: number) {
     if (!gallery?.id) return;
-    setDownloading((imageId ?? videoId ?? "all") as any);
+    const dlId = imageId ?? videoId ?? null;
+    if (dlId) setDownloading(dlId);
     try {
       const res = await fetch(`/api/galleries/${gallery.id}/download`, {
         method: "POST",
@@ -145,29 +476,12 @@ export default function PublicGalleryPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Letöltési hiba");
-
-      if (imageId || videoId) {
-        const a = document.createElement("a");
-        a.href = data.url;
-        a.download = data.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        const urls: { url: string; fileName: string }[] = data.urls ?? [];
-        setDlProgress({ done: 0, total: urls.length });
-        for (let i = 0; i < urls.length; i++) {
-          const a = document.createElement("a");
-          a.href = urls[i].url;
-          a.download = urls[i].fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setDlProgress({ done: i + 1, total: urls.length });
-          await new Promise((r) => setTimeout(r, 500));
-        }
-        setDlProgress(null);
-      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -175,15 +489,83 @@ export default function PublicGalleryPage() {
     }
   }
 
-  // ── Loading ─────────────────────────────────────────────────
+  // ── ZIP letöltés ──────────────────────────────────────────
+  async function handleZipDownload() {
+    if (!gallery?.id) return;
+    setZipState({ phase: "fetching-urls" });
+    try {
+      const res = await fetch(`/api/galleries/${gallery.id}/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Hiba az URL-ek lekérésekor");
+      const urls: { url: string; fileName: string; type: string }[] =
+        data.urls ?? [];
+      if (urls.length === 0) throw new Error("Nincs letölthető fájl");
+
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < urls.length; i++) {
+        const { url, fileName } = urls[i];
+        setZipState({
+          phase: "downloading",
+          done: i,
+          total: urls.length,
+          currentFile: fileName,
+        });
+        const fileRes = await fetch(url);
+        if (!fileRes.ok) throw new Error(`Nem sikerült letölteni: ${fileName}`);
+        const blob = await fileRes.blob();
+        // Kiterjesztés hozzáadása ha nincs
+        const fileNameWithExt = getFileNameWithExt(fileName, url);
+        zip.file(fileNameWithExt, blob);
+        setZipState({
+          phase: "downloading",
+          done: i + 1,
+          total: urls.length,
+          currentFile: fileNameWithExt,
+        });
+      }
+
+      setZipState({ phase: "zipping", done: 0, total: urls.length });
+      const zipBlob = await zip.generateAsync(
+        {
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 1 },
+        },
+        (meta) =>
+          setZipState({
+            phase: "zipping",
+            done: Math.round((meta.percent / 100) * urls.length),
+            total: urls.length,
+          }),
+      );
+
+      setZipState({ phase: "saving" });
+      const { saveAs } = await import("file-saver");
+      const safeTitle = (gallery.title ?? "galeria")
+        .replace(/[^\w\-]/g, "_")
+        .replace(/_{2,}/g, "_");
+      saveAs(zipBlob, `OptikArt_${safeTitle}.zip`);
+      setZipState({ phase: "done" });
+    } catch (e: any) {
+      setZipState({ phase: "error", message: e.message ?? "Ismeretlen hiba" });
+    }
+  }
+
+  // ── Loading ───────────────────────────────────────────────
   if (state === "loading")
     return (
-      <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A1510] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
       </div>
     );
 
-  // ── Lejárt ──────────────────────────────────────────────────
+  // ── Lejárt ────────────────────────────────────────────────
   if (state === "expired")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -247,58 +629,15 @@ export default function PublicGalleryPage() {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#1A1510] text-white text-[11px] tracking-[0.14em] uppercase px-6 py-3 hover:bg-[#C8A882] transition-all"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-4 h-4"
-                >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
                 Google Drive megnyitása
               </a>
             </div>
           ) : (
-            <div className="bg-white border border-[#EDE8E0] p-6 mb-4 text-left">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-[#FDF9F5] border border-[#EDE8E0] flex items-center justify-center shrink-0">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#C8A882"
-                    strokeWidth="1.3"
-                    className="w-5 h-5"
-                  >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-[13px] font-medium text-[#1A1510] mb-1">
-                    Szükséged van az anyagokra?
-                  </div>
-                  <p className="text-[12px] text-[#7A6A58] leading-relaxed">
-                    Vedd fel velünk a kapcsolatot és segítünk hozzáférni a
-                    fájlokhoz.
-                  </p>
-                </div>
-              </div>
+            <div className="bg-white border border-[#EDE8E0] p-6 mb-4">
               <a
                 href="mailto:business@optikart.hu"
                 className="flex items-center justify-center gap-2 w-full border border-[#1A1510] text-[#1A1510] text-[11px] tracking-[0.14em] uppercase px-6 py-3 hover:bg-[#1A1510] hover:text-white transition-all"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-4 h-4"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
                 Kapcsolatfelvétel
               </a>
             </div>
@@ -308,7 +647,7 @@ export default function PublicGalleryPage() {
       </div>
     );
 
-  // ── Hiba ───────────────────────────────────────────────────
+  // ── Hiba ─────────────────────────────────────────────────
   if (state === "error")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -326,7 +665,7 @@ export default function PublicGalleryPage() {
       </div>
     );
 
-  // ── Jelszó ─────────────────────────────────────────────────
+  // ── Jelszó ────────────────────────────────────────────────
   if (state === "locked")
     return (
       <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center px-6">
@@ -384,283 +723,323 @@ export default function PublicGalleryPage() {
     );
 
   const totalItems = images.length + videos.length;
+  const heroCoverUrl = gallery?.coverImageUrl
+    ? upgradeToCoverUrl(gallery.coverImageUrl)
+    : null;
+  const { names, date } = parseHeroTitle(gallery?.title ?? null);
 
-  // ── Galéria ─────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FAF8F4]">
-      {/* Lightbox */}
-      {lightbox !== null && images[lightbox] && (
-        <div
-          className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((i) => Math.max(0, (i ?? 0) - 1));
-            }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-5 h-5"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((i) => Math.min(images.length - 1, (i ?? 0) + 1));
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-5 h-5"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-          <button
+    <>
+      <ZipProgressOverlay
+        state={zipState}
+        onClose={() => setZipState({ phase: "idle" })}
+      />
+
+      <div className="min-h-screen bg-[#1A1510]">
+        {/* ── LIGHTBOX ── */}
+        {lightbox !== null && sortedImages[lightbox] && (
+          <div
+            className="fixed inset-0 z-[300] bg-black/96 flex items-center justify-center"
             onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-5 h-5"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightbox((i) => Math.max(0, (i ?? 0) - 1));
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          <div
-            className="relative max-w-5xl max-h-[85vh] mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={images[lightbox].previewUrl}
-              alt=""
-              className="max-h-[85vh] max-w-full object-contain"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-2 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-white/50 truncate">
-                {images[lightbox].fileName}
-              </span>
-              <button
-                onClick={() => handleDownload(images[lightbox].id)}
-                className="shrink-0 flex items-center gap-1.5 text-[10px] uppercase text-white/60 hover:text-white transition-colors"
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-5 h-5"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-3.5 h-3.5"
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightbox((i) =>
+                  Math.min(sortedImages.length - 1, (i ?? 0) + 1),
+                );
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-5 h-5"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-5 h-5"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div
+              className="relative max-w-5xl max-h-[85vh] mx-16"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={sortedImages[lightbox].previewUrl}
+                alt=""
+                className="max-h-[85vh] max-w-full object-contain"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-2 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-white/50 truncate">
+                  {sortedImages[lightbox].fileName}
+                </span>
+                <button
+                  onClick={() => handleDownload(sortedImages[lightbox].id)}
+                  className="shrink-0 flex items-center gap-1.5 text-[10px] uppercase text-white/60 hover:text-white transition-colors"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Letöltés
-              </button>
-              <span className="text-[11px] text-white/30 shrink-0">
-                {lightbox + 1} / {images.length}
-              </span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="w-3.5 h-3.5"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Letöltés
+                </button>
+                <span className="text-[11px] text-white/30 shrink-0">
+                  {lightbox + 1} / {sortedImages.length}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Videó modal */}
-      {videoModal && (
-        <div
-          className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center"
-          onClick={() => setVideoModal(null)}
-        >
-          <button
+        {/* ── VIDEÓ MODAL ── */}
+        {videoModal && (
+          <div
+            className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center"
             onClick={() => setVideoModal(null)}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-5 h-5"
+            <button
+              onClick={() => setVideoModal(null)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          <div
-            className="w-full max-w-4xl mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <video
-              src={videoModal.streamUrl}
-              controls
-              autoPlay
-              className="w-full max-h-[75vh] bg-black"
-              style={{ outline: "none" }}
-            />
-            <div className="bg-black/80 px-4 py-2.5 flex items-center justify-between">
-              <span className="text-[11px] text-white/60 truncate">
-                {videoModal.fileName}
-              </span>
-              <button
-                onClick={() => handleDownload(undefined, videoModal.id)}
-                className="flex items-center gap-1.5 text-[10px] uppercase text-white/60 hover:text-white transition-colors ml-4 shrink-0"
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-5 h-5"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-3.5 h-3.5"
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div
+              className="w-full max-w-4xl mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <video
+                src={videoModal.streamUrl}
+                controls
+                autoPlay
+                className="w-full max-h-[75vh] bg-black"
+                style={{ outline: "none" }}
+              />
+              <div className="bg-black/80 px-4 py-2.5 flex items-center justify-between">
+                <span className="text-[11px] text-white/60 truncate">
+                  {videoModal.fileName}
+                </span>
+                <button
+                  onClick={() => handleDownload(undefined, videoModal.id)}
+                  className="flex items-center gap-1.5 text-[10px] uppercase text-white/60 hover:text-white transition-colors ml-4 shrink-0"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Letöltés
-              </button>
+                  Letöltés
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Cover hero ── */}
-      {gallery?.coverImageUrl ? (
-        <div
-          className="relative w-full overflow-hidden"
-          style={{ height: "clamp(280px,45vw,520px)" }}
-        >
-          <img
-            src={gallery.coverImageUrl}
-            alt="Cover"
-            className="w-full h-full object-cover"
+        {/* ══ FULLSCREEN HERO ══════════════════════════════════ */}
+        <div className="relative w-full h-screen overflow-hidden flex items-end">
+          {/* Cover – nagy felbontású */}
+          {heroCoverUrl ? (
+            <img
+              src={heroCoverUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: "center 25%" }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1A1510] to-[#2A2018]" />
+          )}
+
+          {/* Gradiens rétegek */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.04) 100%)",
+            }}
           />
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to bottom, rgba(26,21,16,0.1) 0%, rgba(26,21,16,0.75) 100%)",
+                "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 45%)",
             }}
           />
-          <div className="absolute bottom-0 left-0 right-0 px-6 sm:px-10 pb-8">
-            <div className="max-w-5xl mx-auto">
-              <div className="flex items-end justify-between gap-4 flex-wrap">
-                <div>
-                  <span className="text-[9px] tracking-[0.22em] uppercase text-[#C8A882]/70 mb-2 block">
-                    {gallery.project.name}
+
+          {/* OptikArt bal felső */}
+          <div className="absolute top-8 left-10 z-10">
+            <span className="text-white/50 text-[11px] tracking-[0.22em] uppercase">
+              OptikArt
+            </span>
+          </div>
+
+          {/* Kép/videó számok jobb felső */}
+          <div className="absolute top-8 right-10 z-10 flex items-center gap-5">
+            {images.length > 0 && (
+              <div className="text-right">
+                <div
+                  className="text-white/80 font-light leading-none"
+                  style={{ fontSize: "1.6rem", fontFamily: "'Georgia', serif" }}
+                >
+                  {images.length}
+                </div>
+                <div className="text-[9px] tracking-[0.15em] uppercase text-white/35 mt-0.5">
+                  fotó
+                </div>
+              </div>
+            )}
+            {videos.length > 0 && (
+              <div className="text-right">
+                <div
+                  className="text-white/80 font-light leading-none"
+                  style={{ fontSize: "1.6rem", fontFamily: "'Georgia', serif" }}
+                >
+                  {videos.length}
+                </div>
+                <div className="text-[9px] tracking-[0.15em] uppercase text-white/35 mt-0.5">
+                  videó
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tartalom – bal alsó */}
+          <div className="relative z-10 w-full px-10 sm:px-16 pb-16 sm:pb-20">
+            <div className="max-w-4xl">
+              <h1
+                className="font-light text-white leading-[0.92] mb-5"
+                style={{
+                  fontSize: "clamp(2.5rem, 6.5vw, 7.5rem)",
+                  fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  textShadow: "0 2px 30px rgba(0,0,0,0.35)",
+                }}
+              >
+                {names || gallery?.title}
+              </h1>
+
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-px bg-white/50" />
+                {date && (
+                  <span
+                    className="text-white/60 tracking-[0.25em] uppercase"
+                    style={{
+                      fontSize: "clamp(0.65rem, 1vw, 0.85rem)",
+                      fontFamily: "'Helvetica Neue', sans-serif",
+                    }}
+                  >
+                    {formatHeroDate(date)}
                   </span>
-                  <h1 className="font-['Cormorant_Garamond'] text-[2.2rem] sm:text-[3rem] font-light text-white leading-tight">
-                    {gallery.title ?? "Galéria"}
-                  </h1>
-                  {gallery.description && (
-                    <p className="text-[13px] text-white/60 mt-1 max-w-lg">
-                      {gallery.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 flex-wrap">
-                  {images.length > 0 && (
-                    <div className="text-right">
-                      <div className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#C8A882] leading-none">
-                        {images.length}
-                      </div>
-                      <div className="text-[9px] tracking-[0.1em] uppercase text-white/40">
-                        fotó
-                      </div>
-                    </div>
-                  )}
-                  {videos.length > 0 && (
-                    <div className="text-right">
-                      <div className="font-['Cormorant_Garamond'] text-[2rem] font-light text-[#C8A882] leading-none">
-                        {videos.length}
-                      </div>
-                      <div className="text-[9px] tracking-[0.1em] uppercase text-white/40">
-                        videó
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        /* Fejléc cover nélkül */
-        <div className="bg-white border-b border-[#EDE8E0] px-5 sm:px-8 lg:px-12 py-6 sm:py-8">
-          <div className="max-w-5xl mx-auto">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-5 h-px bg-[#C8A882]" />
-                  <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]">
-                    {gallery?.project.name}
-                  </span>
-                </div>
-                <h1 className="font-['Cormorant_Garamond'] text-[2rem] sm:text-[2.4rem] font-light text-[#1A1510] leading-tight">
-                  {gallery?.title ?? "Galéria"}
-                </h1>
-                {gallery?.description && (
-                  <p className="text-[13px] text-[#7A6A58] mt-2 max-w-lg">
-                    {gallery.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-6 mt-4 pt-4 border-t border-[#EDE8E0] flex-wrap">
-                  {images.length > 0 && (
-                    <div>
-                      <div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#C8A882] leading-none">
-                        {images.length}
-                      </div>
-                      <div className="text-[9px] tracking-[0.12em] uppercase text-[#A08060]">
-                        fénykép
-                      </div>
-                    </div>
-                  )}
-                  {videos.length > 0 && (
-                    <div>
-                      <div className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#C8A882] leading-none">
-                        {videos.length}
-                      </div>
-                      <div className="text-[9px] tracking-[0.12em] uppercase text-[#A08060]">
-                        videó
-                      </div>
-                    </div>
-                  )}
-                  {gallery?.expiresAt && !gallery.isExpired && (
-                    <div>
-                      <div className="text-[12px] text-[#1A1510]">
-                        {new Date(gallery.expiresAt).toLocaleDateString(
-                          "hu-HU",
-                        )}
-                      </div>
-                      <div className="text-[9px] tracking-[0.12em] uppercase text-[#A08060]">
-                        elérhető eddig
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Letöltés gomb fejlécben ha nincs cover */}
-              <button
-                onClick={() => handleDownload()}
-                disabled={downloading === "all"}
-                className="flex items-center gap-2 bg-[#1A1510] text-white text-[11px] uppercase px-5 py-3 hover:bg-[#C8A882] transition-all disabled:opacity-50 whitespace-nowrap self-start"
+
+          {/* Le gomb */}
+          <button
+            onClick={() =>
+              galleryRef.current?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="absolute bottom-8 right-10 z-10 flex flex-col items-center gap-2 text-white/40 hover:text-white/70 transition-colors group"
+          >
+            <span className="text-[9px] tracking-[0.2em] uppercase">
+              Galéria
+            </span>
+            <div className="w-8 h-8 border border-white/25 flex items-center justify-center group-hover:border-white/50 transition-colors">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-4 h-4"
               >
-                {downloading === "all" ? (
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+        </div>
+
+        {/* ══ GALÉRIA SZEKCIÓ ══════════════════════════════════ */}
+        <div ref={galleryRef} className="bg-[#111111]">
+          {/* Akció sáv */}
+          <div className="sticky top-0 z-20 bg-[#0E0E0E]/95 backdrop-blur-sm border-b border-white/[0.05]">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                {images.length > 0 && videos.length > 0 && (
+                  <div className="flex border border-white/[0.08]">
+                    <button
+                      onClick={() => setActiveTab("photos")}
+                      className={`px-4 py-1.5 text-[10px] tracking-[0.1em] uppercase border-r border-white/[0.08] transition-all ${activeTab === "photos" ? "bg-white/10 text-white" : "text-white/35 hover:text-white/60"}`}
+                    >
+                      Fotók ({images.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("videos")}
+                      className={`px-4 py-1.5 text-[10px] tracking-[0.1em] uppercase transition-all ${activeTab === "videos" ? "bg-white/10 text-white" : "text-white/35 hover:text-white/60"}`}
+                    >
+                      Videók ({videos.length})
+                    </button>
+                  </div>
+                )}
+                {gallery?.isExpired && (
+                  <span className="text-[10px] text-amber-400/70">
+                    ⚠ Lejárt galéria
+                  </span>
+                )}
+              </div>
+
+              {/* ZIP letöltés */}
+              <button
+                onClick={handleZipDownload}
+                disabled={zipState.phase !== "idle"}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/18 text-white text-[11px] uppercase px-4 py-2 transition-all disabled:opacity-40"
+              >
+                {zipState.phase !== "idle" &&
+                zipState.phase !== "done" &&
+                zipState.phase !== "error" ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <svg
@@ -675,304 +1054,122 @@ export default function PublicGalleryPage() {
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 )}
-                {dlProgress
-                  ? `${dlProgress.done}/${dlProgress.total}`
-                  : "Összes letöltése"}
+                Összes letöltése
               </button>
             </div>
-            {/* Tab navigáció ha van kép és videó */}
-            {images.length > 0 && videos.length > 0 && (
-              <div className="flex gap-0 mt-6 border-b border-[#EDE8E0]">
-                <button
-                  onClick={() => setActiveTab("photos")}
-                  className={`px-5 py-2.5 text-[11px] uppercase border-b-2 transition-all ${activeTab === "photos" ? "border-[#1A1510] text-[#1A1510]" : "border-transparent text-[#A08060] hover:text-[#1A1510]"}`}
-                >
-                  Fotók ({images.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab("videos")}
-                  className={`px-5 py-2.5 text-[11px] uppercase border-b-2 transition-all ${activeTab === "videos" ? "border-[#1A1510] text-[#1A1510]" : "border-transparent text-[#A08060] hover:text-[#1A1510]"}`}
-                >
-                  Videók ({videos.length})
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
 
-      {/* Sticky akció sáv (cover esetén) */}
-      {gallery?.coverImageUrl && (
-        <div className="sticky top-0 z-20 border-b border-[#EDE8E0] bg-white/95 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              {images.length > 0 && videos.length > 0 && (
-                <div className="flex border border-[#EDE8E0]">
-                  <button
-                    onClick={() => setActiveTab("photos")}
-                    className={`px-3 py-1.5 text-[10px] uppercase border-r border-[#EDE8E0] transition-all ${activeTab === "photos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
-                  >
-                    Fotók
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("videos")}
-                    className={`px-3 py-1.5 text-[10px] uppercase transition-all ${activeTab === "videos" ? "bg-[#1A1510] text-white" : "text-[#A08060] hover:text-[#1A1510]"}`}
-                  >
-                    Videók
-                  </button>
-                </div>
+          {/* Képek */}
+          <div className="max-w-[1600px] mx-auto px-2 sm:px-3 py-3">
+            {(activeTab === "photos" || videos.length === 0) &&
+              images.length > 0 && (
+                <JustifiedGallery
+                  images={images}
+                  onImageClick={setLightbox}
+                  downloading={downloading}
+                  onDownload={(id) => handleDownload(id)}
+                />
               )}
-            </div>
-            <button
-              onClick={() => handleDownload()}
-              disabled={downloading === "all"}
-              className="flex items-center gap-2 bg-[#1A1510] text-white text-[11px] uppercase px-4 py-2 hover:bg-[#C8A882] transition-all disabled:opacity-50"
-            >
-              {downloading === "all" ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="w-4 h-4"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              )}
-              {dlProgress
-                ? `${dlProgress.done}/${dlProgress.total}`
-                : "Összes letöltése"}
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Owner lejárt warning */}
-      {gallery?.isExpired && (
-        <div className="bg-amber-50 border-b border-amber-200 px-5 sm:px-8 lg:px-12 py-3">
-          <div className="max-w-5xl mx-auto text-[12px] text-amber-700 flex items-center gap-2">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-4 h-4 shrink-0"
-            >
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            Ez a galéria lejárt – csak te látod tulajdonosként.
-          </div>
-        </div>
-      )}
-
-      {/* Tartalom */}
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-6 sm:py-8">
-        {/* Fotók */}
-        {(activeTab === "photos" || videos.length === 0) &&
-          images.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-              {images.map((img, i) => (
-                <div
-                  key={img.id}
-                  className="group relative bg-[#F0EBE3] overflow-hidden cursor-pointer"
-                  style={{ aspectRatio: "4/3" }}
-                  onClick={() => setLightbox(i)}
-                >
-                  <img
-                    src={img.thumbnailUrl}
-                    alt={img.fileName ?? ""}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:opacity-90"
-                  />
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 flex items-end justify-between p-2.5">
-                    <span className="text-[10px] text-white/80 truncate max-w-[70%]">
-                      {img.fileName}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(img.id);
-                      }}
-                      disabled={downloading === img.id}
-                      className="w-7 h-7 bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors shrink-0"
+            {/* Videók */}
+            {(activeTab === "videos" || images.length === 0) &&
+              videos.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {videos.map((v) => (
+                    <div
+                      key={v.id}
+                      className="group relative bg-[#1A1510] overflow-hidden cursor-pointer"
+                      style={{ aspectRatio: "16/9" }}
+                      onClick={() => setVideoModal(v)}
                     >
-                      {downloading === img.id ? (
-                        <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                      {v.thumbnailUrl ? (
+                        <img
+                          src={v.thumbnailUrl}
+                          alt=""
+                          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:opacity-80"
+                        />
                       ) : (
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth="2"
-                          className="w-3.5 h-3.5"
-                        >
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-        {/* Videók */}
-        {(activeTab === "videos" || images.length === 0) &&
-          videos.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videos.map((v) => (
-                <div
-                  key={v.id}
-                  className="group relative bg-[#F0EBE3] overflow-hidden cursor-pointer"
-                  style={{ aspectRatio: "16/9" }}
-                  onClick={() => setVideoModal(v)}
-                >
-                  {v.thumbnailUrl ? (
-                    <img
-                      src={v.thumbnailUrl}
-                      alt=""
-                      className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:opacity-80"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#E8E0D8]">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#C8A882"
-                        strokeWidth="1"
-                        className="w-12 h-12 opacity-40"
-                      >
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm border border-white/30 flex items-center justify-center group-hover:bg-black/60 transition-all">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="white"
-                        className="w-5 h-5 ml-1"
-                      >
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 flex items-center justify-between">
-                    <span className="text-[11px] text-white/80 truncate max-w-[60%]">
-                      {v.fileName}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {v.duration && (
-                        <span className="text-[10px] text-white/50">
-                          {formatDuration(v.duration)}
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(undefined, v.id);
-                        }}
-                        disabled={downloading === v.id}
-                        className="w-6 h-6 bg-white/20 flex items-center justify-center hover:bg-white/40 transition-colors"
-                      >
-                        {downloading === v.id ? (
-                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-[#1A1510]">
                           <svg
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke="white"
-                            strokeWidth="2"
-                            className="w-3 h-3"
+                            stroke="#C8A882"
+                            strokeWidth="1"
+                            className="w-12 h-12 opacity-30"
                           >
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="7 10 12 15 17 10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
+                            <polygon points="5 3 19 12 5 21 5 3" />
                           </svg>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm border border-white/30 flex items-center justify-center group-hover:bg-black/60 transition-all">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="white"
+                            className="w-5 h-5 ml-1"
+                          >
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 flex items-center justify-between">
+                        <span className="text-[11px] text-white/80 truncate max-w-[60%]">
+                          {v.fileName}
+                        </span>
+                        {v.duration && (
+                          <span className="text-[10px] text-white/50">
+                            {formatDuration(v.duration)}
+                          </span>
                         )}
-                      </button>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
 
-        {totalItems === 0 && (
-          <div className="text-center py-16">
-            <p className="text-[13px] text-[#A08060]">
-              Még nincs anyag ebben a galériában.
-            </p>
-          </div>
-        )}
-
-        {/* Google Drive */}
-        {gallery?.googleDriveUrl && !gallery.isExpired && (
-          <div className="mt-10 border border-[#EDE8E0] bg-white p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-[#FAF8F4] border border-[#EDE8E0] flex items-center justify-center shrink-0">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#C8A882"
-                  strokeWidth="1.3"
-                  className="w-5 h-5"
-                >
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-['Cormorant_Garamond'] text-[1.2rem] font-light text-[#1A1510] mb-1">
-                  Hosszú távú archiválás
-                </h3>
-                <p className="text-[12px] text-[#7A6A58] mb-4">
-                  Az anyagokat Google Drive-on is megőriztük. A galéria lejárta
-                  után is elérheted.
+            {totalItems === 0 && (
+              <div className="text-center py-16">
+                <p className="text-[13px] text-white/30">
+                  Még nincs anyag ebben a galériában.
                 </p>
-                <a
-                  href={gallery.googleDriveUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#1A1510] text-white text-[11px] uppercase px-5 py-2.5 hover:bg-[#C8A882] transition-all"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="w-4 h-4"
-                  >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  Google Drive megnyitása
-                </a>
               </div>
+            )}
+
+            {gallery?.googleDriveUrl && !gallery.isExpired && (
+              <div className="mt-10 border border-white/[0.08] p-6 flex items-start gap-4">
+                <div className="flex-1">
+                  <h3 className="text-[13px] text-white/70 mb-1">
+                    Hosszú távú archiválás
+                  </h3>
+                  <p className="text-[12px] text-white/35 mb-4">
+                    Az anyagokat Google Drive-on is megőriztük.
+                  </p>
+                  <a
+                    href={gallery.googleDriveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-white/10 text-white text-[11px] uppercase px-5 py-2.5 hover:bg-white/18 transition-all"
+                  >
+                    Google Drive megnyitása →
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-10 pt-6 border-t border-white/[0.05] flex items-center justify-between">
+              <span className="text-[11px] text-white/20">
+                Készítette: OptikArt
+              </span>
+              {gallery?.expiresAt && !gallery.isExpired && (
+                <span className="text-[11px] text-white/20">
+                  Elérhető:{" "}
+                  {new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}-ig
+                </span>
+              )}
             </div>
           </div>
-        )}
-
-        <div className="mt-12 pt-6 border-t border-[#EDE8E0] flex items-center justify-between flex-wrap gap-2">
-          <span className="text-[11px] text-[#C8B8A0]">
-            Készítette: OptikArt
-          </span>
-          {gallery?.expiresAt && !gallery.isExpired && (
-            <span className="text-[11px] text-[#C8B8A0]">
-              Elérhető:{" "}
-              {new Date(gallery.expiresAt).toLocaleDateString("hu-HU")}-ig
-            </span>
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -94,6 +94,7 @@ export async function GET(
         select: {
           id: true, thumbnailUrl: true, previewUrl: true,
           fileName: true, width: true, height: true, bytes: true,
+          originalUrl: true,
         },
       }),
       prisma.galleryVideo.findMany({
