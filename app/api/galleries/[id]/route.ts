@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
-import { deleteCloudinaryImages } from "@/lib/cloudinary";
+import { deleteCloudinaryImages, deleteCloudinaryVideos } from "@/lib/cloudinary";
 
 // ── GET: galéria részletek ─────────────────────────────────────
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -74,6 +74,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 // ── DELETE: galéria törlése (képek Cloudinary-ról is) ────────
+// app/api/galleries/[id]/route.ts – DELETE handler
+
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -82,19 +84,33 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Képek public ID-jei a Cloudinary törléshez
-    const images = await prisma.galleryImage.findMany({
-      where:  { galleryId: parseInt(id) },
-      select: { publicId: true },
-    });
+    const galleryId = parseInt(id);
 
-    // Cloudinary törlés
-    if (images.length > 0) {
-      await deleteCloudinaryImages(images.map(i => i.publicId));
+    // Képek és videók public ID-jei
+    const [images, videos] = await Promise.all([
+      prisma.galleryImage.findMany({ where: { galleryId }, select: { publicId: true } }),
+      prisma.galleryVideo.findMany({ where: { galleryId }, select: { publicId: true } }),
+    ]);
+
+    // ── Cloudinary törlés – max 100 per batch ────────────────
+    const BATCH = 100;
+
+    // Képek batch-es törlése
+    const imageIds = images.map(i => i.publicId);
+    for (let i = 0; i < imageIds.length; i += BATCH) {
+      const batch = imageIds.slice(i, i + BATCH);
+      if (batch.length > 0) await deleteCloudinaryImages(batch);
     }
 
-    // DB törlés (cascade törli a GalleryImage-ket is)
-    await prisma.gallery.delete({ where: { id: parseInt(id) } });
+    // Videók batch-es törlése
+    const videoIds = videos.map(v => v.publicId);
+    for (let i = 0; i < videoIds.length; i += BATCH) {
+      const batch = videoIds.slice(i, i + BATCH);
+      if (batch.length > 0) await deleteCloudinaryVideos(batch);
+    }
+
+    // DB törlés (cascade törli a GalleryImage és GalleryVideo rekordokat)
+    await prisma.gallery.delete({ where: { id: galleryId } });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
