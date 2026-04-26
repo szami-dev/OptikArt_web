@@ -421,8 +421,16 @@ async function main() {
     data: citiesData,
   });
 
+
   console.log("Seedelés kész!");
+
+  const categories=["portré", "esküvő"]
+  await prisma.category.deleteMany();
+  await prisma.category.createMany({
+    data: categories.map((name)=>({name}))
+  })
 }
+
 
 main()
   .catch((e) => {
