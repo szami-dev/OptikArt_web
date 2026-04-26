@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
 import { sendMessageNotificationEmail } from "@/lib/email";
+import { sendGuestChatAdminNotificationEmail } from "@/lib/email";
+import { sendGuestChatConfirmationEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   try {
@@ -135,33 +137,28 @@ export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+ 
     const userId  = parseInt(session.user.id as string);
     const isAdmin = (session.user as any).role === "ADMIN";
     const { body, projectId, recipientId, parentId } = await req.json();
-
+ 
     if (!body?.trim()) {
       return NextResponse.json({ error: "Az üzenet nem lehet üres" }, { status: 400 });
     }
-
-    // ── Flat thread logika ────────────────────────────────
-    // Mindig a GYÖKÉR üzenet ID-ját adjuk parentId-ként,
-    // soha ne legyen reply-ra reply. Így a replies include
-    // egyszintű lekéréssel mindig teljes szálat ad vissza.
+ 
+    // ── Flat thread logika ────────────────────────────────────
     let rootParentId: number | null = parentId ? parseInt(parentId) : null;
-
+ 
     if (rootParentId !== null) {
-      // Ellenőrizzük hogy a megadott parentId maga is reply-e
       const parent = await prisma.chatMessage.findUnique({
         where:  { id: rootParentId },
         select: { parentId: true },
       });
-      // Ha a parent maga is valakinek a gyereke, lépjünk fel a gyökérre
       if (parent?.parentId) {
         rootParentId = parent.parentId;
       }
     }
-
+ 
     const message = await prisma.chatMessage.create({
       data: {
         body,
@@ -178,17 +175,76 @@ export async function POST(req: Request) {
         project:   { select: { id: true, name: true } },
       },
     });
-
-    
-
-    // Admin válasznál a root üzenetet olvasottnak jelöljük
+ 
+    // ── Email értesítők ───────────────────────────────────────
+    const senderName  = message.sender.name   ?? "Valaki";
+    const projectName = message.project?.name ?? "projekt";
+    const projId      = projectId ? String(projectId) : "0";
+ 
+    try {
+      if (isAdmin) {
+        // Admin ír → ügyfélnek küldünk visszaigazolást
+        if (message.recipient?.id) {
+          const recipient = await prisma.user.findUnique({
+            where:  { id: message.recipient.id },
+            select: { email: true, name: true },
+          });
+          if (recipient?.email) {
+            await sendGuestChatConfirmationEmail(
+              recipient.email,
+              recipient.name ?? "Ügyfelünk",
+              body.trim(),
+            );
+          }
+        }
+      } else {
+        // User ír → adminoknak küldünk értesítőt + usernek visszaigazolás
+        const [sender, admins] = await Promise.all([
+          prisma.user.findUnique({
+            where:  { id: userId },
+            select: { email: true, name: true },
+          }),
+          prisma.user.findMany({
+            where:  { role: "ADMIN" },
+            select: { email: true },
+          }),
+        ]);
+ 
+        await Promise.allSettled([
+          // 1. Usernek: megkaptuk az üzeneted visszaigazolás
+          sender?.email
+            ? sendGuestChatConfirmationEmail(
+                sender.email,
+                sender.name ?? "Ügyfelünk",
+                body.trim(),
+              ).catch(e => console.error("[MAIL] user visszaigazolás:", e))
+            : Promise.resolve(),
+ 
+          // 2. Adminoknak: értesítő az új üzenetről
+          ...admins.map(admin =>
+            sendGuestChatAdminNotificationEmail(
+              admin.email,
+              senderName,
+              sender?.email ?? "",
+              body.trim(),
+              projId,
+            ).catch(e => console.error("[MAIL] admin értesítő:", e))
+          ),
+        ]);
+      }
+    } catch (mailErr) {
+      // Email hiba ne blokkolja az API választ
+      console.error("[MAIL ERROR] chat:", mailErr);
+    }
+ 
+    // ── Admin válasznál root üzenet olvasottnak jelölése ─────
     if (isAdmin && rootParentId) {
       await prisma.chatMessage.update({
         where: { id: rootParentId },
         data:  { isRead: true },
       });
     }
-
+ 
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/chat]", err);

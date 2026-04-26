@@ -236,15 +236,23 @@ function AdminMiniCalendar({
   selectedDate,
   onSelect,
   busyDates,
+  allowPast = false, // ← ÚJ: admin esetén true
 }: {
   selectedDate: string;
   onSelect: (d: string) => void;
   busyDates: string[];
+  allowPast?: boolean;
 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [viewMonth, setViewMonth] = useState(() => {
+    // Ha van kiválasztott dátum, arra a hónapra nyíljon
+    if (selectedDate) {
+      const d = new Date(selectedDate + "T12:00:00");
+      d.setDate(1);
+      return d;
+    }
     const d = new Date();
     d.setDate(1);
     return d;
@@ -339,13 +347,21 @@ function AdminMiniCalendar({
           const isBusy = busyDates.includes(ymd);
           const isSelected = selectedDate === ymd;
           const isToday = toYMD(day) === toYMD(today);
-          const disabled = isPast;
+          // allowPast=true esetén múlt napok is kattinthatók
+          const disabled = allowPast ? false : isPast;
+
           return (
             <button
               key={ymd}
               disabled={disabled}
               onClick={() => !disabled && onSelect(isSelected ? "" : ymd)}
-              title={isBusy ? "Foglalt nap" : undefined}
+              title={
+                isBusy
+                  ? "Foglalt nap"
+                  : isPast && allowPast
+                    ? "Múltbeli dátum"
+                    : undefined
+              }
               className={`relative h-8 w-full text-[11px] transition-all rounded-sm
                 ${disabled ? "cursor-not-allowed opacity-25" : "cursor-pointer"}
                 ${
@@ -355,9 +371,11 @@ function AdminMiniCalendar({
                       ? "bg-[#C8A882]/10 text-[#C8A882]/40"
                       : isToday
                         ? "border border-[#C8A882]/40 text-[#C8A882]"
-                        : !disabled
-                          ? "text-[#5A5248] hover:bg-white/[0.06] hover:text-[#D4C4B0]"
-                          : "text-[#2A2520]"
+                        : isPast && allowPast
+                          ? "text-[#3A3530] hover:bg-white/[0.04] hover:text-[#5A5248]" // múlt: halványabb de kattintható
+                          : !disabled
+                            ? "text-[#5A5248] hover:bg-white/[0.06] hover:text-[#D4C4B0]"
+                            : "text-[#2A2520]"
                 }`}
             >
               <span
@@ -367,8 +385,13 @@ function AdminMiniCalendar({
               >
                 {day.getDate()}
               </span>
+              {/* Foglalt jelző pont */}
               {isBusy && !isPast && !isSelected && (
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C8A882]/50" />
+              )}
+              {/* Múltbeli dátum jelző – kis pont adminnak */}
+              {isPast && allowPast && !isSelected && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#3A3530]/60" />
               )}
             </button>
           );
@@ -376,7 +399,7 @@ function AdminMiniCalendar({
       </div>
 
       {/* Jelmagyarázat */}
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.05]">
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.05] flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#C8A882]/15 border border-[#C8A882]/20 rounded-sm" />
           <span className="text-[9px] text-[#3A3530]">Foglalt</span>
@@ -385,6 +408,12 @@ function AdminMiniCalendar({
           <div className="w-3 h-3 bg-[#C8A882] rounded-sm" />
           <span className="text-[9px] text-[#3A3530]">Kiválasztva</span>
         </div>
+        {allowPast && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-[#3A3530]/40 rounded-sm" />
+            <span className="text-[9px] text-[#3A3530]">Múltbeli</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -617,6 +646,7 @@ function NewProjectModal({
                     if (ymd) setShowCalendar(false);
                   }}
                   busyDates={busyDates}
+                  allowPast={true}
                 />
               </div>
             )}

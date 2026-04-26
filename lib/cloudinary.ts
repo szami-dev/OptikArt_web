@@ -54,17 +54,20 @@ export function buildSignedVideoDownloadUrl(
   publicId:         string,
   originalFileName: string,
   expiresInSeconds  = 3600,
-  format            = "mp4",   // ← explicit format
+  format            = "mp4",
 ): string {
   const timestamp = Math.round(Date.now() / 1000) + expiresInSeconds;
   const safeName  = sanitizeFileName(originalFileName);
+  // ── Kiterjesztés levágása a flags-ből – Cloudinary maga adja hozzá ──
+  const safeNameNoExt = safeName.replace(/\.\w{2,5}$/, "");
 
   return cloudinary.url(publicId, {
+    secure:        true,        // ← explicit secure:true az URL-ben
     sign_url:      true,
     type:          "upload",
     resource_type: "video",
-    format,                    // ← mp4 / mov stb.
-    flags:         `attachment:${safeName}`,
+    format,
+    flags:         `attachment:${safeNameNoExt}`, // ← kiterjesztés nélkül
     expires_at:    timestamp,
   });
 }

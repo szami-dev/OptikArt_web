@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST,
   port: Number(process.env.EMAIL_SERVER_PORT),
-  secure: process.env.EMAIL_SERVER_PORT === "465",
+  secure: false,
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -110,7 +110,7 @@ export async function sendVerificationEmail(email: string, name: string) {
 }
 
 export async function sendProjectCreatedEmail(email: string, name: string) {
-  const projectListLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectListLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">Szia ${name}!</h2>
     <p style="text-align: center; color: #555555;">Az új projekttervedet sikeresen rögzítettük. Köszönjük a bizalmadat!</p>
@@ -128,7 +128,7 @@ export async function sendAdminCreatedProjectEmail(email: string, name: string, 
     <p style="text-align: center; color: #555555;">Létrehoztunk számodra egy új munkafelületet a következő projekthez:<br><strong>"${projectName}"</strong></p>
     <p style="text-align: center; color: #555555;">Itt nyomon követheted a munka folyamatát és elérheted a kész anyagokat.</p>
     <div style="text-align: center; margin: 40px 0;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt megnyitása</a>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/projects" style="background-color: #1A1510; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 4px; display: inline-block; text-transform: uppercase; font-size: 12px;">Projekt megnyitása</a>
     </div>
   `);
   return sendMailWrapper(email, "Új projektet indítottunk neked | OptikArt", html);
@@ -140,7 +140,7 @@ export async function sendPaymentStatusEmail(
   status: string, 
   color: string = "#f39c12" // Alapértelmezett narancs, ha nem jönne szín
 ) {
-  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const dashboardLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
   
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">Pénzügyi értesítés</h2>
@@ -163,7 +163,7 @@ export async function sendPaymentStatusEmail(
 }
 // Példa a projekt státusz emailre a mail.ts-ben
 export async function sendProjectStatusEmail(email: string, name: string, projectName: string, status: string, color: string = "#A08060") {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
 
   const html = getBaseTemplate(`
     <h2 style="text-align: center; font-weight: 400;">A projekted szintet lépett</h2>
@@ -234,7 +234,7 @@ export async function sendAdminNotificationEmail(userEmails: string[], userEmail
 }
 
 export async function sendMessageNotificationEmail(recipientEmail: string, senderName: string, projectName: string, messageContent: string, projectId: string) {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects/${projectId}`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects/${projectId}`;
   const html = getBaseTemplate(`
     <p>Szia!</p>
     <p><strong>${senderName}</strong> üzenetet küldött neked a <strong>${projectName}</strong> projekt kapcsán:</p>
@@ -333,7 +333,7 @@ export async function sendEventDateChangedEmail(
   projectName: string,
   newDate: Date,
 ) {
-  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/projects`;
+  const projectLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects`;
  
   const formattedDate = newDate.toLocaleDateString("hu-HU", {
     year:    "numeric",
@@ -432,4 +432,110 @@ export async function sendGallerySharedEmail(
   `);
  
   return sendMailWrapper(email, `✨ Elkészült a galériád: ${projectName} | OptikArt`, html);
+}
+
+export async function sendGuestChatConfirmationEmail(
+  email: string,
+  name: string,
+  messageContent: string,
+) {
+  const html = getBaseTemplate(`
+    <h2 style="text-align: center; font-weight: 400;">Köszönjük az üzenetet!</h2>
+    <p style="text-align: center; color: #555555;">
+      Szia ${name}, megkaptuk az üzenetedet és hamarosan válaszolunk.
+    </p>
+ 
+    <div style="background-color: #f4f4f4; border-left: 4px solid #A08060;
+                padding: 20px; margin: 25px 0; font-style: italic; color: #555555;
+                font-size: 13px; line-height: 1.7;">
+      "${messageContent}"
+    </div>
+ 
+    <p style="text-align: center; color: #888888; font-size: 13px;">
+      Általában <strong>1–2 munkanapon belül</strong> visszajelzünk erre az email címre.<br/>
+      Ha sürgős a kérdésed, keress minket közvetlenül:
+    </p>
+ 
+    <p style="text-align: center; margin: 20px 0;">
+      <a href="mailto:business@optikart.hu"
+         style="color: #A08060; font-size: 13px; text-decoration: none;">
+        business@optikart.hu
+      </a>
+    </p>
+  `);
+ 
+  return sendMailWrapper(email, "Megkaptuk az üzenetedet | OptikArt", html);
+}
+ 
+// ── Vendég chat: admin értesítő email ────────────────────────
+// Ez megy az adminnak az új vendég chat üzenetről
+export async function sendGuestChatAdminNotificationEmail(
+  adminEmail: string,
+  guestName: string,
+  guestEmail: string,
+  messageContent: string,
+  sessionId: string,
+) {
+  const adminLink = `${process.env.NEXT_PUBLIC_APP_URL}/admin/messages?guest=${sessionId}`;
+ 
+  const html = getBaseTemplate(`
+    <h2 style="border-bottom: 1px solid #333333; padding-bottom: 15px; font-weight: 400;">
+      Új chat üzenet
+    </h2>
+    <p style="color: #888888; font-size: 12px; margin-top: 0;">Nem bejelentkezett látogatótól</p>
+ 
+    <table style="width: 100%; margin: 20px 0; color: #ffffff; font-size: 14px;">
+      <tr>
+        <td style="padding: 6px 0; color: #888888; width: 120px;">Feladó neve:</td>
+        <td style="padding: 6px 0;">${guestName}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0; color: #888888;">E-mail:</td>
+        <td style="padding: 6px 0; color: #A08060;">
+          <a href="mailto:${guestEmail}" style="color: #A08060;">${guestEmail}</a>
+        </td>
+      </tr>
+    </table>
+ 
+    <div style="border: 1px solid #333333; padding: 16px 20px; margin: 20px 0;
+                font-size: 13px; line-height: 1.7; color: #dddddd; font-style: italic;">
+      "${messageContent}"
+    </div>
+ 
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${adminLink}"
+         style="background-color: #ffffff; color: #111111; padding: 15px 35px;
+                text-decoration: none; display: inline-block; font-weight: 700;
+                text-transform: uppercase; border-radius: 4px; letter-spacing: 1px;
+                font-size: 12px;">
+        Válasz az admin felületen →
+      </a>
+    </div>
+  `, "Admin Értesítés", true);
+ 
+  return sendMailWrapper(adminEmail, `💬 Új chat üzenet – ${guestName}`, html);
+}
+
+export async function sendMessageNotificationEmailFromAdmin(
+  email: string,
+  name: string,
+  senderName: string,
+  projectName: string,
+  messageContent: string,
+  projectId: string,
+) {
+  const link = `${process.env.NEXT_PUBLIC_APP_URL}/user/projects/${projectId}`;
+  const html = getBaseTemplate(`
+    <h2 style="text-align:center;font-weight:400;">Új üzeneted érkezett</h2>
+    <p style="text-align:center;color:#555;">Szia ${name}, <strong>${senderName}</strong> üzenetet küldött neked a <strong>${projectName}</strong> projekthez:</p>
+    <div style="background:#f4f4f4;border-left:4px solid #A08060;padding:20px;margin:25px 0;font-style:italic;color:#333;">
+      "${messageContent}"
+    </div>
+    <div style="text-align:center;">
+      <a href="${link}" style="background:#1a1a1a;color:#fff;padding:15px 35px;text-decoration:none;border-radius:4px;font-weight:600;display:inline-block;text-transform:uppercase;font-size:12px;">
+        Válasz küldése →
+      </a>
+    </div>
+  `);
+  return sendMailWrapper(email, `💬 Új üzenet: ${projectName}`, html);
 }

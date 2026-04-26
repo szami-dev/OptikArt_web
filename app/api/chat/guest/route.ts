@@ -3,19 +3,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { auth } from "@/auth";
-import { createTransport } from "nodemailer";
 
-function mailer() {
-  return createTransport({
-    host:   process.env.EMAIL_SERVER_HOST,
-    port:   parseInt(process.env.EMAIL_SERVER_PORT ?? "587"),
-    secure: process.env.EMAIL_SERVER_PORT === "465",
-    auth: {
-      user: process.env.EMAIL_SERVER_USER,
-      pass: process.env.EMAIL_SERVER_PASSWORD,
-    },
-  });
-}
+import { sendGuestChatConfirmationEmail, sendGuestChatAdminNotificationEmail } from "@/lib/email";
+
 
 // ── GET ───────────────────────────────────────────────────────
 export async function GET(req: Request) {
@@ -74,10 +64,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const { name, email, body, token } = await req.json();
+ 
     if (!email?.trim() || !body?.trim()) {
       return NextResponse.json({ error: "Email és üzenet kötelező" }, { status: 400 });
     }
-
+ 
+    // ── Session keresés vagy létrehozás ──────────────────────
     let guestSession;
     if (token) {
       guestSession = await prisma.guestChatSession.findUnique({ where: { id: token } });
@@ -90,37 +82,31 @@ export async function POST(req: Request) {
         data: { name: name.trim(), email: email.trim() },
       });
     }
-
+ 
     await prisma.guestChatMessage.create({
       data: { sessionId: guestSession.id, body: body.trim(), isAdminReply: false },
     });
-
-    // Admin email értesítés
-    try {
-      await mailer().sendMail({
-        from:    `"OptikArt Chat" <${process.env.EMAIL_SERVER_USER}>`,
-        to:      "optikartofficial@gmail.com",
-        replyTo: guestSession.email,
-        subject: `💬 Új chat üzenet – ${guestSession.name}`,
-        html: `
-          <div style="font-family:Georgia,serif;max-width:500px;margin:0 auto;color:#1A1510">
-            <h2 style="font-weight:300;font-size:1.4rem;margin-bottom:4px">Új chat üzenet</h2>
-            <p style="font-size:12px;color:#A08060;margin-bottom:20px">Nem bejelentkezett látogatótól</p>
-            <div style="border:1px solid #EDE8E0;padding:16px;margin-bottom:12px">
-              <b>${guestSession.name}</b><br/>
-              <span style="color:#A08060;font-size:12px">${guestSession.email}</span>
-            </div>
-            <div style="border:1px solid #EDE8E0;padding:16px;margin-bottom:20px;font-size:13px;line-height:1.7">
-              ${body.replace(/\n/g, "<br>")}
-            </div>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/messages?guest=${guestSession.id}"
-               style="background:#1A1510;color:white;padding:10px 20px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;text-decoration:none;display:inline-block">
-              Válasz az admin felületen →
-            </a>
-          </div>`,
-      });
-    } catch (e) { console.error("Admin email hiba:", e); }
-
+ 
+    // ── Email értesítők ───────────────────────────────────────
+    // Párhuzamosan küldjük, egyik sem blokkolja a másikat
+    await Promise.allSettled([
+      // 1. Usernek: visszaigazolás hogy megkaptuk
+      sendGuestChatConfirmationEmail(
+        guestSession.email,
+        guestSession.name,
+        body.trim(),
+      ).catch(e => console.error("User visszaigazoló email hiba:", e)),
+ 
+      // 2. Adminnak: értesítő az új üzenetről
+      sendGuestChatAdminNotificationEmail(
+        "optikartofficial@gmail.com",
+        guestSession.name,
+        guestSession.email,
+        body.trim(),
+        guestSession.id,
+      ).catch(e => console.error("Admin értesítő email hiba:", e)),
+    ]);
+ 
     return NextResponse.json({ ok: true, sessionId: guestSession.id }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/chat/guest]", err);

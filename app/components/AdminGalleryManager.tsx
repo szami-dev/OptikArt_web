@@ -67,7 +67,12 @@ async function uploadToCloudinary(
   onProgress: (pct: number) => void,
 ) {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
+
+  // ← VÁLTOZÁS: külön preset képhez és videóhoz
+  const uploadPreset = resourceType === "video"
+    ? process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_UPLOAD_PRESET!
+    : process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
@@ -81,15 +86,23 @@ async function uploadToCloudinary(
       "POST",
       `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     );
+    
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable)
         onProgress(Math.round((e.loaded / e.total) * 100));
     };
-    xhr.onload = () =>
+    xhr.onload = () => {
+     console.log("resourceType:", resourceType);
+    console.log("uploadPreset:", uploadPreset);
+    console.log("URL:", `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
+    console.log("error:" + xhr.responseText)
+    console.log("VIDEO PRESET:", process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_UPLOAD_PRESET);
       xhr.status === 200
         ? resolve(JSON.parse(xhr.responseText))
         : reject(new Error(xhr.statusText));
+    };
     xhr.onerror = () => reject(new Error("Network error"));
+
     xhr.send(formData);
   });
 }
