@@ -26,10 +26,11 @@ export async function POST(req: Request) {
     }
 
     const result = verifySync({
-      token:    code.replace(/\s/g, ""),
-      secret:   user.twoFactorSecret,
-      strategy: "totp",
-    });
+  token:    code.replace(/\s/g, ""),
+  secret:   user.twoFactorSecret,
+  strategy: "totp",
+  window:   1,
+} as any);
 
     if (!result.valid) {
       return NextResponse.json({ error: "Érvénytelen kód" }, { status: 400 });
