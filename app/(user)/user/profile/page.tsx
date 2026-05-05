@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import TwoFactorSettings from "@/app/components/TwoFactorSettings";
 
 // ── Kis segéd komponens: form mező ────────────────────────────
 function Field({
@@ -487,6 +488,7 @@ export default function ProfilePage() {
                   </div>
                 </form>
               )}
+              <TwoFactorSettings /> {/* Kétlépcsős azonosítás beállításai */}
 
               {/* ── TAB: Jelszó ── */}
               {tab === "password" && (

@@ -633,7 +633,7 @@ export default function WeddingClient() {
             {[
               { n: "20", suf: "+", l: "Esküvő" },
               { n: "4", suf: " év", l: "Tapasztalat" },
-              { n: "20", suf: "%", l: "Elégedett pár" },
+              { n: "20", suf: "db", l: "Elégedett pár" },
               { n: "35", suf: "+", l: "Átadott videó" },
             ].map((s, i) => (
               <div
