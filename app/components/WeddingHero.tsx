@@ -104,7 +104,7 @@ export default function WeddingHero() {
       >
         <div className="wh-bg-img absolute inset-0 will-change-transform">
           <Image
-            src="/gallery/wedding/kreativ-52.JPG"
+            src="/gallery/wedding/bialaci-464.jpg"
             alt="Esküvői fotó"
             fill
             className="object-cover object-center"
