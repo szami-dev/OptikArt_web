@@ -25,6 +25,112 @@ type Package = {
 
 // ── Referenciák ───────────────────────────────────────────────
 const references = [
+   {
+    src: "/gallery/wedding/bialaci-467.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-476.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-483.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-524.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-456.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-258.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-213.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-197.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-954.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+
+  {
+    src: "/gallery/wedding/bialaci-833.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-734.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-573.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-655.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/wedding/bialaci-550.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/wedding/bialaci-545.jpg",
+    alt: "Bianka & Laci",
+    location: "Szeged",
+    year: "2026",
+    span: "col-span-1 row-span-2",
+  },
   {
     src: "/slides/kreativ-52.JPG",
     alt: "Vivi & Bence",
@@ -81,6 +187,7 @@ const references = [
     year: "2025",
     span: "col-span-1 row-span-1",
   },
+ 
 ];
 
 // ── Film-strip előnézet képek ─────────────────────────────────
