@@ -30,13 +30,7 @@ export type GalleryVideo = {
 // ── Videók – ezeket kézzel töltöd ki ─────────────────────────
 const VIDEOS: GalleryVideo[] = [
   
-  {
-    id: "v5",
-    youtubeId: "dQw4w9WgXcQ",
-    thumb: "/gallery/marketing/bts-9.JPG",
-    alt: "Brand film – OptikArt",
-    category: "marketing",
-  },
+  
 ];
 
 const CATEGORIES = ["wedding", "event", "portrait", "marketing", "drone"];

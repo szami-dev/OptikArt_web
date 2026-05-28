@@ -29,7 +29,7 @@ const eventTypes = [
     title: "Koncert & Fesztivál",
     sub: "Zene · Energia · Pillanatok",
     desc: "Gyorsan változó fényviszonyok, tömeg, mozgás. Ebben otthon vagyunk — minden energiát megörökítünk.",
-    img: "/gallery/event/borfesztUTSO-140.JPG",
+    img: "/gallery/event/csillagvirag-121.JPG",
     n: "02",
   },
   {
@@ -50,10 +50,200 @@ const eventTypes = [
 
 const gallery = [
   {
+    src: "/gallery/event/csillagvirag-21.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-12.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-1.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-37.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-60.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-63.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-72.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-74.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-91.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-140.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-154.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-164.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-170.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-131.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-136.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-150.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-194.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-146.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-157.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-156.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-122.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-106.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-121.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-189.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+
+  {
+    src: "/gallery/event/csillagvirag-29.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-46.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+  {
+    src: "/gallery/event/csillagvirag-33.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+{
+    src: "/gallery/event/csillagvirag-59.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-68.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+{
+    src: "/gallery/event/csillagvirag-111.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-1",
+  },
+  {
+    src: "/gallery/event/csillagvirag-188.jpg",
+    alt: "Tech Summit",
+    tag: "Konferencia",
+    w: "col-span-1 row-span-2",
+  },
+
+
+/* idáig koncert */
+  {
     src: "/gallery/event/borfesztUTSO-106.JPG",
     alt: "Tech Summit",
     tag: "Konferencia",
-    w: "col-span-2 row-span-2",
+    w: "col-span-1 row-span-1",
   },
   {
     src: "/gallery/event/borfesztUTSO-140.JPG",
@@ -71,7 +261,7 @@ const gallery = [
     src: "/gallery/event/ballagaspg-192.JPG",
     alt: "Maraton 2024",
     tag: "Sport",
-    w: "col-span-1 row-span-2",
+    w: "col-span-1 row-span-1",
   },
   {
     src: "/gallery/event/borfesztUTSO-190.JPG",
@@ -431,7 +621,7 @@ export default function EventClient() {
         {/* Fullscreen háttérkép – clip-path animálódik */}
         <div className="ev-hero-img absolute inset-[-8%] will-change-transform">
           <Image
-            src="/gallery/event/kurultaj-143.JPG"
+            src="/gallery/event/csillagvirag-121.jpg"
             alt="Rendezvény fotózás"
             fill
             className="object-cover object-center"
@@ -688,61 +878,59 @@ export default function EventClient() {
 
       {/* ══ GALERIA ═══════════════════════════════════════════ */}
       <section className="bg-[#0F0D0A] pt-24 sm:pt-32">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 mb-12 sm:mb-16">
-          <div className="ev-anim flex items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-px bg-[#C8A882]/40" />
-                <span className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882]/50">
-                  Referenciák
-                </span>
-              </div>
-              <h2 className="font-['Cormorant_Garamond'] text-[clamp(2rem,4vw,3.5rem)] font-light text-white leading-[1.1]">
-                Ahol
-                <br />
-                <em className="not-italic text-[#C8A882]">már jártunk</em>
-              </h2>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 mb-12 sm:mb-16">
+        <div className="ev-anim flex items-end justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-px bg-[#C8A882]/40" />
+              <span className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882]/50">
+                Referenciák
+              </span>
             </div>
-            <Link
-              href="/references"
-              className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-white/30 border-b border-white/10 pb-0.5 hover:text-white/55 transition-all whitespace-nowrap self-end"
-            >
-              Teljes galéria →
-            </Link>
+            <h2 className="font-['Cormorant_Garamond'] text-[clamp(2rem,4vw,3.5rem)] font-light text-white leading-[1.1]">
+              Ahol
+              <br />
+              <em className="not-italic text-[#C8A882]">már jártunk</em>
+            </h2>
           </div>
+          <Link
+            href="/references"
+            className="hidden sm:inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-white/30 border-b border-white/10 pb-0.5 hover:text-white/55 transition-all whitespace-nowrap self-end"
+          >
+            Teljes galéria →
+          </Link>
         </div>
+      </div>
 
-        {/* Grid */}
-        <div
-          className="ev-gallery-grid grid grid-cols-2 lg:grid-cols-4 gap-1"
-          style={{ gridAutoRows: "clamp(130px, 18vw, 220px)" }}
-        >
-          {gallery.map((g, i) => (
-            <div
-              key={i}
-              className={`ev-gallery-item relative overflow-hidden group cursor-pointer ${g.w}`}
-            >
-              <Image
-                src={g.src}
-                alt={g.alt}
-                fill
-                className="object-cover brightness-60 group-hover:brightness-45 transition-all duration-700 group-hover:scale-105"
-                sizes="25vw"
-                quality={78}
-              />
-              <div className="absolute inset-0 bg-[#0F0D0A]/0 group-hover:bg-[#0F0D0A]/35 transition-all duration-500" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-400">
-                <p className="text-white font-['Cormorant_Garamond'] text-[1rem] font-light">
-                  {g.alt}
-                </p>
-                <p className="text-white/45 text-[9px] tracking-[0.1em] uppercase">
-                  {g.tag}
-                </p>
-              </div>
+      {/* Grid - Reszponzív dinamikus sor magassággal */}
+      <div className="ev-gallery-grid grid grid-cols-2 lg:grid-cols-4 gap-1 auto-rows-[160px] sm:auto-rows-[200px] lg:auto-rows-[280px]">
+        {gallery.map((g, i) => (
+          <div
+            key={i}
+            className={`ev-gallery-item relative overflow-hidden group cursor-pointer ${g.w}`}
+          >
+            <Image
+              src={g.src}
+              alt={g.alt}
+              fill
+              className="object-cover brightness-60 group-hover:brightness-45 transition-all duration-700 group-hover:scale-105"
+              sizes="(max-w-1024px) 50vw, 25vw"
+              quality={78}
+              priority={i < 4} // Az első 4 kép gyorsabban tölt be
+            />
+            <div className="absolute inset-0 bg-[#0F0D0A]/0 group-hover:bg-[#0F0D0A]/35 transition-all duration-500" />
+            <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-400">
+              <p className="text-white font-['Cormorant_Garamond'] text-[1rem] font-light">
+                {g.alt}
+              </p>
+              <p className="text-white/45 text-[9px] tracking-[0.1em] uppercase">
+                {g.tag}
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        ))}
+      </div>
+    </section>
 
       {/* ══ FOLYAMAT / HOW IT WORKS ════════════════════════════ */}
       <section className="bg-[#0F0D0A] py-24 sm:py-32">
