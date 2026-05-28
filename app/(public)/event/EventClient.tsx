@@ -29,7 +29,7 @@ const eventTypes = [
     title: "Koncert & Fesztivál",
     sub: "Zene · Energia · Pillanatok",
     desc: "Gyorsan változó fényviszonyok, tömeg, mozgás. Ebben otthon vagyunk — minden energiát megörökítünk.",
-    img: "/gallery/event/csillagvirag-121.jpg",
+    img: "/gallery/event/csillagvirag-157.jpg",
     n: "02",
   },
   {
