@@ -1,36 +1,34 @@
 "use client";
 
 // app/(public)/concert/ConcertClient.tsx
-// Kliens komponens — animációk, interakció. A galéria KÉPEIT a szülő
-// (szerver) komponens adja át `filenames` propként; itt csak összerakjuk
-// a megjelenítendő elemeket és a <Image>-et kezeljük, nincs fs-hívás.
+// Kliens komponens — animációk, interakció. A galéria KÉP-metaadatait
+// (fájlnév + eredeti szélesség/magasság) a szülő szerver komponens adja át
+// `images` propként; itt csak összerakjuk a src/alt párokat és átadjuk a
+// JustifiedGallery-nek.
 //
 // Design: Koncertfotózás — önálló fotós landing oldal cégeknek küldve.
 // Csak fotózás, nincs videó/livestream ajánlat.
-// GSAP: spotlight-reveal hero, forgó fénynyaláb, végtelen tourszalag,
-//       scroll-reveal grid, scroll counter.
+//
+// Betűméretezés: NEM vw-alapú clamp() — helyette fix breakpoint-lépcsők
+// (sm/md/lg/xl/2xl + egy egyedi 2560px-es sáv), hogy a cím ne nőjön
+// aránytalanul nagyra tipikus 1080p/1440p asztali felbontásokon, és
+// csak a ténylegesen ultraszéles/4K kijelzőkön kapjon extra méretet.
 //
 // Betűtípus-függőség: "Bebas Neue" és "Space Grotesk" — lásd app/(public)/layout.tsx.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import JustifiedGallery, { type JustifiedGalleryImage } from "./JustifiedGallery";
 
 const NAV_H = 68;
 const GALLERY_BASE_PATH = "/gallery/concert";
 
-// Sorváltozatok a rácshoz — indexre modulózva kapja meg minden kép,
-// hogy ne legyen egyhangú a kirakás, de fix magasságú maradjon a grid.
-const ROW_SPAN_PATTERN = [
-  "col-span-1 row-span-2",
-  "col-span-1 row-span-2",
-  "col-span-1 row-span-3",
-  "col-span-1 row-span-2",
-];
-
-// Ha nagyon sok fájl kerül a mappába, ennyit rakunk ki a galériába —
-// a teljesítmény és az oldal olvashatósága miatt. Emeld fel nyugodtan.
-const MAX_GALLERY_ITEMS = 32;
+export interface GalleryImageMeta {
+  filename: string;
+  width: number;
+  height: number;
+}
 
 function filenameToAlt(filename: string): string {
   const withoutExt = filename.replace(/\.[^/.]+$/, "");
@@ -72,9 +70,9 @@ const capabilities = [
 ];
 
 const stats = [
-  { val: 60, suf: "+", label: "Koncert & fesztivál" },
+  { val: 30, suf: "+", label: "Koncert & fesztivál" },
   { val: 5, suf: " év", label: "Tapasztalat" },
-  { val: 340, suf: "+", label: "Óra színpad előtt" },
+  { val: 100, suf: "+", label: "Óra színpad előtt" },
   { val: 6000, suf: "+", label: "Átadott fotó" },
 ];
 
@@ -132,24 +130,30 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
   );
 }
 
-export default function ConcertClient({ filenames }: { filenames: string[] }) {
+// Ismétlődő cím-osztályok — fix breakpoint-lépcsők, nincs vw/clamp.
+const H2_MD = "font-['Bebas_Neue'] text-[1.8rem] sm:text-[2.1rem] lg:text-[2.5rem] 2xl:text-[2.8rem] text-white leading-[1]";
+const H2_LG = "font-['Bebas_Neue'] text-[2.1rem] sm:text-[2.6rem] md:text-[3.2rem] lg:text-[3.8rem] xl:text-[4.4rem] 2xl:text-[4.8rem] text-white leading-[0.9]";
+const H2_MED = "font-['Bebas_Neue'] text-[2rem] sm:text-[2.4rem] md:text-[2.9rem] lg:text-[3.4rem] 2xl:text-[3.8rem] text-white leading-[0.95]";
+const H2_SM = "font-['Bebas_Neue'] text-[1.9rem] sm:text-[2.3rem] md:text-[2.7rem] lg:text-[3rem] 2xl:text-[3.3rem] text-white leading-[0.95]";
+
+export default function ConcertClient({ images }: { images: GalleryImageMeta[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
 
-  // A fájlnevekből építjük fel a galéria-elemeket — nincs kézzel írt lista,
-  // csak a szerverről kapott filename-eket kötjük össze az /Image útvonallal.
-  const concertGallery = useMemo(
+  // A fájlnevekből (+ valós méretből) építjük fel a galéria-elemeket.
+  const galleryImages: JustifiedGalleryImage[] = useMemo(
     () =>
-      filenames.slice(0, MAX_GALLERY_ITEMS).map((filename, i) => ({
+      images.map(({ filename, width, height }) => ({
         src: `${GALLERY_BASE_PATH}/${filename}`,
         alt: filenameToAlt(filename),
-        w: ROW_SPAN_PATTERN[i % ROW_SPAN_PATTERN.length],
+        width,
+        height,
       })),
-    [filenames],
+    [images],
   );
 
-  const heroImageSrc =  `${GALLERY_BASE_PATH}/placeholder.jpg`;
+  const heroImageSrc =  `/gallery/concert/csillagvirag-157.jpg`;
 
   useEffect(() => {
     let ctx: any,
@@ -164,7 +168,6 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
 
       gsap.set(".cn-anim", { autoAlpha: 0, y: 18 });
       gsap.set(".cn-card", { autoAlpha: 0, y: 24 });
-      gsap.set(".cn-gallery-item", { autoAlpha: 0, scale: 0.97 });
       setReady(true);
 
       ctx = gsap.context(() => {
@@ -235,14 +238,6 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
           });
         }
 
-        const galleryItems = rootRef.current?.querySelectorAll(".cn-gallery-item");
-        if (galleryItems?.length) {
-          gsap.to(galleryItems, {
-            autoAlpha: 1, scale: 1, stagger: 0.06, duration: 0.7, ease: "power3.out",
-            scrollTrigger: { trigger: ".cn-gallery-grid", start: "top 88%", once: true },
-          });
-        }
-
         const animEls = rootRef.current?.querySelectorAll(".cn-anim");
         animEls?.forEach((el) => {
           gsap.to(el, {
@@ -258,7 +253,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
       mounted = false;
       ctx?.revert();
     };
-  }, [concertGallery]);
+  }, []);
 
   return (
     <div ref={rootRef} className="bg-[#060505] overflow-x-hidden" style={{ visibility: ready ? "visible" : "hidden" }}>
@@ -266,7 +261,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
       <section ref={heroRef} className="relative overflow-hidden" style={{ height: "100svh", minHeight: "620px" }}>
         <div className="cn-hero-img absolute inset-[-8%] will-change-transform">
           <Image
-            src={'/gallery/event/placeholder.jpg'}
+            src={heroImageSrc}
             alt="Élő koncertfotózás"
             fill
             className="object-cover object-center"
@@ -316,10 +311,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
 
           <div className="flex-1 flex flex-col justify-end pb-4">
             <div className="max-w-2xl">
-              <h1
-                className="font-['Bebas_Neue'] text-white leading-[0.85] tracking-[0.01em] mb-7"
-                style={{ fontSize: "clamp(3.2rem, 9vw, 8.5rem)" }}
-              >
+              <h1 className="font-['Bebas_Neue'] text-[2.3rem] sm:text-[3rem] md:text-[3.6rem] lg:text-[4.4rem] xl:text-[5.2rem] 2xl:text-[6rem] min-[2560px]:text-[7.5rem] text-white leading-[0.85] tracking-[0.01em] mb-7">
                 <span className="block overflow-hidden"><span className="cn-title-line block">Amit a színpadon</span></span>
                 <span className="block overflow-hidden"><span className="cn-title-line block">egyszer látni lehet,</span></span>
                 <span className="block overflow-hidden"><span className="cn-title-line block">azt egyszer kell jól</span></span>
@@ -328,22 +320,17 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
 
               <p className="cn-hero-desc font-['Space_Grotesk'] text-[13px] sm:text-[14px] font-light text-white/45 leading-[1.9] max-w-md mb-8">
                 Élő koncertfotózás menedzsment cégeknek és helyszíneknek — a fotóárokból
-                és a színfalak mögül is, a promóter riderjéhez igazodva.
+                és a színfalak mögül is.
               </p>
 
               <div className="flex flex-wrap items-center gap-4 sm:gap-5">
                 <Link
-                  href="/contact"
+                  href="#galeria"
                   className="cn-hero-btn bg-[#E8362A] text-white font-['Space_Grotesk'] text-[11px] tracking-[0.16em] uppercase px-8 py-4 hover:bg-white hover:text-[#060505] transition-all duration-300 whitespace-nowrap"
                 >
-                  Ajánlatot kérek
+                  Referenciák →
                 </Link>
-                <a
-                  href="#szolgaltatasok"
-                  className="cn-hero-btn font-['Space_Grotesk'] text-[11px] tracking-[0.14em] uppercase text-white/40 border-b border-white/12 pb-0.5 hover:text-white hover:border-white/40 transition-all whitespace-nowrap"
-                >
-                  Mit vállalok →
-                </a>
+                
               </div>
             </div>
           </div>
@@ -372,8 +359,41 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
           ))}
         </div>
       </div>
+      {/* ══ GALÉRIA — justified elrendezés, valós méretaránnyal ═══ */}
+      <section className="bg-[#060505] pt-24 sm:pt-32" id="galeria">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 mb-12 sm:mb-16">
+          <div className="cn-anim flex items-end justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-px bg-[#E8362A]/50" />
+                <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#E8362A]/60">Színpad közelről</span>
+              </div>
+              <h2 className={H2_MED}>
+                Amit korábbi
+                <br />
+                fellépéseken készítettem
+              </h2>
+            </div>
+            <Link href="/references" className="hidden sm:inline-flex items-center gap-2 font-['Space_Grotesk'] text-[11px] tracking-[0.14em] uppercase text-white/35 border-b border-white/10 pb-0.5 hover:text-white/60 transition-all whitespace-nowrap self-end">
+              Teljes galéria →
+            </Link>
+          </div>
+        </div>
 
-      {/* ══ RÓLAM ═════════════════════════════════════════════ */}
+        <div className="max-w-[1800px] mx-auto px-1">
+          {galleryImages.length > 0 ? (
+            <JustifiedGallery images={galleryImages} targetRowHeight={280} targetRowHeightMobile={160} gap={6} />
+          ) : (
+            <p className="font-['Space_Grotesk'] text-white/30 text-[13px] text-center py-16">
+              Nincs kép a public/gallery/event mappában.
+            </p>
+          )}
+        </div>
+      </section>
+
+      
+
+      {/* ══ RÓLAM ═════════════════════════════════════════════ 
       <section className="bg-[#060505] py-20 sm:py-28 border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
@@ -382,7 +402,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
                 <div className="w-8 h-px bg-[#35D0E0]/50" />
                 <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#35D0E0]/60">Rólam</span>
               </div>
-              <h2 className="font-['Bebas_Neue'] text-[clamp(2rem,3.5vw,3rem)] text-white leading-[0.95]">
+              <h2 className={H2_MD}>
                 Egy fotós,
                 <br />
                 nem egy stúdió
@@ -400,7 +420,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
         </div>
       </section>
 
-      {/* ══ SZOLGÁLTATÁSOK ════════════════════════════════════ */}
+      {/* ══ SZOLGÁLTATÁSOK ════════════════════════════════════ *
       <section id="szolgaltatasok" className="bg-[#060505] py-24 sm:py-32">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-8 mb-16">
@@ -409,7 +429,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
                 <div className="w-8 h-px bg-[#E8362A]/50" />
                 <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#E8362A]/60">Mit viszek a helyszínre</span>
               </div>
-              <h2 className="font-['Bebas_Neue'] text-[clamp(2.4rem,5.5vw,4.8rem)] text-white leading-[0.9]">
+              <h2 className={H2_LG}>
                 Négy nézőpont,
                 <br />
                 egy fotós
@@ -435,55 +455,9 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
         </div>
       </section>
 
-      {/* ══ GALÉRIA — dinamikusan a public/gallery/event mappából ═══ */}
-      <section className="bg-[#060505] pt-24 sm:pt-32">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 mb-12 sm:mb-16">
-          <div className="cn-anim flex items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-px bg-[#E8362A]/50" />
-                <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#E8362A]/60">Színpad közelről</span>
-              </div>
-              <h2 className="font-['Bebas_Neue'] text-[clamp(2.2rem,4.5vw,4rem)] text-white leading-[0.95]">
-                Amit korábbi
-                <br />
-                fellépéseken készítettem
-              </h2>
-            </div>
-            <Link href="/references" className="hidden sm:inline-flex items-center gap-2 font-['Space_Grotesk'] text-[11px] tracking-[0.14em] uppercase text-white/35 border-b border-white/10 pb-0.5 hover:text-white/60 transition-all whitespace-nowrap self-end">
-              Teljes galéria →
-            </Link>
-          </div>
-        </div>
+      
 
-        {concertGallery.length > 0 ? (
-          <div className="cn-gallery-grid grid grid-cols-2 lg:grid-cols-4 gap-1 auto-rows-[160px] sm:auto-rows-[200px] lg:auto-rows-[280px]">
-            {concertGallery.map((g, i) => (
-              <div key={g.src} className={`cn-gallery-item relative overflow-hidden group cursor-pointer ${g.w}`}>
-                <Image
-                  src={g.src}
-                  alt={g.alt}
-                  fill
-                  className="object-cover brightness-55 group-hover:brightness-40 transition-all duration-700 group-hover:scale-105"
-                  sizes="(max-width: 1024px) 50vw, 25vw"
-                  quality={78}
-                  priority={i < 4}
-                />
-                <div className="absolute inset-0 bg-[#060505]/0 group-hover:bg-[#060505]/40 transition-all duration-500" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-400">
-                  <p className="text-white font-['Bebas_Neue'] text-[1.1rem] tracking-wide">{g.alt}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="font-['Space_Grotesk'] text-white/30 text-[13px] text-center py-16">
-            Nincs kép a public/gallery/event mappában.
-          </p>
-        )}
-      </section>
-
-      {/* ══ STATS SÁV ═════════════════════════════════════════ */}
+      {/* ══ STATS SÁV ═════════════════════════════════════════ 
       <section className="bg-[#0C0A0A] border-y border-[#E8362A]/10 mt-24 sm:mt-32">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/[0.04]">
@@ -499,7 +473,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
         </div>
       </section>
 
-      {/* ══ FOLYAMAT ══════════════════════════════════════════ */}
+      {/* ══ FOLYAMAT ══════════════════════════════════════════ *
       <section className="bg-[#060505] py-24 sm:py-32">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="cn-anim mb-16">
@@ -507,7 +481,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
               <div className="w-8 h-px bg-[#E8362A]/50" />
               <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#E8362A]/60">Hogyan dolgozom</span>
             </div>
-            <h2 className="font-['Bebas_Neue'] text-[clamp(2.2rem,4.5vw,4rem)] text-white leading-[0.95]">
+            <h2 className={H2_MED}>
               A megkeresestől
               <br />
               az átadott galériáig
@@ -526,7 +500,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
         </div>
       </section>
 
-      {/* ══ TECHNIKAI RIDER ═══════════════════════════════════ */}
+      {/* ══ TECHNIKAI RIDER ═══════════════════════════════════ 
       <section className="bg-[#0C0A0A] py-24 sm:py-32 border-y border-white/[0.04]">
         <div className="max-w-5xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="cn-anim mb-14">
@@ -534,7 +508,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
               <div className="w-8 h-px bg-[#35D0E0]/50" />
               <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#35D0E0]/60">A riderem</span>
             </div>
-            <h2 className="font-['Bebas_Neue'] text-[clamp(2rem,4vw,3.4rem)] text-white leading-[0.95] mb-4">
+            <h2 className={`${H2_SM} mb-4`}>
               Amit a technikai csapatnak
               <br />
               érdemes tudnia rólam
@@ -556,7 +530,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
         </div>
       </section>
 
-      {/* ══ FAQ ════════════════════════════════════════════════ */}
+      {/* ══ FAQ ════════════════════════════════════════════════ 
       <section className="bg-[#060505] py-24 sm:py-32">
         <div className="max-w-5xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 lg:gap-20">
@@ -565,7 +539,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
                 <div className="w-8 h-px bg-[#E8362A]/50" />
                 <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.25em] uppercase text-[#E8362A]/60">GYIK</span>
               </div>
-              <h2 className="font-['Bebas_Neue'] text-[clamp(2rem,3.5vw,3rem)] text-white leading-[1] mb-6">
+              <h2 className={`${H2_MD} mb-6`}>
                 Promótereknek
                 <br />
                 és helyszíneknek
@@ -585,7 +559,7 @@ export default function ConcertClient({ filenames }: { filenames: string[] }) {
           </div>
         </div>
       </section>
-
+*/}
     </div>
   );
 }
