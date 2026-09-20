@@ -16,7 +16,7 @@ const menuItems = [
   { label: "Portré", href: "/portrait" },
   { label: "Marketing", href: "/marketing" },
   { label: "Rendezvény", href: "/event" },
-  //{ label: "Drón", href: "/drone" },
+  { label: "Koncert", href: "/concert" },
 ];
 
 const NAV_H = 68; // szinkronban a layout.tsx és hero komponensekkel

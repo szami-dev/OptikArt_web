@@ -14,7 +14,15 @@ export const NAV_H = 68;
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {/* CSS variable globálisan elérhető minden gyerekben */}
+      {/* Bebas Neue + Space Grotesk a /concert oldalhoz — ugyanúgy szó szerinti
+          családnévvel, mint ahogy a Cormorant Garamond is be van töltve az
+          /event oldalhoz. latin-ext kell az ékezetes karakterekhez (ő, ű). */}
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;700&subset=latin-ext&display=swap"
+      />
+
+      {/* CSS változók globálisan elérhetők minden gyerekben */}
       <style>{`:root { --nav-h: ${NAV_H}px; }`}</style>
 
       {/* JSON-LD – LocalBusiness + WebSite minden publikus oldalon megjelenik */}
