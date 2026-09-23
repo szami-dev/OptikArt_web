@@ -76,6 +76,23 @@ type Project = {
   }[];
 };
 
+// ── Zip letöltés állapotgép ────────────────────────────────────
+type ZipPhase =
+  | { phase: "idle" }
+  | { phase: "fetching-urls" }
+  | { phase: "downloading"; done: number; total: number; currentFile: string }
+  | { phase: "zipping"; done: number; total: number }
+  | { phase: "saving" }
+  | { phase: "done" }
+  | { phase: "error"; message: string };
+
+function getFileNameWithExt(fileName: string, url: string): string {
+  if (/\.\w{2,5}$/.test(fileName)) return fileName;
+  const urlMatch = url.match(/\.(\w{2,5})(?:\?|$)/);
+  const ext = urlMatch ? `.${urlMatch[1].toLowerCase()}` : ".jpg";
+  return `${fileName}${ext}`;
+}
+
 // ── Meta ──────────────────────────────────────────────────────
 const STATUS_META: Record<
   ProjectStatus,
@@ -351,6 +368,133 @@ function EventDateHero({
   );
 }
 
+// ── Zip letöltés progress overlay ─────────────────────────────
+function ZipProgressOverlay({
+  state,
+  onClose,
+}: {
+  state: ZipPhase;
+  onClose: () => void;
+}) {
+  if (state.phase === "idle") return null;
+
+  const percent =
+    state.phase === "downloading"
+      ? Math.round((state.done / state.total) * 100)
+      : state.phase === "zipping"
+        ? Math.round((state.done / state.total) * 100)
+        : state.phase === "saving" || state.phase === "done"
+          ? 100
+          : 0;
+
+  const label =
+    state.phase === "fetching-urls"
+      ? "Fájlok előkészítése..."
+      : state.phase === "downloading"
+        ? `Fájlok letöltése (${state.done}/${state.total})`
+        : state.phase === "zipping"
+          ? `Tömörítés (${state.done}/${state.total})`
+          : state.phase === "saving"
+            ? "ZIP mentése..."
+            : state.phase === "done"
+              ? "Letöltés kész!"
+              : state.phase === "error"
+                ? `Hiba: ${(state as any).message}`
+                : "";
+
+  const isDone = state.phase === "done";
+  const isError = state.phase === "error";
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+      <div className="bg-white border border-[#EDE8E0] w-full max-w-md p-8">
+        <div className="flex items-center justify-center mb-6">
+          {isDone ? (
+            <div className="w-14 h-14 border border-[#C8A882]/40 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#C8A882"
+                strokeWidth="1.5"
+                className="w-7 h-7"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+          ) : isError ? (
+            <div className="w-14 h-14 border border-red-200 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="1.5"
+                className="w-7 h-7"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+          ) : (
+            <div className="w-14 h-14 border border-[#EDE8E0] flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#C8A882]/30 border-t-[#C8A882] rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="w-5 h-px bg-[#C8A882]/40" />
+            <span className="text-[9px] tracking-[0.22em] uppercase text-[#A08060]">
+              {isDone ? "Kész" : isError ? "Hiba" : "Folyamatban"}
+            </span>
+            <div className="w-5 h-px bg-[#C8A882]/40" />
+          </div>
+          <h3 className="font-['Cormorant_Garamond'] text-[1.6rem] font-light text-[#1A1510] mb-1">
+            {isDone
+              ? "ZIP letöltve!"
+              : isError
+                ? "Letöltési hiba"
+                : "ZIP összeállítása"}
+          </h3>
+          <p className="text-[12px] text-[#7A6A58]">{label}</p>
+          {state.phase === "downloading" && state.currentFile && (
+            <p className="text-[10px] text-[#A08060] mt-1 truncate max-w-xs mx-auto">
+              {state.currentFile}
+            </p>
+          )}
+        </div>
+        {!isError && (
+          <div className="mb-6">
+            <div className="h-1 bg-[#EDE8E0] w-full">
+              <div
+                className="h-full bg-[#C8A882] transition-all duration-300"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[10px] text-[#A08060]">{percent}%</span>
+              {(state.phase === "downloading" ||
+                state.phase === "zipping") && (
+                <span className="text-[10px] text-[#A08060]">
+                  {state.done} / {state.total} fájl
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {(isDone || isError) && (
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-[#1A1510] text-white text-[11px] tracking-[0.14em] uppercase hover:bg-[#C8A882] transition-all"
+          >
+            Bezárás
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════
 // GALÉRIA KOMPONENS – teljes újraírás
 // ════════════════════════════════════════════════════════════════
@@ -364,20 +508,17 @@ function GalleryTab({
   const [activeTab, setActiveTab] = useState<"photos" | "videos">("photos");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [videoModal, setVideoModal] = useState<GalleryVideo | null>(null);
-  const [downloading, setDownloading] = useState<number | "all" | null>(null);
+  const [downloading, setDownloading] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [dlProgress, setDlProgress] = useState<{
-    done: number;
-    total: number;
-  } | null>(null);
+  const [zipState, setZipState] = useState<ZipPhase>({ phase: "idle" });
 
   const images = gallery.images;
   const videos = gallery.videos ?? [];
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/gallery/${gallery.shareToken}`;
 
-  // ── Letöltés ────────────────────────────────────────────────
+  // ── Egyedi (kép/videó) letöltés – változatlan, közvetlen böngésző-letöltés ──
   async function handleDownload(imageId?: number, videoId?: number) {
-    const key = imageId ?? videoId ?? "all";
+    const key = imageId ?? videoId;
     setDownloading(key as any);
     try {
       const res = await fetch(`/api/galleries/${gallery.id}/download`, {
@@ -387,36 +528,77 @@ function GalleryTab({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Letöltési hiba");
-
-      if (imageId || videoId) {
-        // Egyszeres
-        const a = document.createElement("a");
-        a.href = data.url;
-        a.download = data.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        // Összes – sorban
-        const urls: { url: string; fileName: string }[] = data.urls ?? [];
-        setDlProgress({ done: 0, total: urls.length });
-        for (let i = 0; i < urls.length; i++) {
-          const item = urls[i];
-          const a = document.createElement("a");
-          a.href = item.url;
-          a.download = item.fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setDlProgress({ done: i + 1, total: urls.length });
-          await new Promise((r) => setTimeout(r, 600)); // böngésző letöltés queue
-        }
-        setDlProgress(null);
-      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (e: any) {
       alert(e.message ?? "Letöltési hiba");
     } finally {
       setDownloading(null);
+    }
+  }
+
+  // ── Összes letöltése – kliens oldalon zippelve, egyetlen fájlként mentve ──
+  async function handleDownloadAll() {
+    setZipState({ phase: "fetching-urls" });
+    try {
+      const res = await fetch(`/api/galleries/${gallery.id}/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Hiba az URL-ek lekérésekor");
+      const urls: { url: string; fileName: string }[] = data.urls ?? [];
+      if (urls.length === 0) throw new Error("Nincs letölthető fájl");
+
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < urls.length; i++) {
+        const { url, fileName } = urls[i];
+        setZipState({
+          phase: "downloading",
+          done: i,
+          total: urls.length,
+          currentFile: fileName,
+        });
+        const fileRes = await fetch(url);
+        if (!fileRes.ok) throw new Error(`Nem sikerült letölteni: ${fileName}`);
+        const blob = await fileRes.blob();
+        const fileNameWithExt = getFileNameWithExt(fileName, url);
+        zip.file(fileNameWithExt, blob);
+        setZipState({
+          phase: "downloading",
+          done: i + 1,
+          total: urls.length,
+          currentFile: fileNameWithExt,
+        });
+      }
+
+      setZipState({ phase: "zipping", done: 0, total: urls.length });
+      const zipBlob = await zip.generateAsync(
+        { type: "blob", compression: "DEFLATE", compressionOptions: { level: 1 } },
+        (meta) =>
+          setZipState({
+            phase: "zipping",
+            done: Math.round((meta.percent / 100) * urls.length),
+            total: urls.length,
+          }),
+      );
+
+      setZipState({ phase: "saving" });
+      const { saveAs } = await import("file-saver");
+      const safeTitle = (gallery.title ?? "galeria")
+        .replace(/[^\w\-]/g, "_")
+        .replace(/_{2,}/g, "_");
+      saveAs(zipBlob, `OptikArt_${safeTitle}.zip`);
+      setZipState({ phase: "done" });
+    } catch (e: any) {
+      setZipState({ phase: "error", message: e.message ?? "Ismeretlen hiba" });
     }
   }
 
@@ -428,6 +610,11 @@ function GalleryTab({
 
   return (
     <div className="flex flex-col gap-0 bg-white border border-[#EDE8E0] overflow-hidden">
+      <ZipProgressOverlay
+        state={zipState}
+        onClose={() => setZipState({ phase: "idle" })}
+      />
+
       {/* ── Fejléc ── */}
       <div className="px-6 py-5 border-b border-[#EDE8E0] bg-[#FAF8F4]">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -505,13 +692,15 @@ function GalleryTab({
               )}
             </button>
 
-            {/* Összes letöltés */}
+            {/* Összes letöltése – zippelve */}
             <button
-              onClick={() => handleDownload()}
-              disabled={downloading === "all"}
+              onClick={handleDownloadAll}
+              disabled={zipState.phase !== "idle"}
               className="flex items-center gap-2 bg-[#1A1510] text-white text-[11px] tracking-[0.1em] uppercase px-4 py-2 hover:bg-[#C8A882] transition-all disabled:opacity-60"
             >
-              {downloading === "all" ? (
+              {zipState.phase !== "idle" &&
+              zipState.phase !== "done" &&
+              zipState.phase !== "error" ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <svg
@@ -526,9 +715,7 @@ function GalleryTab({
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               )}
-              {dlProgress
-                ? `${dlProgress.done}/${dlProgress.total}`
-                : "Összes letöltése"}
+              Összes letöltése
             </button>
           </div>
         </div>
