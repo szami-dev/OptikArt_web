@@ -117,7 +117,7 @@ const team = [
   {
     name: "Szabó Máté",
     role: "Vezető fotós",
-    bio: "8 éves tapasztalat esküvői és portréfotózásban. Természetes fény, valódi pillanatok.",
+    bio: "4 éves tapasztalat esküvői és portréfotózásban. Természetes fény, valódi pillanatok.",
     img: "/assets/Gemini_Generated_Image_4c39tx4c39tx4c39.png",
     tags: ["Esküvő", "Portré", "Természetes fény"],
   },
@@ -214,35 +214,25 @@ const values = [
 // ── Timeline / Történet lépések ───────────────────────────────
 const story = [
   {
-    year: "2016",
+    year: "2023",
     event: "Az OptikArt megalapítása",
     desc: "Egy Sony A7 és egy álom. Az első esküvő Kiskunfélegyházán.",
   },
   {
-    year: "2018",
-    event: "Videó divízió indítása",
+    year: "2024",
+    event: "Elindul az első weboldalunk",
     desc: "A mozgókép belépett a portfolióba. Az első highlight film.",
   },
   {
-    year: "2020",
-    event: "Drón engedély megszerzése",
-    desc: "A perspektíva kitágult. Légifotók és légivideók.",
+    year: "2025",
+    event: "Az új CRM rendszerünk indulása",
+    desc: "A perspektíva kitágult. Egyedi galériák, projektmenedzsment és ügyfélkapcsolat.",
   },
   {
-    year: "2022",
+    year: "2026",
     event: "100. esküvő",
     desc: "Száz pár, száz történet. Megünnepeltük és továbblépünk.",
-  },
-  {
-    year: "2024",
-    event: "OptikArt Studio nyitás",
-    desc: "Saját stúdió. Kontrollált fény, határtalan lehetőség.",
-  },
-  {
-    year: "2025",
-    event: "Ma",
-    desc: "320+ projekt, 3 fős csapat, ugyanaz a szenvedély.",
-  },
+  }
 ];
 
 // ── BTS képek ─────────────────────────────────────────────────
@@ -257,7 +247,7 @@ const bts = [
 
 // ── Statisztikák ──────────────────────────────────────────────
 const bigStats = [
-  { val: "320", suf: "+", l: "Elkészült projekt", sub: "2016 óta" },
+  { val: "320", suf: "+", l: "Elkészült projekt", sub: "2023 óta" },
   { val: "15", suf: " TB+", l: "Átadott tartalom", sub: "archív anyag" },
   { val: "120", suf: "+", l: "Esküvő", sub: "Magyarország-szerte" },
   { val: "5", suf: " díj", l: "Szakmai elismerés", sub: "hazai versenyek" },
@@ -826,13 +816,11 @@ export default function AboutPage() {
                   <span className="ab-h1-word block">Rólunk</span>
                 </span>
                 <span className="block overflow-hidden pt-[0.14em] -mt-[0.14em] pb-[0.08em]">
-                  <em className="ab-h1-word block not-italic text-[#C8A882]">
-                    & munkánkról
-                  </em>
+                  
                 </span>
               </h1>
               <p className="ab-hero-desc text-[14px] sm:text-[15px] font-light text-white/50 leading-[2] max-w-lg mb-10">
-                Az OptikArt 2016 óta alkot professzionális fotó- és
+              2023 óta alkotunk professzionális fotó- és
                 videótartalmakat. Szenvedélyünk az autentikus pillanatok
                 megörökítése — esküvőktől rendezvényekig, portréktól
                 reklámfilmekig.
@@ -858,10 +846,9 @@ export default function AboutPage() {
           <div className="flex flex-wrap gap-8 sm:gap-14 pb-12 sm:pb-14 border-t border-white/10 pt-6">
             {[
               { val: "320", suf: "+", l: "Projekt" },
-              { val: "8", suf: " év", l: "Tapasztalat" },
+              { val: "4", suf: " év", l: "Tapasztalat" },
               { val: "120", suf: "+", l: "Esküvő" },
-              { val: "98", suf: "%", l: "Elégedett ügyfél" },
-            ].map((s) => (
+                         ].map((s) => (
               <div key={s.l} className="ab-hero-stats">
                 <div className="font-['Cormorant_Garamond'] text-[2.2rem] font-light text-[#C8A882] leading-none">
                   <span
@@ -1079,7 +1066,7 @@ export default function AboutPage() {
 
         <div className="px-8 lg:px-16 pb-8 lg:pb-10 flex items-center gap-6">
           <span className="text-[9px] tracking-[0.2em] uppercase text-[#C8A882]/50 shrink-0">
-            2016–2025
+            2023–2026
           </span>
           <div className="relative flex-1 h-px bg-white/10 hidden lg:block">
             <div className="ab-hs-bar absolute inset-0 bg-[#C8A882]/70 origin-left scale-x-0" />
@@ -1100,7 +1087,7 @@ export default function AboutPage() {
                 </span>
               </div>
               <h2 className="font-['Cormorant_Garamond'] text-[clamp(2rem,4vw,3.5rem)] font-light text-[#1A1510] leading-[1.1]">
-                Az útunk eddig
+                Az utunk eddig
               </h2>
             </div>
 
@@ -1527,8 +1514,7 @@ export default function AboutPage() {
       </section>
 
       {/* ══ CONTACT ══ */}
-      <ContactSection />
-      <Footer />
+      
     </div>
   );
 }
