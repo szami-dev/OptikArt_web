@@ -25,13 +25,7 @@ const eventTypes = [
     img: "/gallery/event/gepesznap-62.JPG",
     n: "01",
   },
-  {
-    title: "Koncert & Fesztivál",
-    sub: "Zene · Energia · Pillanatok",
-    desc: "Gyorsan változó fényviszonyok, tömeg, mozgás. Ebben otthon vagyunk — minden energiát megörökítünk.",
-    img: "/gallery/event/csillagvirag-157.jpg",
-    n: "02",
-  },
+  
   {
     title: "Magánrendezvény",
     sub: "Születésnap · Évforduló · Party",
@@ -49,195 +43,7 @@ const eventTypes = [
 ];
 
 const gallery = [
-  {
-    src: "/gallery/event/csillagvirag-21.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-12.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-1.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-37.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-3",
-  },
-  {
-    src: "/gallery/event/csillagvirag-60.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-63.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-72.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-74.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-91.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-140.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-154.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-164.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-170.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-131.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-136.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-150.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-194.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-146.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-157.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-156.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-122.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-106.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-121.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-189.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-
-  {
-    src: "/gallery/event/csillagvirag-29.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-46.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-33.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-{
-    src: "/gallery/event/csillagvirag-59.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-68.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-{
-    src: "/gallery/event/csillagvirag-111.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-  {
-    src: "/gallery/event/csillagvirag-188.jpg",
-    alt: "Tech Summit",
-    tag: "Konferencia",
-    w: "col-span-1 row-span-2",
-  },
-
-
+  
 /* idáig koncert */
   {
     src: "/gallery/event/borfesztUTSO-106.JPG",
@@ -621,7 +427,7 @@ export default function EventClient() {
         {/* Fullscreen háttérkép – clip-path animálódik */}
         <div className="ev-hero-img absolute inset-[-8%] will-change-transform">
           <Image
-            src="/gallery/event/csillagvirag-121.jpg"
+            src="/gallery/event/bjgszalagozo-259.JPG"
             alt="Rendezvény fotózás"
             fill
             className="object-cover object-center"
@@ -932,66 +738,7 @@ export default function EventClient() {
       </div>
     </section>
 
-      {/* ══ FOLYAMAT / HOW IT WORKS ════════════════════════════ */}
-      <section className="bg-[#0F0D0A] py-24 sm:py-32">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
-          <div className="ev-anim mb-16">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-8 h-px bg-[#C8A882]/40" />
-              <span className="text-[9px] tracking-[0.25em] uppercase text-[#C8A882]/50">
-                Hogyan dolgozunk
-              </span>
-            </div>
-            <h2 className="font-['Cormorant_Garamond'] text-[clamp(2rem,4vw,3.5rem)] font-light text-white leading-[1.1]">
-              A rendezvény
-              <br />
-              <em className="not-italic text-[#C8A882]">
-                dokumentálása lépésről lépésre
-              </em>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.04]">
-            {[
-              {
-                n: "01",
-                title: "Egyeztetés",
-                desc: "Megismerjük a rendezvényt, a célokat és az elvárásokat. Személyre szabott ajánlat 24 órán belül.",
-              },
-              {
-                n: "02",
-                title: "Felkészülés",
-                desc: "Helyszíni bejárás (opcionális), időbeosztás, csapat összeállítása. Mindenre felkészülünk.",
-              },
-              {
-                n: "03",
-                title: "Forgatás",
-                desc: "Diszkrét, de mindenhol ott vagyunk ahol a legjobb pillanat keletkezik. Gyors és precíz.",
-              },
-              {
-                n: "04",
-                title: "Átadás",
-                desc: "Szerkesztett anyag 5-7 munkanapon belül. Privát galéria, letölthető képek, videó.",
-              },
-            ].map((step, i) => (
-              <div
-                key={i}
-                className="ev-anim bg-[#0F0D0A] hover:bg-[#171410] transition-colors duration-300 p-8 sm:p-10 group"
-              >
-                <div className="font-['Cormorant_Garamond'] text-[3.5rem] font-thin text-[#C8A882]/15 group-hover:text-[#C8A882]/30 transition-colors duration-300 leading-none mb-6">
-                  {step.n}
-                </div>
-                <h3 className="font-['Cormorant_Garamond'] text-[1.4rem] font-light text-white mb-3">
-                  {step.title}
-                </h3>
-                <p className="text-[12px] text-white/35 leading-[1.8]">
-                  {step.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    
 
       {/* ══ FAQ ════════════════════════════════════════════════ */}
       <section className="bg-[#0F0D0A] py-24 sm:py-32 border-t border-white/[0.04]">

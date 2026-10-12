@@ -15,20 +15,50 @@ export default function WeddingHero() {
   useEffect(() => {
     let ctx: any;
     let mounted = true;
+    const cleanups: Array<() => void> = [];
+    const splits: Array<{ revert: () => void }> = [];
 
     async function init() {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      gsap.registerPlugin(ScrollTrigger);
+      const { SplitText } = await import("gsap/SplitText");
+      gsap.registerPlugin(ScrollTrigger, SplitText);
+      await document.fonts.ready;
       if (!mounted) return;
 
       ctx = gsap.context(() => {
+        const section = sectionRef.current;
+        const lines = gsap.utils.toArray<HTMLElement>(".wh-title-line");
+        const inners = gsap.utils.toArray<HTMLElement>(".wh-title-inner");
+        gsap.set(lines, { opacity: 1 });
+
+        const split = new SplitText(inners, { type: "chars" });
+        splits.push(split);
+
+        // Számlálók: nulláról indulnak az intro végén
+        const counters = gsap.utils.toArray<HTMLElement>(".wh-count");
+        counters.forEach((el) => {
+          el.textContent = "0" + (el.getAttribute("data-suf") ?? "");
+        });
+
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
         tl.fromTo(
-          ".wh-bg-img",
-          { scale: 1.06 },
-          { scale: 1, duration: 2.2, ease: "power2.out" },
+          ".wh-photo",
+          { filter: "blur(22px) brightness(0.55)", scale: 1.16 },
+          {
+            filter: "blur(0px) brightness(1)",
+            scale: 1,
+            duration: 2.4,
+            ease: "power3.inOut",
+          },
+          0,
         )
+          .fromTo(
+            ".wh-hud",
+            { autoAlpha: 0, scale: 1.8 },
+            { autoAlpha: 1, scale: 1, duration: 0.9, stagger: 0.08 },
+            0.4,
+          )
           .fromTo(
             ".wh-line-left",
             { scaleY: 0 },
@@ -47,39 +77,115 @@ export default function WeddingHero() {
             0.8,
           )
           .fromTo(
-            ".wh-title-line",
-            { opacity: 0, y: 50, skewY: 1.5 },
-            { opacity: 1, y: 0, skewY: 0, stagger: 0.12, duration: 1 },
+            split.chars,
+            { yPercent: 115, rotate: 5, autoAlpha: 0 },
+            {
+              yPercent: 0,
+              rotate: 0,
+              autoAlpha: 1,
+              stagger: 0.03,
+              duration: 1.1,
+              ease: "power4.out",
+            },
             1.0,
           )
           .fromTo(
             ".wh-cta-item",
             { opacity: 0, y: 14 },
             { opacity: 1, y: 0, stagger: 0.1, duration: 0.6 },
-            1.5,
+            1.6,
           )
           .fromTo(
             ".wh-side-panel",
             { opacity: 0, x: 24 },
             { opacity: 1, x: 0, duration: 0.9 },
-            1.2,
+            1.3,
           )
           .fromTo(
             ".wh-bottom-item",
             { opacity: 0, y: 10 },
             { opacity: 1, y: 0, stagger: 0.08, duration: 0.5 },
-            1.7,
+            1.8,
           );
 
+        counters.forEach((el) => {
+          const target = parseInt(el.getAttribute("data-val") ?? "0");
+          const suf = el.getAttribute("data-suf") ?? "";
+          const obj = { v: 0 };
+          tl.to(
+            obj,
+            {
+              v: target,
+              duration: 1.8,
+              ease: "power2.out",
+              onUpdate: () => {
+                el.textContent = Math.round(obj.v) + suf;
+              },
+            },
+            1.5,
+          );
+        });
+
+        // Scroll-parallax
         gsap.to(".wh-bg-img", {
           yPercent: 12,
           ease: "none",
           scrollTrigger: {
-            trigger: sectionRef.current,
+            trigger: section,
             start: "top top",
             end: "bottom top",
             scrub: 1,
           },
+        });
+
+        // Egér-parallax + követő arany fény
+        const mouseEl = section?.querySelector(".wh-mouse");
+        if (section && mouseEl) {
+          const mx = gsap.quickTo(mouseEl, "x", { duration: 1.2, ease: "power3" });
+          const my = gsap.quickTo(mouseEl, "y", { duration: 1.2, ease: "power3" });
+          const glow = section.querySelector<HTMLElement>(".wh-glow");
+          const onMove = (e: PointerEvent) => {
+            const r = section.getBoundingClientRect();
+            const px = (e.clientX - r.left) / r.width;
+            const py = (e.clientY - r.top) / r.height;
+            mx((px - 0.5) * -26);
+            my((py - 0.5) * -16);
+            if (glow) {
+              glow.style.setProperty("--gx", `${e.clientX - r.left}px`);
+              glow.style.setProperty("--gy", `${e.clientY - r.top}px`);
+              glow.style.opacity = "1";
+            }
+          };
+          const onLeave = () => {
+            if (glow) glow.style.opacity = "0";
+          };
+          section.addEventListener("pointermove", onMove);
+          section.addEventListener("pointerleave", onLeave);
+          cleanups.push(() => {
+            section.removeEventListener("pointermove", onMove);
+            section.removeEventListener("pointerleave", onLeave);
+          });
+        }
+
+        // Mágneses gombok
+        gsap.utils.toArray<HTMLElement>(".wh-cta-item").forEach((el) => {
+          const xTo = gsap.quickTo(el, "x", { duration: 0.6, ease: "power3" });
+          const yTo = gsap.quickTo(el, "y", { duration: 0.6, ease: "power3" });
+          const move = (e: PointerEvent) => {
+            const r = el.getBoundingClientRect();
+            xTo((e.clientX - (r.left + r.width / 2)) * 0.28);
+            yTo((e.clientY - (r.top + r.height / 2)) * 0.4);
+          };
+          const leave = () => {
+            xTo(0);
+            yTo(0);
+          };
+          el.addEventListener("pointermove", move);
+          el.addEventListener("pointerleave", leave);
+          cleanups.push(() => {
+            el.removeEventListener("pointermove", move);
+            el.removeEventListener("pointerleave", leave);
+          });
         });
       }, sectionRef);
     }
@@ -87,7 +193,9 @@ export default function WeddingHero() {
     init();
     return () => {
       mounted = false;
+      cleanups.forEach((fn) => fn());
       ctx?.revert();
+      splits.forEach((s) => s.revert());
     };
   }, []);
 
@@ -97,21 +205,25 @@ export default function WeddingHero() {
       className="relative w-full overflow-hidden bg-[#0D0B08]"
       style={{ height: "100svh", minHeight: "600px" }}
     >
-      {/* Háttérkép */}
+      {/* Háttérkép: scroll-parallax > egér-parallax > fókuszhúzás */}
       <div
         className="absolute inset-x-0 overflow-hidden"
         style={{ top: "-5%", bottom: "-5%" }}
       >
         <div className="wh-bg-img absolute inset-0 will-change-transform">
-          <Image
-            src="/gallery/wedding/bialaci-464.jpg"
-            alt="Esküvői fotó"
-            fill
-            className="object-cover object-center"
-            priority
-            sizes="100vw"
-            quality={85}
-          />
+          <div className="wh-mouse absolute inset-[-3%] will-change-transform">
+            <div className="wh-photo absolute inset-0 will-change-[filter,transform]">
+              <Image
+                src="/gallery/wedding/bialaci-464.jpg"
+                alt="Esküvői fotó"
+                fill
+                className="object-cover object-center"
+                priority
+                sizes="100vw"
+                quality={85}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -125,6 +237,27 @@ export default function WeddingHero() {
         `,
         }}
       />
+
+      {/* Egeret követő meleg fény */}
+      <div
+        aria-hidden
+        className="wh-glow pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-700 mix-blend-screen"
+        style={{
+          background:
+            "radial-gradient(420px circle at var(--gx, 70%) var(--gy, 50%), rgba(200,168,130,0.20), transparent 65%)",
+        }}
+      />
+
+      {/* Keresőkeret HUD */}
+      <div
+        aria-hidden
+        className="absolute inset-4 sm:inset-6 z-[2] pointer-events-none"
+      >
+        <span className="wh-hud absolute top-0 left-0 w-8 h-8 border-t border-l border-white/45" />
+        <span className="wh-hud absolute top-0 right-0 w-8 h-8 border-t border-r border-white/45" />
+        <span className="wh-hud absolute bottom-0 left-0 w-8 h-8 border-b border-l border-white/45" />
+        <span className="wh-hud absolute bottom-0 right-0 w-8 h-8 border-b border-r border-white/45" />
+      </div>
 
       {/* Tartalom */}
       <div
@@ -158,14 +291,17 @@ export default function WeddingHero() {
                 className="font-['Cormorant_Garamond'] font-thin text-white leading-[0.85] tracking-[-0.03em]"
                 style={{ fontSize: "clamp(3.2rem, 7.5vw, 10.5rem)" }}
               >
-                <div className="wh-title-line opacity-0 overflow-hidden">
-                  <span className="block">A ti</span>
+                <div className="wh-title-line opacity-0 overflow-hidden pt-[0.16em] -mt-[0.16em] pb-[0.1em]">
+                  <span className="wh-title-inner block">A ti</span>
                 </div>
-                <div className="wh-title-line opacity-0 overflow-hidden">
-                  <span className="block">történetetek</span>
+                <div className="wh-title-line opacity-0 overflow-hidden pt-[0.16em] -mt-[0.16em] pb-[0.1em]">
+                  <span className="wh-title-inner block">történetetek</span>
                 </div>
-                <div className="wh-title-line opacity-0 overflow-hidden">
-                  <em className="block not-italic" style={{ color: "#C8A882" }}>
+                <div className="wh-title-line opacity-0 overflow-hidden pt-[0.16em] -mt-[0.16em] pb-[0.1em]">
+                  <em
+                    className="wh-title-inner block not-italic"
+                    style={{ color: "#C8A882" }}
+                  >
                     örökre.
                   </em>
                 </div>
@@ -173,13 +309,13 @@ export default function WeddingHero() {
               <div className="flex flex-wrap items-center gap-4 mt-6">
                 <Link
                   href="/contact"
-                  className="wh-cta-item opacity-0 bg-white text-[#1A1510] text-[11px] tracking-[0.18em] uppercase px-7 py-3.5 hover:bg-[#C8A882] hover:text-white transition-all duration-300 whitespace-nowrap"
+                  className="wh-cta-item opacity-0 bg-white text-[#1A1510] text-[11px] tracking-[0.18em] uppercase px-7 py-3.5 hover:bg-[#C8A882] hover:text-white transition-colors duration-300 whitespace-nowrap"
                 >
                   Időpont egyeztetés
                 </Link>
                 <a
                   href="#csomagok"
-                  className="wh-cta-item opacity-0 text-[11px] tracking-[0.14em] uppercase text-white/50 border-b border-white/20 pb-0.5 hover:text-white hover:border-white/50 transition-all duration-200 whitespace-nowrap"
+                  className="wh-cta-item opacity-0 text-[11px] tracking-[0.14em] uppercase text-white/50 border-b border-white/20 pb-0.5 hover:text-white hover:border-white/50 transition-colors duration-200 whitespace-nowrap"
                 >
                   Csomagok →
                 </a>
@@ -193,12 +329,18 @@ export default function WeddingHero() {
               </p>
               <div className="flex gap-6 py-4 border-t border-white/10">
                 {[
-                  { n: "20+", l: "Esküvő" },
-                  { n: "4 év", l: "Tapasztalat" },
+                  { n: "20+", v: "20", suf: "+", l: "Esküvő" },
+                  { n: "4 év", v: "4", suf: " év", l: "Tapasztalat" },
                 ].map((s) => (
                   <div key={s.l}>
                     <div className="font-['Cormorant_Garamond'] text-[1.8rem] font-light text-[#C8A882] leading-none">
-                      {s.n}
+                      <span
+                        className="wh-count"
+                        data-val={s.v}
+                        data-suf={s.suf}
+                      >
+                        {s.n}
+                      </span>
                     </div>
                     <div className="text-[8px] tracking-[0.15em] uppercase text-white/30 mt-1">
                       {s.l}
@@ -235,7 +377,7 @@ export default function WeddingHero() {
       </div>
 
       {/* Jobb dekor */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden xl:flex flex-col items-center gap-3 z-[2]">
+      <div className="absolute right-10 top-1/2 -translate-y-1/2 hidden xl:flex flex-col items-center gap-3 z-[2]">
         <div className="w-px h-14 bg-gradient-to-b from-transparent to-[#C8A882]/20" />
         <div className="w-1 h-1 rounded-full bg-[#C8A882]/40" />
         <span

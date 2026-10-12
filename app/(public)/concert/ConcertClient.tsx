@@ -154,7 +154,7 @@ export default function ConcertClient({ images }: { images: GalleryImageMeta[] }
   );
 
   const heroImageSrc =  `/gallery/concert/csillagvirag-157.jpg`;
-
+  //const heroImageSrc =  `/gallery/event/placeholder.jpg`;
   useEffect(() => {
     let ctx: any,
       mounted = true;
