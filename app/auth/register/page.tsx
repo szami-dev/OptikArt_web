@@ -140,10 +140,9 @@ function RegisterForm() {
             <div className="w-8 h-px bg-[#C8A882]" /><span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Új fiók</span>
           </div>
           <h2 className="anim-item font-['Cormorant_Garamond'] text-[clamp(2rem,3vw,2.8rem)] font-light leading-[1.12] text-white mb-6 opacity-0">
-            Csatlakozz az<br />OptikArt<br /><em className="not-italic text-[#C8A882]">közösséghez</em>
+            Csatlakozz<br /><em className="not-italic text-[#C8A882]">hozzánk</em>
           </h2>
-          <p className="anim-item text-[13px] font-light text-[#7A6A58] leading-[1.9] mb-12 opacity-0">Hozd létre saját portfóliódat és<br />kezeld ügyfeleidet egy helyen.</p>
-        </div>
+          </div>
         <div className="anim-item relative z-10 opacity-0">
           <span className="text-[10px] tracking-[0.1em] text-[#3A3020]">© {new Date().getFullYear()} OptikArt</span>
         </div>

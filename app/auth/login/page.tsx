@@ -133,19 +133,11 @@ function LoginForm() {
             <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Üdvözlünk</span>
           </div>
           <h2 className="login-anim-item font-['Cormorant_Garamond'] text-[clamp(2rem,3vw,2.8rem)] font-light leading-[1.12] text-white mb-6 opacity-0">
-            Lépj be és<br/>folytasd a<br/><em className="not-italic text-[#C8A882]">munkát</em>
+            Lépj be és<br/>folytassuk a<br/><em className="not-italic text-[#C8A882]">munkát</em>
           </h2>
           <p className="login-anim-item text-[13px] font-light text-[#7A6A58] leading-[1.9] mb-12 opacity-0">
             Az OptikArt portfólió és<br/>ügyfélkezelő platformja.
           </p>
-          <div className="login-anim-item flex flex-col gap-3 opacity-0">
-            {["Portfólió kezelés", "Ügyfél kommunikáció", "Projekt követés"].map(item => (
-              <div key={item} className="flex items-center gap-3">
-                <div className="w-1 h-1 rounded-full bg-[#C8A882]"/>
-                <span className="text-[11px] tracking-[0.08em] text-[#5A4A3A]">{item}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="login-anim-item relative z-10 opacity-0">
@@ -162,7 +154,9 @@ function LoginForm() {
             <div className="w-8 h-px bg-[#C8A882]"/>
             <span className="text-[10px] tracking-[0.22em] uppercase text-[#A08060]">Bejelentkezés</span>
           </div>
-          <h1 className="form-anim-item font-['Cormorant_Garamond'] text-[clamp(2rem,3.5vw,3rem)] font-light leading-[1.1] text-[#1A1510] mb-3 opacity-0">Jó visszalátni</h1>
+          <h1 className="form-anim-item font-['Cormorant_Garamond'] text-[clamp(2rem,3.5vw,3rem)] font-light leading-[1.1] text-[#1A1510] mb-3 opacity-0">Jó viszontlátni
+          
+          </h1>
           <p className="form-anim-item text-[13px] font-light text-[#7A6A58] leading-relaxed mb-10 opacity-0">Add meg az adataidat a belépéshez.</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
