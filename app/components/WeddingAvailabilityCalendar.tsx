@@ -82,10 +82,10 @@ export default function WeddingAvailabilityCalendar() {
                     {freeWeekends.length}
                   </div>
                   <div className="text-[9px] tracking-[0.15em] uppercase text-[#A08060] mt-1">
-                    Szabad hétvége
+                    Szabad hétvégi nap
                   </div>
                   <div className="text-[10px] text-[#C8B8A0] mt-0.5">
-                    {monthName}ban
+                    {monthName}ben
                   </div>
                 </div>
                 <div className="bg-white border border-[#EDE8E0] px-5 py-4 flex-1 text-center">

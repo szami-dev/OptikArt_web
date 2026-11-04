@@ -1625,11 +1625,10 @@ export default function ContactSection({ embedded = false }: Props) {
             <br />a közös <em className="not-italic text-[#C8A882]">munkát</em>
           </h2>
           <p className="text-[13px] sm:text-[14px] font-light text-[#7A6A58] leading-[1.9] mb-8">
-            Legyen szó egy nagy projektről vagy egy kis megbízásról — szívesen
-            hallunk rólad.
+            Legyen szó egy nagy projektről vagy egy kis megbízásról
             {isLoggedIn
               ? " Bejelentkezve hozzáférsz a teljes projekt wizardhoz, csomagválasztáshoz és árkalkulátorhoz."
-              : " Írj nekünk és 24 órán belül visszajelzünk. Regisztrálva gyorsabban intézheted a foglalásodat."}
+              : " írj nekünk és 24 órán belül visszajelzünk. Regisztrálva gyorsabban intézheted a foglalásodat."}
           </p>
           <div className="flex flex-col gap-4">
             {[

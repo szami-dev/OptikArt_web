@@ -214,7 +214,7 @@ const faqs = [
   },
   {
     q: "Hogyan zajlik a digitális átadás?",
-    a: "Egy privát online galérián keresztül, ahonnan 2 hónapig letölthetők a képek, ezt követően google driveon keresztül korlátlan ideig. A pendrive-os csomagoknál egyedi díszdobozban postázzuk vagy személyesen adjuk át.",
+    a: "Egy privát online galérián keresztül, ahonnan 2 hónapig letölthetők a képek. A pendrive-os csomagoknál egyedi díszdobozban postázzuk vagy személyesen adjuk át.",
   },
   {
     q: "Mi az a kidolgozott kép?",
@@ -222,11 +222,11 @@ const faqs = [
   },
   {
     q: "Van-e lehetőség egyedi csomag összeállítására?",
-    a: "Természetesen! Ha a meglévő csomagok egyike sem illik tökéletesen, keressetek minket és személyre szabott ajánlatot készítünk.",
+    a: "Természetesen! Ha a meglévő csomagok egyike sem passzol az igényeitekhez, keressetek minket bizalommal, és megalkotjuk a számotokra tökéletes ajánlatot.",
   },
   {
     q: "Milyen messzire utaztok?",
-    a: "Magyarország egész területén vállalunk munkát. Kiskunfélegyháza 25 km-es körzetén belül kiszállási díj nincs.",
+    a: "Magyarország egész területén vállalunk munkát. Kiskunfélegyháza 25 km-es körzetén belül nincs kiszállási díj. ",
   },
   {
     q: "Szükséges-e foglalót adni?",
@@ -1155,7 +1155,7 @@ export default function WeddingClient() {
                 Párok,
                 <br />
                 <em className="not-italic text-[#C8A882]">
-                  akiknek dolgoztunk
+                  akikkel dolgoztunk
                 </em>
               </h2>
             </div>

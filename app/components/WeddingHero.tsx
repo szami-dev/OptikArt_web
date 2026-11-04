@@ -362,7 +362,7 @@ export default function WeddingHero() {
                   Referencia
                 </div>
                 <div className="text-[11px] text-white/40 font-['Cormorant_Garamond'] italic">
-                  Vivi & Bence · Kecskemét, 2025
+                  Bianka & Laci · Szeged, 2026
                 </div>
               </div>
             </div>
